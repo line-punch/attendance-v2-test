@@ -28,3 +28,31 @@
 - 新版前端已進行 HTML/JavaScript 語法檢查及模擬請求測試，但尚未由 ChatGPT 確認**真實 GAS + LINE 跨網站 POST / iframe 回覆**可以成功。
 - 新驗證後端完全不需要 Google Sheet 權限。不要在任何公開 GitHub 儲存庫上傳 LINE Channel secret、密碼、LINE ID Token 或員工資料。
 - 即使此次身分驗證成功，也不代表 V2.0 打卡／請假可上線；這些功能需要另行完成授權、併發、資料保護及手機測試。
+
+## 2026-10-21 實際測試：後端回覆逾時
+
+測試者已完成 LINE 登入，但 GitHub Pages 向獨立 Apps Script `/exec`
+送出 `verify` 表單後，約 45 秒沒有收到跨網站 iframe 的 `postMessage`。
+Edge 顯示第三方 Cookie 被封鎖。**目前無法確認 `doPost` 是否有執行**，
+不能將逾時等同於 LINE Token 驗證失敗或成功。
+
+Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
+<https://developers.google.com/apps-script/guides/html/restrictions>。
+另有 2026 年 7 月 Google Issue Tracker 記錄：即使設定
+`XFrameOptionsMode.ALLOWALL`，GAS web app 跨來源 iframe
+仍可能被 CSP/`X-Frame-Options: SAMEORIGIN` 阻擋：
+<https://issuetracker.google.com/issues/532860188>。
+
+**現階段確認：** 不開放打卡、請假、寫入功能；不更動正式系統；
+不要求使用者全面啟用第三方 Cookie。
+
+**下次定位問題的第一個證據：** 在專用專案
+`YC_ATTENDANCE_V2_LOGIN_VERIFY_ONLY` 的 Apps Script 左側「執行項目」
+檢查測試當時是否有 `doPost` 紀錄。
+- 若無 `doPost`，優先排查測試部署「誰可以存取」、網路或請求被導向登入頁。
+- 若有 `doPost` 完成，優先排查 Google 跨來源 iframe 回覆遭阻擋。
+- 若 `doPost` 失敗，依錯誤訊息修正驗證程式或 LINE 通訊。
+
+若 iframe 確定受阻，最終架構應移除 iframe 回覆通道，
+改用能提供標準 HTTPS JSON 回應及受限 CORS 的獨立後端，
+避免依賴瀏覽器第三方 Cookie 設定。
