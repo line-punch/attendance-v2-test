@@ -1,25 +1,30 @@
 # 打卡系統 V2.0 — LINE 登入隔離測試
 
-此儲存庫僅用於**隔離測試**，與員工正式使用的 `line-punch/line-punch` 打卡頁面分開。**請勿提供此入口給員工使用。**
+此儲存庫專供 LINE 登入與**唯讀後端身分驗證**測試，與正式打卡網站 `line-punch/line-punch` 完全分離。
 
-## 測試階段 1：LIFF 登入相容性
+## 目前部署狀態（2026-10-21）
 
-- 網頁檔案：[`index.html`](./index.html)
-- 測試 LIFF ID：`2012136707-2dDU0aSJ`
-- 對應 LINE Login Channel：`2012136707`，維持 Developing。
-- 預定 GitHub Pages 位址：`https://line-punch.github.io/attendance-v2-test/`，尚需啟用 Pages 並核對實際發布。
-- **目前僅測試 LINE LIFF 在頂層 HTTPS 頁面的登入流程；不會呼叫後端、寫入 Google Sheet、打卡或請假。**
-- `CONFIG.enableServerVerification=false` 是刻意關閉的安全閘。即使使用者成功登入 LINE，也**不表示後端已驗證身分**。
+- 測試網頁：<https://line-punch.github.io/attendance-v2-test/>
+- 測試 LIFF：<https://liff.line.me/2012136707-2dDU0aSJ>
+- LINE Login Channel ID：`2012136707`（Developing）。
+- GitHub Pages `main/index.html` 已切換成**驗證服務連線測試版**。
+- 後端：獨立 `YC_ATTENDANCE_V2_LOGIN_VERIFY_ONLY` Apps Script 專案。
+- 僅提交 `verify` 請求，使用 LINE ID Token 向後端驗證；成功回覆僅包含布林值 `verified:true`。
+- 沒有連接 Google Sheet、查詢員工、打卡、請假、主管審核及資料寫入功能。
+- **正式 Google Apps Script 與正式 LINE LIFF 完全未修改**。
 
-## 安全與正式環境隔離
+## 測試方法
 
-- 不更動既有 `line-punch/line-punch` 倉庫或其 GitHub Pages 設定。
-- 不更動原正式打卡 Channel 或正式 LIFF Endpoint。
-- 不儲存 LINE ID Token、Channel secret、使用者資料或 Google 私密設定於本 repo。
-- 第二階段與 GAS 連線前，須完成後端 POST 通道的整合與安全測試；不得直接沿用正式 JSONP 端點。
-- LIFF Endpoint 必須設定為此儲存庫的**實際已啟用** GitHub Pages HTTPS 首頁，而非 Apps Script HTMLService iframe 頁。
-- 測試 Channel 及 LIFF 尚未完成 iPhone/Android 實測。
+1. 等 GitHub Pages 自動發布最新 main 程式。
+2. 以有測試 Channel 權限的個人 LINE 帳號開啟上方**測試 LIFF**。
+3. 頁面會自動檢查 LINE 登入狀態；如尚未登入，點「驗證 LINE 登入」。
+4. 理想結果：`✅ 已由 LINE 與獨立 Apps Script 後端驗證登入`。
+5. 若顯示驗證失敗或等待逾時，提供畫面中的**錯誤文字即可**；不要提供 LINE ID Token、登入網址參數或驗證碼。
 
-## 目前已驗證
+## 重要界線
 
-`index.html` 已由 ChatGPT 自 GitHub 隔離開發分支複製，並經 JavaScript 語法檢查。GitHub Pages 是否啟用、LINE 實際登入是否成功，仍須另外驗證。
+- GitHub Pages 的原本「僅檢查瀏覽器 LINE 登入」版本已備份於
+  `backup/login-smoke-passed-20261021`，可用於測試環境還原。
+- 新版前端已進行 HTML/JavaScript 語法檢查及模擬請求測試，但尚未由 ChatGPT 確認**真實 GAS + LINE 跨網站 POST / iframe 回覆**可以成功。
+- 新驗證後端完全不需要 Google Sheet 權限。不要在任何公開 GitHub 儲存庫上傳 LINE Channel secret、密碼、LINE ID Token 或員工資料。
+- 即使此次身分驗證成功，也不代表 V2.0 打卡／請假可上線；這些功能需要另行完成授權、併發、資料保護及手機測試。
