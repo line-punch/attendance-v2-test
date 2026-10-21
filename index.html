@@ -20,13 +20,13 @@
   <p>這是獨立的 LINE 登入測試，不是正式員工打卡入口。此階段不提供寫入或打卡功能。</p>
   <button id="login" type="button">驗證 LINE 登入</button>
   <div id="status" class="box" role="status">尚未開始</div>
-  <small>第一階段只測試 LINE 登入畫面。尚未啟用後端身分驗證。本頁不顯示或儲存 LINE ID Token。</small>
+  <small>第二階段：唯讀驗證 LINE ID Token。此頁不顯示或儲存任何 LINE ID Token、員工個資或打卡資料。</small>
 </main>
 <script>
 "use strict";
 const CONFIG=Object.freeze({
   liffId:"2012136707-2dDU0aSJ",
-  enableServerVerification:false, // Keep off until GAS POST bridge is reviewed and deployed
+  enableServerVerification:true, // BRANCH-ONLY: enable after read-only bridge deployment
   api:"https://script.google.com/macros/s/AKfycbyGRIgGhv4To0KbeTXSJPGke5OFwl5XUtiwHd9LkMXaLh4bG_2cziQkXJt0dQ8Tt3mG/exec",
   allowedResponseOrigins:["https://script.google.com"],
   expectedResponseSuffix:".googleusercontent.com"
@@ -109,13 +109,9 @@ async function verifyLine(autoCheck=false){
       return;
     }
     status("LINE 登入已完成，正在向隔離測試後端確認身分…");
-    const response=await postForm("whoami",{idToken});
-    if(!response||!response.ok)throw Error("後端沒有確認身分");
-    if(!response.bound){
-      status("✅ LINE ID Token 經測試後端驗證成功。\n此帳號尚未綁定模擬員工（正常；稍後再測綁定）。");
-    }else{
-      status("✅ LINE 身分驗證成功，測試員工："+response.employee.name);
-    }
+    const response=await postForm("verify",{idToken});
+    if(!response||!response.ok||response.verified!==true)throw Error("後端沒有確認身分");
+    status("✅ 已由 LINE 與獨立 Apps Script 後端驗證登入。\n本階段仍不開放任何打卡、請假或寫入功能。");
   }catch(e){
     status("⚠️ 登入測試尚未完成："+String(e&&e.message||e));
   }finally{busy=false;button.disabled=false;button.textContent="驗證 LINE 登入";}
