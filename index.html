@@ -88,13 +88,17 @@ function postForm(operation,payload) {
     try{form.submit()}catch(e){finish(e)}
   });
 }
-async function verifyLine(){
+async function verifyLine(autoCheck=false){
   if(busy)return;
   busy=true;button.disabled=true;button.textContent="正在處理…";
   try{
-    status("正在初始化 LINE LIFF…");
+    status(autoCheck?"正在確認是否已從 LINE 登入返回…":"正在初始化 LINE LIFF…");
     await liff.init({liffId:CONFIG.liffId});
     if(!liff.isLoggedIn()){
+      if(autoCheck){
+        status("尚未登入 LINE，請按「驗證 LINE 登入」。");
+        return;
+      }
       status("正在跳轉至 LINE 登入…");
       liff.login();return;
     }
@@ -116,8 +120,10 @@ async function verifyLine(){
     status("⚠️ 登入測試尚未完成："+String(e&&e.message||e));
   }finally{busy=false;button.disabled=false;button.textContent="驗證 LINE 登入";}
 }
-button.addEventListener("click",verifyLine);
-// Do not force external-browser login before the person clicks the button.
+button.addEventListener("click",()=>verifyLine(false));
+// On returning from LINE OAuth, the whole page reloads. Resume the successful
+// login check automatically; never initiate a login redirect without a click.
+verifyLine(true);
 </script>
 </body>
 </html>
