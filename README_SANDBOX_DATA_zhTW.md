@@ -55,3 +55,14 @@
 - 已核對「確定拒絕」與「寫入結果未知」須分別回覆，不可讓員工誤認。
 - 前端資料功能目前保留 `enableDataTesting:false` 與尚未設定的專用 `dataApi` URL，
   因此尚不會觸發實際模擬員工寫入；後端雲端整合測試完成前不可打開。
+
+## 2026-10-22 13:44：Google Apps Script 唯讀預檢通過
+
+在打卡專用 Google 帳號下的新專案 YC_ATTENDANCE_V2_DATA_TEST_ONLY，使用者手動執行 v2CheckSandboxDataSetup，回報 2026-10-22 13:44:31 至 13:44:33 的執行紀錄：
+- V2 DATA TEST PREFLIGHT PASS
+- 資料庫 YC_ATTENDANCE_V2_TEST_ONLY
+- TEST001 尚未綁定
+- GPS 尚未設定
+- 打卡紀錄 0 筆
+
+此結果只證實唯讀預檢與隔離資料庫可讀，尚未證實 iPhone 綁定或 GPS 寫入。下一步是部署新的 DATA TEST 專案 Web App；取得新 /exec URL 後再設定尚未發布的 UI feature 分支。務必在 UI 連線就緒、準備實際測試時才核發 30 分鐘一次性邀請碼。
