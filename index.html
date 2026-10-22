@@ -290,7 +290,17 @@ function obtainGPS(){
         accuracy:loc.coords.accuracy,
         capturedAt:Date.now()
       }),
-      e=>reject(Error("無法定位："+(e&&e.message||"未知錯誤"))),
+      e=>{
+        const code=Number(e&&e.code);
+        const hint=code===1
+          ?"定位權限遭拒。請到手機設定允許 LINE 使用定位與精確位置，再返回重試。"
+          :code===2
+          ?"目前無法取得 GPS 位置。請確認手機定位服務已開啟，移到訊號較佳位置再試。"
+          :code===3
+          ?"取得 GPS 位置逾時。請確認定位服務與網路狀態，再重新按一次。"
+          :"無法取得 GPS 位置。請檢查手機定位權限後重試。";
+        reject(Error(hint));
+      },
       {enableHighAccuracy:true,timeout:15000,maximumAge:0});
   });
 }
