@@ -108,8 +108,9 @@ function showPage(page){
   $("pageTitle").textContent=V2_PAGE_TITLES[p]+"｜V2 隔離介面";
   const nav=$("v2Navigation");
   if(nav){
+    const root=["annual","payslip","history"].includes(p)?"query":p;
     for(const button of nav.querySelectorAll("[data-page]")){
-      const active=button.getAttribute("data-page")===p;
+      const active=button.getAttribute("data-page")===root;
       button.classList.toggle("active",active);
       if(active)button.setAttribute("aria-current","page");
       else button.removeAttribute("aria-current");
