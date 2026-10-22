@@ -5,7 +5,7 @@ const html=fs.readFileSync(__dirname+'/index.html','utf8');
 const match=html.match(/<script>\s*("use strict";[\s\S]*?)<\/script>/);
 if(!match)throw Error('LIFF inline script missing');
 async function suite(){
- let passed=0;function test(name,fn){fn();passed++;console.log('PASS '+name)}
+ let passed=0;async function test(name,fn){await fn();passed++;console.log('PASS '+name)}
  function browser(options={}){
   const nodes={},events={},forms=[],storage=new Map();
   const $=id=>nodes[id]||(nodes[id]={id,hidden:true,disabled:false,
@@ -104,12 +104,12 @@ async function suite(){
  }
  const settle=async()=>{for(let i=0;i<50;i++)await Promise.resolve()};
  const a=browser(false);await settle();
- test('stage-4 unpublished feature supports isolated LINE, binding, and GPS clock',()=>{
+ await test('stage-4 unpublished feature supports isolated LINE, binding, and GPS clock',()=>{
    assert.ok(html.includes('enableDataTesting:true'));
    assert.ok(html.includes('enableBinding:true'));
    assert.ok(html.includes('enableClock:true'));
  });
- test('initial unbound TEST001 UI hides all GPS clock buttons',()=>{
+ await test('initial unbound TEST001 UI hides all GPS clock buttons',()=>{
    assert.deepEqual(a.forms.map(x=>x.op),['verify','whoami']);
    assert.equal(a.$('sandbox').hidden,false);
    assert.equal(a.$('bindPane').hidden,false);
@@ -117,7 +117,7 @@ async function suite(){
    assert.ok(a.$('bindState').textContent.includes('TEST001 尚未綁定'));
    assert.ok(a.$('status').textContent.includes('隔離資料服務連線成功'));
  });
- test('no clock calls before test employee is bound',()=>{
+ await test('no clock calls before test employee is bound',()=>{
    assert.deepEqual(a.forms.map(x=>x.op),['verify','whoami']);
  });
  await test('single invitation binds TEST001 then displays clock UI',async()=>{
@@ -130,28 +130,28 @@ async function suite(){
    assert.equal(a.$('inviteCode').value,'');
  });
  const b=browser(true);await settle();
- test('data phase checks whoami after verified LINE login',()=>{
+ await test('data phase checks whoami after verified LINE login',()=>{
    assert.deepEqual(b.forms.map(x=>x.op),['verify','whoami']);
    assert.equal(b.$('bindPane').hidden,false);
  });
  b.$('inviteCode').value='AB'.repeat(16);
  await b.scope.bindSandbox();await settle();
- test('one-time invitation bind appears in test API POST',()=>{
+ await test('one-time invitation bind appears in test API POST',()=>{
    assert.ok(b.forms.some(x=>x.op==='bind'&&x.request.invitationCode==='AB'.repeat(16)));
    assert.equal(b.$('clockPane').hidden,false);
  });
  await b.scope.testClock('上班');await settle();
- test('GPS clock sends fresh timestamp and accuracy',()=>{
+ await test('GPS clock sends fresh timestamp and accuracy',()=>{
    const clock=b.forms.find(x=>x.op==='clock');
    assert.equal(clock.request.accuracy,12);
    assert.ok(Number.isFinite(clock.request.capturedAt));
    assert.equal(clock.api,'https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec');
    assert.ok(b.$('clockStatus').textContent.includes('測試打卡成功'));
  });
- test('success clears pending duplicate-protection state',()=>assert.equal(b.storage.size,0));
+ await test('success clears pending duplicate-protection state',()=>assert.equal(b.storage.size,0));
  b.browserState.failGPS=true;
  await b.scope.testClock('下班');await settle();
- test('known GPS denial clears pending and shows actionable error',()=>{
+ await test('known GPS denial clears pending and shows actionable error',()=>{
    assert.equal(b.storage.size,0);
    assert.ok(b.$('clockStatus').textContent.includes('打卡未寫入'));
  });
@@ -170,7 +170,7 @@ async function suite(){
    assert.ok(b.$('clockStatus').textContent.includes('已確認打卡成功'));
  });
 
- test('today query is enabled after sandbox LINE binding, not before',()=>{
+ await test('today query is enabled after sandbox LINE binding, not before',()=>{
    assert.ok(html.includes('enableTodayQuery:true'));
    assert.equal(a.forms.slice(0,2).map(x=>x.op).join(','),'verify,whoami');
    assert.equal(a.forms.some(x=>x.op==='todayAttendance'),true);
