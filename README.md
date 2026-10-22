@@ -87,3 +87,21 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 驗證範圍：**iPhone LINE 內建瀏覽器 → GitHub Pages → 專用 Apps Script verify-only 服務 → 成功回傳畫面**。此前已在桌機 Edge InPrivate 成功。
 
 未完成：Android 手機相容性、模擬員工身分綁定、GPS 真實打卡寫入、請假審核整合、通知與備援。尚不能將 V2.0 視為正式可上線系統。
+
+## 2026-10-22：iPhone 隔離資料 whoami 實測通過
+
+使用者提供 iPhone LINE 內建瀏覽器截圖，確認：
+- LINE 後端驗證成功
+- 獨立 DATA TEST Apps Script 可查詢隔離試算表
+- 模擬員工 TEST001 尚未綁定
+- 頁面顯示「目前僅檢查連線，不開放綁定或打卡」
+
+其後已核對 11/11 項客戶端模擬回歸通過，並僅在 V2 測試網站開啟一次性邀請碼綁定：
+- enableDataTesting=true
+- enableBinding=true
+- enableClock=false
+- GitHub Pages 測試 main/index.html SHA 7dfd1209ca765a7ac9e70a0f0b7fe426b9a4ab5a
+- 先前 whoami 唯讀版備份在 backup/stage3-whoami-passed-20261022
+- 正式 line-punch/line-punch/main/index.html 維持 SHA fe86e76285938f0013e8d457c9547866654fb9b6
+
+下一步：使用者在打卡帳號所屬的獨立 DATA TEST Apps Script 編輯器，手動執行 v2IssueTestInvitation，取得 30 分鐘有效一次性測試碼；不要貼至聊天／公開儲存庫。用 iPhone LINE 內建瀏覽器輸入邀請碼，測試將本人 LINE 綁到隔離資料表 TEST001。GPS 地點仍為未設定，不得開放打卡。
