@@ -131,6 +131,12 @@
     #v2Status{background:#e7f2ee}
     @media(max-width:375px){body{padding:9px}.card{padding:14px}.module-btn{min-height:78px;padding:11px}}
 
+
+    .query-services{display:grid;grid-template-columns:1fr;gap:9px;margin:13px 0 19px}
+    .query-link{background:#f0f6f8;color:var(--v2ink);border:1px solid var(--v2line);text-align:left;font-weight:700;min-height:55px;padding:12px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .query-link .pending{font-size:11px;background:#e2e9ec;color:#536d77;border-radius:999px;padding:3px 8px;white-space:nowrap}
+    .back-query{background:transparent;color:#286a5e;border:1px solid #accfc6;text-align:left;margin:0 0 17px;font-weight:700}
+
   </style>
 </head>
 <body>
@@ -138,19 +144,18 @@
     <div class="card">
       <div class="intro">LINE EMPLOYEE CENTER · V2</div>
       <h1>員工 LINE 人資中心</h1>
-      <p class="intro">保留既有四項服務，新增特休、薪資與歷史查詢入口。</p>
+      <p class="intro">保留你原本 LINE 下方四格選單。特休、薪資、歷史查詢收在「個人出勤查詢」頁內。</p>
       <div class="notice" id="v2Warning">**介面預覽模式**｜不連 LINE、Google Sheet 或任何後端；所有送出功能只顯示提示。</div>
       <button class="btn-blue" id="v2Login" onclick="startV2Login()">查看介面預覽說明</button>
       <div class="msg" id="v2Status" role="status">等待 LINE 身分驗證</div>
       <div class="subtitle">員工功能選單</div>
-      <nav class="module-menu" id="v2Navigation" aria-label="員工功能選單">
-        <button type="button" class="module-btn" data-page="clock" onclick="showPage('clock')"><span class="symbol" aria-hidden="true">◷</span>正常打卡<span class="sub">上班／下班及今日紀錄</span></button>
-        <button type="button" class="module-btn" data-page="miss" onclick="showPage('miss')"><span class="symbol" aria-hidden="true">✎</span>補打卡<span class="sub">申請與審核進度</span></button>
-        <button type="button" class="module-btn" data-page="query" onclick="showPage('query')"><span class="symbol" aria-hidden="true">▤</span>出勤查詢<span class="sub">最近三個月</span></button>
-        <button type="button" class="module-btn" data-page="leave" onclick="showPage('leave')"><span class="symbol" aria-hidden="true">☷</span>請假申請<span class="sub">假別與申請紀錄</span></button>
-        <button type="button" class="module-btn" data-page="annual" onclick="showPage('annual')"><span class="symbol" aria-hidden="true">✦</span>特休查詢<span class="pending">建置中</span></button>
-        <button type="button" class="module-btn" data-page="payslip" onclick="showPage('payslip')"><span class="symbol" aria-hidden="true">＄</span>薪資查詢<span class="pending">建置中</span></button>
-        <button type="button" class="module-btn" data-page="history" onclick="showPage('history')"><span class="symbol" aria-hidden="true">▦</span>歷史紀錄<span class="pending">建置中</span></button>
+      <div class="subtitle">LINE 官方帳號下方原有四格選單（示意）</div>
+      <p class="intro">正式 LINE 仍維持原本四個按鈕。這裡僅模擬從四格選單進入各操作頁，尚未修改 LINE 官方帳號設定。</p>
+      <nav class="module-menu" id="v2Navigation" aria-label="原本 LINE 下方四個功能">
+        <button type="button" class="module-btn" data-page="clock" onclick="showPage('clock')"><span class="symbol" aria-hidden="true">◷</span>正常打卡<span class="sub">上下班、今日紀錄</span></button>
+        <button type="button" class="module-btn" data-page="miss" onclick="showPage('miss')"><span class="symbol" aria-hidden="true">✎</span>補打卡<span class="sub">補打卡及申請狀態</span></button>
+        <button type="button" class="module-btn" data-page="query" onclick="showPage('query')"><span class="symbol" aria-hidden="true">▤</span>個人出勤查詢<span class="sub">原月查詢＋其他人資查詢</span></button>
+        <button type="button" class="module-btn" data-page="leave" onclick="showPage('leave')"><span class="symbol" aria-hidden="true">☷</span>請假申請<span class="sub">原有六種假別</span></button>
       </nav>
       <div class="subtitle" id="pageTitle">載入中...</div>
 
@@ -236,7 +241,14 @@
 
       <!-- 月查詢 -->
       <div id="page-query" class="page">
-        <h3>個人（月）出勤查詢區</h3>
+        <h3>個人出勤與人資查詢</h3>
+        <p class="intro">原有的最近三個月出勤查詢保留在下方。新增項目從這個「查詢」入口進入，不增加 LINE 下方選單格數。</p>
+        <div class="query-services" id="queryServices">
+          <button type="button" class="query-link" onclick="showPage('annual')">✦ 特休查詢 <span class="pending">建置中</span></button>
+          <button type="button" class="query-link" onclick="showPage('payslip')">＄ 薪資查詢 <span class="pending">建置中</span></button>
+          <button type="button" class="query-link" onclick="showPage('history')">▦ 歷史出勤與假勤 <span class="pending">建置中</span></button>
+        </div>
+        <div class="subtitle">最近三個月出勤紀錄</div>
 
         <div class="row">
           <div class="label">月份</div>
@@ -309,6 +321,7 @@
       <!-- Future entry points, safe UI only: never invent balances or salary -->
       <div id="page-annual" class="page" role="region" aria-label="特休查詢">
         <h3>特休查詢</h3>
+        <button type="button" class="back-query" onclick="showPage('query')">← 返回個人出勤查詢</button>
         <div class="feature-placeholder"><div class="symbol" aria-hidden="true">✦</div>
           <h4>特休查詢建置中</h4>
           <p>將顯示到職週年制的應有時數、已使用、申請中、可用餘額、到期日與異動紀錄。</p>
@@ -316,6 +329,7 @@
       </div>
       <div id="page-payslip" class="page" role="region" aria-label="薪資查詢">
         <h3>薪資單查詢</h3>
+        <button type="button" class="back-query" onclick="showPage('query')">← 返回個人出勤查詢</button>
         <div class="feature-placeholder"><div class="symbol" aria-hidden="true">＄</div>
           <h4>薪資查詢建置中</h4>
           <p>日後可查看本人各月份已核定、已發布的薪資單；未發布月份不顯示金額。</p>
@@ -323,6 +337,7 @@
       </div>
       <div id="page-history" class="page" role="region" aria-label="歷史紀錄">
         <h3>年度歷史出勤與假勤</h3>
+        <button type="button" class="back-query" onclick="showPage('query')">← 返回個人出勤查詢</button>
         <div class="feature-placeholder"><div class="symbol" aria-hidden="true">▦</div>
           <h4>歷史查詢建置中</h4>
           <p>未來可查詢已封存的出勤、補打卡、請假及特休紀錄；保留原本三個月內查詢功能。</p>
