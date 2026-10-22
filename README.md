@@ -278,3 +278,15 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 
 - V2 隔離測試 GitHub Pages `main/index.html` SHA `a5a2d414872fd74b17bba7060505729cecb35502`。
 - 正式 `line-punch/line-punch/main/index.html` SHA `fe86e76285938f0013e8d457c9547866654fb9b6`，依核對未更動。
+
+## 2026-10-22 16:50：iPhone 定位權限拒絕與恢復實測
+
+使用者用 iPhone LINE 內建瀏覽器進行 **真實裝置操作**：
+- 將 LINE 定位權限暫時設定為「永不」，再按「上班測試打卡」：顯示「定位權限遭拒」，與預期相符，**GPS 拒絕情境的畫面提示實測 PASS**。
+- 恢復 LINE 定位權限後，再按「上班測試打卡」：顯示「今日已有同類型測試打卡」，與當日既有一筆上班紀錄一致，**定位權限恢復與後端當日防重複判斷的實機流程 PASS**。
+- 尚未在此輪額外核對 Google Sheet 的總筆數；嚴格來說「沒有新增第三筆」仍應以檢查 Sheet 為準。
+- 手機定位權限恢復後，應確保「精確位置」已開啟。
+
+**注意**：目前已部署的 DATA TEST GAS 還是先前的版本；私有開發分支 `feature/v2-gps-boundary-regression-20261022` 的伺服器「先判斷同日已打卡，再要求 GPS」順序改善還沒部署。因此，這次恢復定位後顯示已打卡，證明正常定位下的防重複；不等同於「已離開 GPS 範圍也優先回已打卡」之新邏輯實機已測。
+
+正式 `line-punch/line-punch/main/index.html` SHA `fe86e76285938f0013e8d457c9547866654fb9b6` 仍維持不變。測試 GitHub Pages `main/index.html` SHA `a5a2d414872fd74b17bba7060505729cecb35502`。
