@@ -80,25 +80,33 @@ async function suite(){
  }
  const settle=async()=>{for(let i=0;i<50;i++)await Promise.resolve()};
  const a=browser(false);await settle();
- test('data service is enabled but all write features disabled by default',()=>{
+ test('stage-3 page enables invitation binding but keeps GPS write locked',()=>{
    assert.ok(html.includes('enableDataTesting:true'));
-   assert.ok(html.includes('enableBinding:false'));
+   assert.ok(html.includes('enableBinding:true'));
    assert.ok(html.includes('enableClock:false'));
  });
- test('read-only page verifies LINE then checks sandbox whoami only',()=>{
+ test('iPhone-compatible flow verifies LINE and shows TEST001 invitation entry',()=>{
    assert.deepEqual(a.forms.map(x=>x.op),['verify','whoami']);
    assert.equal(a.$('sandbox').hidden,false);
-   assert.equal(a.$('bindPane').hidden,true);
+   assert.equal(a.$('bindPane').hidden,false);
    assert.equal(a.$('clockPane').hidden,true);
-   assert.ok(a.$('bindState').textContent.includes('連線成功'));
+   assert.ok(a.$('bindState').textContent.includes('TEST001 尚未綁定'));
+   assert.ok(a.$('status').textContent.includes('隔離資料服務連線成功'));
  });
- await test('read-only gate prevents calling any write API directly',async()=>{
-   let deniedBind=false,deniedClock=false;
-   try {await a.scope.bindSandbox()}catch(e){deniedBind=/尚未開放/.test(e.message)}
-   try {await a.scope.testClock('上班')}catch(e){deniedClock=/尚未開放/.test(e.message)}
-   assert.equal(deniedBind,true);
-   assert.equal(deniedClock,true);
+ await test('GPS gate denies all clock API operations before any mock write',async()=>{
+   let denied=false;
+   try {await a.scope.testClock('上班')}catch(e){denied=/尚未開放/.test(e.message)}
+   assert.equal(denied,true);
    assert.deepEqual(a.forms.map(x=>x.op),['verify','whoami']);
+ });
+ await test('single invitation binds only TEST001 while keeping clock pane hidden',async()=>{
+   a.$('inviteCode').value='AB'.repeat(16);
+   await a.scope.bindSandbox();await settle();
+   assert.ok(a.forms.some(x=>x.op==='bind' && x.request.invitationCode==='AB'.repeat(16)));
+   assert.equal(a.$('clockPane').hidden,true);
+   assert.equal(a.$('bindPane').hidden,true);
+   assert.ok(a.$('bindState').textContent.includes('TEST001'));
+   assert.equal(a.$('inviteCode').value,'');
  });
  const b=browser(true);await settle();
  test('data phase checks whoami after verified LINE login',()=>{
