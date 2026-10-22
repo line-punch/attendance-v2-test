@@ -239,3 +239,18 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 - **本輪只驗證當天已成功寫入的歷史兩筆可查**。尚未完成真實網路中斷、回覆遺失及隔日空紀錄測試；不能誤標為這些異常 PASS。
 - 測試 GitHub Pages `main/index.html` SHA `aa002a8257d1a5963766df026cc04c37b3ab38f4`，備份分支 `backup/stage5-today-inout-verified-20261022`。
 - 正式 `line-punch/line-punch/main/index.html` SHA `fe86e76285938f0013e8d457c9547866654fb9b6` 沒有修改。
+
+## 2026-10-22：網路回覆遺失的離線模擬回歸通過
+
+在今日 iPhone 16:14 實測的「今日打卡紀錄」已確認 PASS 後，追加**僅在開發分支的模擬**網路不穩場景，正式和測試已發布頁面都沒有變動：
+
+- 測試分支 `line-punch/attendance-v2-test/feature/network-recovery-regression-20261022`。
+- 新測試檔 `AttendanceV2_NetworkRecovery.test.js`，離線自動回歸 **20/20 通過**。
+- 模擬 GAS 已成功儲存打卡資料、但回覆被網路丟掉：前端必須顯示「結果未確認」，不能誤顯示「未寫入」。
+- 原請求 ID 保存在 sessionStorage 時，再按打卡不應建立新 ID；按「查詢上一筆打卡結果」可核對已儲存結果並清除待確認狀態。
+- 如果整個 LINE 網頁重新開啟、sessionStorage/原請求 ID 遺失，仍可利用「今日打卡紀錄」從後端查到真正已寫入的那筆，避免錯誤重打。
+- **這些是模擬測試，不是實際拔網路或 iPhone 中斷驗證**；不可以把真實網路恢復率、傳輸抗斷線標為實機 PASS。
+- 發布站 main/index.html SHA `aa002a8257d1a5963766df026cc04c37b3ab38f4` 保留不變；成功狀態已備份 `backup/stage5-today-inout-verified-20261022`。
+- 正式 line-punch/line-punch main/index.html SHA `fe86e76285938f0013e8d457c9547866654fb9b6` 沒修改。
+
+下一階段仍需 GPS 拒絕定位、越界、同時操作/真實網路中斷、跨日交班及管理員權限驗證；這些不影響現在已實機通過的基本查詢。
