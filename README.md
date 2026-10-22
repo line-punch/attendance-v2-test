@@ -212,3 +212,17 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 - **自動模擬回歸**：GAS 46/46 PASS；前端 16/16 PASS。
 - **尚未實際部署**：必須由使用者在打卡專用 Google 帳號的 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` Apps Script 編輯器，使用以上 GAS 檔案整份覆蓋、儲存，並編輯既有 Web App 部署 → 新版本；保留原 /exec URL，不要建立新部署或更動任何指令碼屬性。
 - 後端部署完成、測試既有 URL 與資料皆正確後，再將**測試 GitHub Pages** `enableTodayQuery:true`，並在 iPhone 實際確認上下班紀錄。正式員工網站及員工資料均不動。
+
+## 2026-10-22：今日打卡查詢已發布到隔離測試網站
+
+使用者回報已在打卡專用 Google 帳號 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` 將新完整程式貼入、更新既有 Web App 部署新版本（待 iPhone 實測 todayAttendance API）。使用者此前確認 iPhone LINE 關閉再進入，同日上班重按被後端阻擋；隔離 Sheet 已核對一筆上班與一筆下班。
+
+在隔離 GitHub 測試站 `line-punch/attendance-v2-test/main/index.html` 上發布「今日打卡紀錄」：
+- SHA `aa002a8257d1a5963766df026cc04c37b3ab38f4`，`enableTodayQuery:true`。
+- 已有 `TEST001` LINE 綁定時，頁面載入後自動以受驗證的 token 查詢當日上、下班記錄與時間；也能按「重新查詢今日打卡紀錄」。
+- 保留隔離員工綁定、GPS 50m 打卡、原 requestId 查詢與重送安全機制，不會回傳 GPS、LINE ID、原請求碼。
+- 前端模擬測試 16/16 通過；新後端模擬測試 46/46 通過。
+- 發布前先在 `backup/stage4-gps-inout-verified-20261022` 保留前一版成功的 GPS 站點（SHA `8cf6a31784a0f71048ed5d96ad44eefcb1578b13`）。
+- 正式 `line-punch/line-punch/main/index.html` SHA 仍為 `fe86e76285938f0013e8d457c9547866654fb9b6`，未更動。
+
+**尚待實機確認**：iPhone LINE 打開 `https://liff.line.me/2012136707-2dDU0aSJ/?v=20261022today1`，查詢畫面顯示 TEST001 當日上、下班時間。不要再新增打卡；若查詢異常須回報原訊息再診斷既有部署與回傳。
