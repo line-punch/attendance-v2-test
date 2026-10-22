@@ -290,3 +290,34 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 **注意**：目前已部署的 DATA TEST GAS 還是先前的版本；私有開發分支 `feature/v2-gps-boundary-regression-20261022` 的伺服器「先判斷同日已打卡，再要求 GPS」順序改善還沒部署。因此，這次恢復定位後顯示已打卡，證明正常定位下的防重複；不等同於「已離開 GPS 範圍也優先回已打卡」之新邏輯實機已測。
 
 正式 `line-punch/line-punch/main/index.html` SHA `fe86e76285938f0013e8d457c9547866654fb9b6` 仍維持不變。測試 GitHub Pages `main/index.html` SHA `a5a2d414872fd74b17bba7060505729cecb35502`。
+
+## 2026-10-22：GPS 權限實機通過與第六階段批次改善檢查點
+
+### 真實 iPhone 測試（已通過）
+
+使用者於 2026-10-22 16:50（台灣）回報：
+- iPhone 設定 LINE 定位權限為「永不」後，按「上班測試打卡」顯示「定位權限遭拒」：**定位拒絕錯誤提示實機 PASS**。
+- 重新恢復 LINE 定位權限後，再按「上班測試打卡」，顯示「今日已有同類型測試打卡」：**權限恢復後伺服器防重複回覆實機 PASS**。
+- 尚未重新核對此輪 Sheet 實際筆數；不能擅自聲稱新增資料筆數 = 0。前一輪實機資料庫核對為 1 筆上班 + 1 筆下班。
+
+### 開發工作（目前僅分支）
+
+- 後端 `line-punch/line-punch` 分支 `feature/v2-gps-boundary-regression-20261022`
+  - 程式 `staging/AttendanceV2_SandboxDataService.gs`，SHA `784b1ad143f38f9622f8b6a086d7b8a00b3d9247`
+  - 伺服器先核對同日同類型已打卡，再檢查 GPS；已打卡者不會因離開地點而被誤導成首次打卡失敗。
+  - 50m 邊界、超過允許精度、座標過期、重複場地、前一日記錄不應阻擋本日打卡等，**57／57 項模擬回歸通過**。
+  - **未部署至既有 DATA TEST GAS**，也未改正式打卡程式。
+- iPhone 測試 UI `line-punch/attendance-v2-test` 分支 `feature/disable-confirmed-punch-buttons-20261022`
+  - `index.html` SHA `e27a588f1f3c450f0df73ab4539a7e548198f245`
+  - 查詢今日記錄成功後，已完成的上班／下班測試按鈕自動標示「已打卡」並停用；未完成的類型仍可打卡；伺服器仍有防重複檢查。
+  - 定位權限被拒、GPS 逾時、定位恢復、快速連按、回覆遺失原編號查詢等合計 **29／29 項前端模擬回歸通過**。
+  - **未合併至 GitHub Pages main**，不影響已實機通過的測試頁。
+- 先前已發布的 V2 隔離測試 GitHub Pages `main/index.html` SHA `a5a2d414872fd74b17bba7060505729cecb35502`；正式打卡主站 `line-punch/line-punch/main/index.html` SHA `fe86e76285938f0013e8d457c9547866654fb9b6`，未修改。
+
+### 下次整批驗證前須決定
+
+1. 本版仍按**台灣日曆日**允許同一員工各 1 次上班、1 次下班打卡；若現場有跨午夜夜班、同一天兩段班／重新上班，不能直接套用正式員工。
+2. 已完成打卡按鈕的 UI 狀態須評估跨午夜仍保持開啟頁面的情況；目前前端分支沒有跨午夜自動更新已完成狀態，因此不能直接視作正式釋出。
+3. 真實 iPhone 超出 50m 和網路短暫中斷仍未實機驗證。
+4. 仍需測試多人同時寫入、不同 iPhone/Android，以及 NFC NTAG 424 DNA 動態防複製流程。
+5. 在功能需求與限制確認前，不發布至正式打卡系統。
