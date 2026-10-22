@@ -226,3 +226,16 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 - 正式 `line-punch/line-punch/main/index.html` SHA 仍為 `fe86e76285938f0013e8d457c9547866654fb9b6`，未更動。
 
 **尚待實機確認**：iPhone LINE 打開 `https://liff.line.me/2012136707-2dDU0aSJ/?v=20261022today1`，查詢畫面顯示 TEST001 當日上、下班時間。不要再新增打卡；若查詢異常須回報原訊息再診斷既有部署與回傳。
+
+## 2026-10-22 16:14：iPhone 今日上班與下班紀錄查詢實機通過
+
+使用者提供兩張 iPhone LINE 內建瀏覽器截圖（上方 16:14 狀態列），證明新版隔離 V2.0 第五階段「今日打卡紀錄」在手機實際成功：
+- LINE 後端驗證成功，隔離資料服務連線成功，身分顯示「已綁定：模擬員工甲（TEST001）」。
+- 「今日打卡紀錄（2026/10/22，台灣時間）」成功自動顯示：
+  - 上班：15:08:30（測試場地）。
+  - 下班：15:33:27（測試場地）。
+- 頁面提供「重新查詢今日打卡紀錄」按鈕，查詢不依賴瀏覽器 sessionStorage 中的原打卡請求編號。
+- 截圖中無 GPS 座標、LINE userId、原打卡 requestId 直接顯示。
+- **本輪只驗證當天已成功寫入的歷史兩筆可查**。尚未完成真實網路中斷、回覆遺失及隔日空紀錄測試；不能誤標為這些異常 PASS。
+- 測試 GitHub Pages `main/index.html` SHA `aa002a8257d1a5963766df026cc04c37b3ab38f4`，備份分支 `backup/stage5-today-inout-verified-20261022`。
+- 正式 `line-punch/line-punch/main/index.html` SHA `fe86e76285938f0013e8d457c9547866654fb9b6` 沒有修改。
