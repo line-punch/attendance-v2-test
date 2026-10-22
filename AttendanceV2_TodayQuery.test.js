@@ -6,7 +6,7 @@ const match=html.match(/<script>\s*("use strict";[\s\S]*?)<\/script>/);
 if(!match)throw Error('LIFF inline script missing');
 async function suite(){
  let passed=0;function test(name,fn){fn();passed++;console.log('PASS '+name)}
- function browser(enableWrites){
+ function browser(options={}){
   const nodes={},events={},forms=[],storage=new Map();
   const $=id=>nodes[id]||(nodes[id]={id,hidden:true,disabled:false,
     textContent:'',value:'',addEventListener(n,fn){this.listener=fn}});
@@ -51,7 +51,7 @@ async function suite(){
    },
    body:{appendChild(item){if(item.tag==='iframe')frames.push(item)}}
   };
-  const browserState={bound:false,record:null,failGPS:false,failUnknown:false};
+  const browserState={bound:!!(options&&options.bound),record:null,failGPS:false,failUnknown:false,failToday:false,history:(options&&options.history)||{clockIn:null,clockOut:null}};
   const storageAPI={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),
     removeItem:k=>storage.delete(k)};
   const win={addEventListener:(n,cb)=>listeners[n]=cb,
@@ -72,7 +72,7 @@ async function suite(){
   function getRandomValues(bytes){randomSequence++;
     for(let i=0;i<bytes.length;i++)bytes[i]=(i+11+randomSequence)%256;
     return bytes}
-  const src=match[1]; // stage4 feature flags enabled on this private branch
+  const src=options&&options.today?match[1].replace('enableTodayQuery:false','enableTodayQuery:true'):match[1];
   vm.createContext(scope);vm.runInContext(src,scope);
   return {$,forms,storage,browserState,scope};
  }
