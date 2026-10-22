@@ -30,7 +30,8 @@ async function suite(){
       else if(call.op==='bind'){browserState.bound=true;result={ok:true,bound:true}}
       else if(call.op==='clock'){
         browserState.record=call.request;
-        result=browserState.failGPS?
+        if(browserState.failUnknown)result={ok:false,code:'UNKNOWN',error:'結果未確認'};
+        else result=browserState.failGPS?
           {ok:false,error:'超出測試打卡允許範圍',code:'OUT_OF_RANGE',persisted:false}:
           {ok:true,found:true,date:'2026/10/22',time:'12:34:56',
           type:call.request.type,message:'測試打卡成功'};
@@ -50,7 +51,7 @@ async function suite(){
    },
    body:{appendChild(item){if(item.tag==='iframe')frames.push(item)}}
   };
-  const browserState={bound:false,record:null,failGPS:false};
+  const browserState={bound:false,record:null,failGPS:false,failUnknown:false};
   const storageAPI={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),
     removeItem:k=>storage.delete(k)};
   const win={addEventListener:(n,cb)=>listeners[n]=cb,
@@ -109,6 +110,20 @@ async function suite(){
  test('known GPS denial clears pending and shows actionable error',()=>{
    assert.equal(b.storage.size,0);
    assert.ok(b.$('clockStatus').textContent.includes('打卡未寫入'));
+ });
+ await test('uncertain write reply keeps request ID and blocks new requests',async()=>{
+   b.browserState.failGPS=false;b.browserState.failUnknown=true;
+   await b.scope.testClock('下班');await settle();
+   assert.equal(b.storage.size,1);
+   const count=b.forms.filter(x=>x.op==='clock').length;
+   await b.scope.testClock('下班');await settle();
+   assert.equal(b.forms.filter(x=>x.op==='clock').length,count);
+   assert.ok(b.$('clockStatus').textContent.includes('上一筆打卡尚未確認'));
+ });
+ await test('status query confirms original request and clears pending',async()=>{
+   await b.scope.checkPendingClock();await settle();
+   assert.equal(b.storage.size,0);
+   assert.ok(b.$('clockStatus').textContent.includes('已確認打卡成功'));
  });
  console.log('TOTAL '+passed+' passed');
 }
