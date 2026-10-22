@@ -67,7 +67,10 @@ async function suite(){
     crypto:{getRandomValues},
     setTimeout:(fn,ms)=>{if(ms!==45000)Promise.resolve().then(fn);return 1},
     clearTimeout(){}};
-  function getRandomValues(bytes){for(let i=0;i<bytes.length;i++)bytes[i]=(i+11)%256;return bytes}
+  let randomSequence=0;
+  function getRandomValues(bytes){randomSequence++;
+    for(let i=0;i<bytes.length;i++)bytes[i]=(i+11+randomSequence)%256;
+    return bytes}
   const src=enableData?match[1]
     .replace('enableDataTesting:false','enableDataTesting:true')
     .replace('__PENDING_V2_SANDBOX_DATA_EXEC_URL__','https://example.test/data'):match[1];
