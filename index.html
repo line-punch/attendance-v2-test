@@ -342,7 +342,12 @@ async function sendPendingClock(request){
   }catch(e){
     if(e.persisted===false){
       clearPendingClock();
-      $("clockStatus").textContent="❌ 打卡未寫入："+e.message;
+      const hint=e.code==="OUT_OF_RANGE"
+        ?"\n請確認 LINE 已允許精確位置，靠近測試場地中心後再試。"
+        :e.code==="GPS_ACCURACY"
+        ?"\n目前 GPS 精度不足，請到較開闊的位置重新定位。"
+        :"";
+      $("clockStatus").textContent="❌ 打卡未寫入："+e.message+hint;
     } else{
       $("clockStatus").textContent="⚠️ 結果未確認："+e.message+
         "\n請使用「查詢上一筆打卡結果」，不要建立新請求。";
