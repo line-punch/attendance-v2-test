@@ -338,7 +338,45 @@ async function suite(){
    await pending;await settle();
    assert.equal(c.forms.filter(x=>x.op==='clock').length,1);
    assert.equal(c.browserState.clockWrites,1);
-   assert.equal(c.$('clockIn').disabled,false);
+   assert.equal(c.$('clockIn').disabled,true);
+   assert.ok(c.$('clockIn').textContent.includes('已打卡'));
+ });
+
+ await test('bound employee reopening page has confirmed in/out buttons disabled before GPS',async()=>{
+   const c=browser({bound:true,history:{
+     clockIn:{time:'08:30:00',placeName:'測試場地'},
+     clockOut:{time:'18:00:00',placeName:'測試場地'}
+   }});
+   await settle();
+   assert.ok(c.$('todayStatus').textContent.includes('上班：08:30:00'));
+   assert.ok(c.$('todayStatus').textContent.includes('下班：18:00:00'));
+   assert.equal(c.$('clockIn').disabled,true);
+   assert.equal(c.$('clockOut').disabled,true);
+   const count=c.browserState.gpsReads;
+   await c.scope.testClock('上班');await settle();
+   await c.scope.testClock('下班');await settle();
+   assert.equal(c.browserState.gpsReads,count);
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,0);
+ });
+ await test('only completed direction is disabled, leaving other direction possible',async()=>{
+   const c=browser({bound:true,history:{
+     clockIn:{time:'08:30:00',placeName:'測試場地'},clockOut:null
+   }});
+   await settle();
+   assert.equal(c.$('clockIn').disabled,true);
+   assert.equal(c.$('clockOut').disabled,false);
+   await c.scope.testClock('下班');await settle();
+   assert.equal(c.browserState.clockWrites,1);
+   assert.equal(c.$('clockOut').disabled,true);
+ });
+ await test('failed today status query must not fabricate success',async()=>{
+   const c=browser({bound:true,history:{clockIn:null,clockOut:null}});
+   await settle();
+   c.browserState.failToday=true;
+   await c.scope.refreshTodayAttendance();await settle();
+   assert.ok(c.$('todayStatus').textContent.includes('查詢未完成'));
+   assert.equal(c.$('clockIn').textContent.includes('已打卡'),false);
+   assert.equal(c.$('clockOut').textContent.includes('已打卡'),false);
  });
  console.log('TOTAL '+passed+' passed');
 }
