@@ -115,3 +115,9 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 - GPS 打卡仍未開放。
 
 這是前端畫面與真實後端唯讀查詢確認，不等於已實際寫入綁定。下一步須由管理員從 YC_ATTENDANCE_V2_DATA_TEST_ONLY 私有編輯器執行 v2IssueTestInvitation，在 iPhone 輸入 32 位、30 分鐘有效的邀請碼；不要公開邀請碼或截圖洩漏。此測試僅可修改隔離 Google Sheet TEST001。
+
+## 2026-10-22：使用者確認 TEST001 首次綁定成功
+
+使用者回覆「綁定成功」。此為真實 iPhone LINE 內建瀏覽器發起的一次性 TEST001 綁定操作結果，尚未額外獨立查詢 Google Sheet 確認 D2；需要時可由管理員重跑只讀 v2CheckSandboxDataSetup，預期顯示「TEST001：已綁定」。
+
+下一步將隔離測試 Sheet `YC_ATTENDANCE_V2_TEST_ONLY` 的「上班地點」分頁 D2 由 `0,0` 設為測試者實際所在地點的 `緯度,經度`。E2 保持 30 公尺或依場地定位精度審慎調整（後端只接受 10–300 公尺）。此時仍保持測試網站 `enableClock:false`，待實際 GPS 地點填妥再啟用。切勿傳送私人測試地點座標或邀請碼到聊天，也不可更動正式資料表或正式打卡系統。
