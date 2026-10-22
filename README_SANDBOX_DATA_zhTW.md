@@ -66,3 +66,13 @@
 - 打卡紀錄 0 筆
 
 此結果只證實唯讀預檢與隔離資料庫可讀，尚未證實 iPhone 綁定或 GPS 寫入。下一步是部署新的 DATA TEST 專案 Web App；取得新 /exec URL 後再設定尚未發布的 UI feature 分支。務必在 UI 連線就緒、準備實際測試時才核發 30 分鐘一次性邀請碼。
+
+## 2026-10-22：隔離資料服務已接到 GitHub Pages 唯讀測試頁
+
+收到新獨立 Apps Script DATA TEST 的網頁應用程式 /exec，已於 GitHub 測試頁接線。原 LINE 驗證後會增加一筆隔離資料服務的 **whoami 唯讀請求**：
+- 測試 GitHub Pages main/index.html SHA：935f15cff799cef74d4bef1db29037f87e6fca10。
+- 安全旗標 enableDataTesting=true、enableBinding=false、enableClock=false，故前端暫不可要求產生邀請碼、綁定或寫入打卡。
+- 刪除了 iframe 回傳來源必須等於外層 iframe 的條件，改用既有指定 Google 回覆網域＋40 位隨機 nonce 驗證，避免內嵌 Google iframe 導致合法回傳逾時。
+- 模擬前端測試 10/10 PASS。
+- 更新前已備份為 backup/verify-only-passed-20261022；正式 line-punch/line-punch/main/index.html SHA 保持 fe86e76285938f0013e8d457c9547866654fb9b6。
+- 下一步：用 iPhone LINE LIFF 實際檢查畫面顯示「✅ 隔離資料服務連線成功」「TEST001 尚未綁定」。尚未完成實機連線驗證。
