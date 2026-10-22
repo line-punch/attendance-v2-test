@@ -177,6 +177,28 @@ async function suite(){
    await c.scope.refreshTodayAttendance();await settle();
    assert.ok(c.$('todayStatus').textContent.includes('下班：18:47:56'));
  });
+
+ await test('today query error must not imply missing shift or trigger a retry write',async()=>{
+   const c=browser({bound:true,today:true,history:{clockIn:null,clockOut:null}});
+   await settle();
+   const writesBefore=c.forms.filter(x=>x.op==='clock').length;
+   c.browserState.failToday=true;
+   await c.scope.refreshTodayAttendance();await settle();
+   assert.ok(c.$('todayStatus').textContent.includes('查詢未完成'));
+   assert.ok(c.$('todayStatus').textContent.includes('不要因查詢失敗就重複打卡'));
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,writesBefore);
+ });
+ await test('pending original clock request is retained during today-only lookup',async()=>{
+   const c=browser({bound:true,today:true,history:{
+     clockIn:{time:'09:13:05',placeName:'測試場地'},clockOut:null
+   }});
+   await settle();
+   c.storage.set('attendance-v2-test-clock-pending',
+     JSON.stringify({requestId:'pending-request-abc123',type:'下班'}));
+   await c.scope.refreshTodayAttendance();await settle();
+   assert.equal(c.storage.size,1);
+   assert.ok(c.$('todayStatus').textContent.includes('有一筆未確認的送出請求'));
+ });
  console.log('TOTAL '+passed+' passed');
 }
 suite().catch(e=>{console.error(e);process.exitCode=1});
