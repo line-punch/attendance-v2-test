@@ -77,3 +77,13 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 1. 同一測試 LIFF 在 iPhone／Android 實際開啟與重新登入，排除桌機成功、手機失敗。
 2. 另行設計授權的測試員工綁定與具防重覆／逾時查詢的 GAS 資料操作 API，維持專用 verify-only 服務不做資料寫入。
 3. 完成權限與同時操作安全測試後，才考慮讓獨立 LIFF 操作模擬試算表；不得直接重用原有不安全 JSONP API，也不得放寬正式專案權限。
+
+## 2026-10-22：iPhone LINE 內建瀏覽器驗證成功
+
+使用者提供 iPhone 實際操作截圖，測試 LIFF `2012136707-2dDU0aSJ` 在 LINE 內建瀏覽器顯示：
+
+> ✅ 已由 LINE 與獨立 Apps Script 後端驗證登入。\n本階段仍不開放任何打卡、請假或寫入功能。
+
+驗證範圍：**iPhone LINE 內建瀏覽器 → GitHub Pages → 專用 Apps Script verify-only 服務 → 成功回傳畫面**。此前已在桌機 Edge InPrivate 成功。
+
+未完成：Android 手機相容性、模擬員工身分綁定、GPS 真實打卡寫入、請假審核整合、通知與備援。尚不能將 V2.0 視為正式可上線系統。
