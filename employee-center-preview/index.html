@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>員工 LINE 人資中心 V2｜隔離測試</title>
+  
+  <style>
+    body{
+      margin:0;
+      padding:20px;
+      background:#f4f6f8;
+      font-family:"Microsoft JhengHei", Arial, sans-serif;
+      color:#333;
+    }
+    .wrap{ max-width:520px; margin:0 auto; }
+    .card{
+      background:#fff;
+      border-radius:18px;
+      box-shadow:0 4px 16px rgba(0,0,0,.08);
+      padding:22px;
+      margin-bottom:16px;
+    }
+    h1{ text-align:center; margin:0 0 8px 0; font-size:24px; }
+    .subtitle{
+      text-align:center;
+      color:#666;
+      margin-bottom:18px;
+      font-size:14px;
+    }
+    h3{ margin:0 0 14px 0; font-size:18px; }
+    .row{ margin-bottom:14px; }
+    .label{ font-size:15px; font-weight:700; margin-bottom:6px; }
+    .value{
+      background:#eef2f6;
+      border-radius:12px;
+      padding:12px;
+      min-height:24px;
+      white-space:pre-line;
+      word-break:break-word;
+    }
+    input, select, textarea{
+      width:100%;
+      box-sizing:border-box;
+      border:1px solid #d6dbe1;
+      border-radius:12px;
+      padding:12px;
+      font-size:16px;
+      background:#fff;
+    }
+    textarea{ min-height:92px; resize:vertical; }
+    .small{
+      color:#777;
+      font-size:13px;
+      line-height:1.6;
+      margin-top:6px;
+    }
+    .btns{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-top:18px;
+    }
+    button{
+      width:100%;
+      border:none;
+      border-radius:12px;
+      padding:14px 10px;
+      color:#fff;
+      font-size:16px;
+      cursor:pointer;
+    }
+    .btn-blue{ background:#2f6df6; }
+    .btn-green{ background:#5b9961; }
+    .btn-red{ background:#cb5a52; }
+    .msg{
+      background:#eef3f8;
+      border-radius:12px;
+      padding:12px;
+      margin-top:18px;
+      min-height:24px;
+      white-space:pre-line;
+      line-height:1.6;
+    }
+    .loading{
+      text-align:center;
+      color:#666;
+      min-height:20px;
+      margin-top:14px;
+    }
+    .hidden{ display:none !important; }
+    .page{ display:none; }
+    .page.active{ display:block; }
+    .table-list{
+      background:#f7f9fb;
+      border-radius:12px;
+      padding:10px 12px;
+      margin-top:12px;
+      white-space:pre-line;
+      line-height:1.7;
+    }
+
+    /* V2 seven-function employee center, mobile first */
+    :root{--v2ink:#19364e;--v2muted:#657b88;--v2brand:#277867;--v2line:#dde7eb}
+    body{background:#edf3f7;color:var(--v2ink);padding:14px;line-height:1.5}
+    .wrap{max-width:580px;padding-bottom:18px}
+    .card{padding:19px;border-radius:21px;box-shadow:0 6px 22px #253e4d10}
+    h1{font-size:23px;text-align:left;line-height:1.3}
+    h3{font-size:19px;color:var(--v2ink)}
+    .subtitle{text-align:left;font-weight:750;margin:17px 0 10px}
+    .intro{font-size:14px;color:var(--v2muted);margin:8px 0}
+    .notice{background:#fff8e7;border:1px solid #eadbad;padding:12px;border-radius:12px;color:#725c2e;font-size:13px;margin:13px 0}
+    .module-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 20px}
+    .module-btn{background:#f0f5f8;border:1px solid var(--v2line);color:var(--v2ink);border-radius:14px;padding:13px;min-height:86px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;font-weight:750;text-align:left;touch-action:manipulation}
+    .module-btn.active{background:#e4f3ed;border-color:#7fbdac;color:#185844}
+    .module-btn .symbol{font-size:22px;line-height:1}
+    .module-btn .sub{font-size:12px;font-weight:400;color:var(--v2muted)}
+    .module-btn .pending{font-size:11px;background:#e1e9ec;color:#4c6472;padding:2px 8px;border-radius:8px}
+    .page{border-top:1px solid var(--v2line);padding-top:20px}
+    .value,.msg,.table-list{font-size:14px;line-height:1.65}
+    button{touch-action:manipulation;min-height:46px}
+    button:disabled{opacity:.58;cursor:not-allowed}
+    button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #6db9a6;outline-offset:2px}
+    .feature-placeholder{border:1px dashed #bfced5;border-radius:16px;padding:23px 14px;text-align:center;background:#f7fafb}
+    .feature-placeholder .symbol{font-size:33px}
+    .feature-placeholder h4{font-size:20px;margin:10px 0}
+    .feature-placeholder p{font-size:14px;color:var(--v2muted)}
+    .feature-placeholder .tag{display:inline-block;background:#e3ede9;color:#266b5b;padding:5px 11px;border-radius:999px;font-size:12px}
+    #v2Login{background:var(--v2brand)}
+    #v2Status{background:#e7f2ee}
+    @media(max-width:375px){body{padding:9px}.card{padding:14px}.module-btn{min-height:78px;padding:11px}}
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="intro">LINE EMPLOYEE CENTER · V2</div>
+      <h1>員工 LINE 人資中心</h1>
+      <p class="intro">保留既有四項服務，新增特休、薪資與歷史查詢入口。</p>
+      <div class="notice" id="v2Warning">**介面預覽模式**｜不連 LINE、Google Sheet 或任何後端；所有送出功能只顯示提示。</div>
+      <button class="btn-blue" id="v2Login" onclick="startV2Login()">查看介面預覽說明</button>
+      <div class="msg" id="v2Status" role="status">等待 LINE 身分驗證</div>
+      <div class="subtitle">員工功能選單</div>
+      <nav class="module-menu" id="v2Navigation" aria-label="員工功能選單">
+        <button type="button" class="module-btn" data-page="clock" onclick="showPage('clock')"><span class="symbol" aria-hidden="true">◷</span>正常打卡<span class="sub">上班／下班及今日紀錄</span></button>
+        <button type="button" class="module-btn" data-page="miss" onclick="showPage('miss')"><span class="symbol" aria-hidden="true">✎</span>補打卡<span class="sub">申請與審核進度</span></button>
+        <button type="button" class="module-btn" data-page="query" onclick="showPage('query')"><span class="symbol" aria-hidden="true">▤</span>出勤查詢<span class="sub">最近三個月</span></button>
+        <button type="button" class="module-btn" data-page="leave" onclick="showPage('leave')"><span class="symbol" aria-hidden="true">☷</span>請假申請<span class="sub">假別與申請紀錄</span></button>
+        <button type="button" class="module-btn" data-page="annual" onclick="showPage('annual')"><span class="symbol" aria-hidden="true">✦</span>特休查詢<span class="pending">建置中</span></button>
+        <button type="button" class="module-btn" data-page="payslip" onclick="showPage('payslip')"><span class="symbol" aria-hidden="true">＄</span>薪資查詢<span class="pending">建置中</span></button>
+        <button type="button" class="module-btn" data-page="history" onclick="showPage('history')"><span class="symbol" aria-hidden="true">▦</span>歷史紀錄<span class="pending">建置中</span></button>
+      </nav>
+      <div class="subtitle" id="pageTitle">載入中...</div>
+
+      <div class="row">
+        <div class="label">LINE 名稱</div>
+        <div class="value" id="displayName">讀取中...</div>
+      </div>
+
+      <div id="employeeInfoBox" class="row hidden">
+        <div class="label">員工資訊</div>
+        <div class="value" id="employeeInfo">讀取中...</div>
+      </div>
+
+      <div id="bindBox" class="row hidden">
+        <div class="label">首次綁定（需先在 V2 測試頁使用邀請碼）</div>
+        <input type="text" id="empid" placeholder="此處不綁定真實員工" disabled>
+        <div class="small">首次綁定成功後，之後同一個 LINE 將自動登入，不用再輸入員工ID。</div>
+        <button class="btn-blue" style="margin-top:10px;" onclick="bindEmployee()">綁定方式說明</button>
+        <div class="msg" id="bindMsg">尚未綁定，請先輸入員工ID。</div>
+      </div>
+
+      <!-- 正常打卡 -->
+      <div id="page-clock" class="page">
+        <h3>正常打卡區</h3>
+
+        <div class="row">
+          <div class="label">目前位置</div>
+          <div class="value" id="locationText">尚未取得</div>
+        </div>
+
+        <div class="btns">
+          <button class="btn-green" onclick="punch('上班')">上班</button>
+          <button class="btn-red" onclick="punch('下班')">下班</button>
+        </div>
+
+        <div class="loading" id="loading"></div>
+        <div class="msg" id="msg">請先驗證 V2 測試身分。</div>
+        <div class="table-list" id="v2Today">今日打卡紀錄尚未查詢</div>
+        <button class="btn-blue" onclick="refreshV2Today()" style="margin-top:8px">重新查詢今日紀錄</button>
+        <button class="btn-blue" onclick="checkV2Pending()" style="margin-top:8px">查詢上次未確認的打卡</button>
+      </div>
+
+      <!-- 補打卡 -->
+      <div id="page-miss" class="page">
+        <h3>補打卡申請區</h3>
+
+        <div class="row">
+          <div class="label">日期</div>
+          <select id="missDate"></select>
+          <div class="small">補打卡日期只能選今天或昨天。</div>
+        </div>
+
+        <div class="row">
+          <div class="label">類型</div>
+          <select id="missType">
+            <option value="">請選擇</option>
+            <option value="上班">上班</option>
+            <option value="下班">下班</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="label">時間</div>
+          <input type="time" id="missTime">
+        </div>
+
+        <div class="row">
+          <div class="label">原因</div>
+          <textarea id="missReason" placeholder="請輸入補打卡原因"></textarea>
+        </div>
+
+        <button class="btn-blue" onclick="submitMiss()" disabled>補打卡送出（待安全整合）</button>
+        <div class="msg" id="missMsg">請填寫補打卡資料後送出。</div>
+
+        <div class="row" style="margin-top:22px;">
+          <div class="label">我的補打卡申請紀錄</div>
+          <button class="btn-blue" onclick="loadMissHistory()" style="margin-top:6px;">
+            重新整理補打卡紀錄
+          </button>
+          <div id="missHistory" class="table-list">尚未查詢</div>
+        </div>
+      </div>
+
+      <!-- 月查詢 -->
+      <div id="page-query" class="page">
+        <h3>個人（月）出勤查詢區</h3>
+
+        <div class="row">
+          <div class="label">月份</div>
+          <input type="text" id="queryMonth" placeholder="請輸入 202603" maxlength="6">
+          <div class="small">最多查詢最近 3 個月。格式：YYYYMM，例如 202603</div>
+        </div>
+
+        <button class="btn-blue" onclick="queryAttendance()">查詢月紀錄</button>
+        <div class="msg" id="queryMsg">請輸入月份後查詢。</div>
+        <div id="queryList" class="table-list hidden"></div>
+      </div>
+
+      <!-- 請假 -->
+      <div id="page-leave" class="page">
+        <h3>請假申請區</h3>
+
+        <div class="row">
+          <div class="label">請假日期</div>
+          <input type="date" id="leaveDate">
+          <div class="small">請假日期只能選今天或未來日期。</div>
+        </div>
+
+        <div class="row">
+          <div class="label">請假區間</div>
+          <select id="leaveUnit" onchange="toggleLeaveMode()">
+            <option value="">請選擇</option>
+            <option value="全天">全天</option>
+            <option value="時數">時數</option>
+          </select>
+        </div>
+
+        <div id="hourBox" class="hidden">
+          <div class="row">
+            <div class="label">開始時間</div>
+            <input type="time" id="leaveStartTime">
+          </div>
+          <div class="row">
+            <div class="label">結束時間</div>
+            <input type="time" id="leaveEndTime">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="label">假別</div>
+          <select id="leaveType">
+  <option value="">請選擇</option>
+  <option value="事假">事假</option>
+  <option value="病假">病假</option>
+  <option value="特休">特休</option>
+  <option value="公假">公假</option>
+  <option value="婚假">婚假</option>
+  <option value="喪假">喪假</option>
+</select>
+        </div>
+
+        <div class="row">
+          <div class="label">備註</div>
+          <textarea id="leaveReason" placeholder="請輸入備註"></textarea>
+        </div>
+
+        <button class="btn-blue" onclick="submitLeave()" disabled>請假送出（待安全整合）</button>
+        <div class="msg" id="leaveMsg">請填寫請假資料後送出。</div>
+
+        <div class="row" style="margin-top:22px;">
+          <div class="label">我的請假申請紀錄</div>
+          <button class="btn-blue" onclick="loadLeaveHistory()" style="margin-top:6px;">重新整理請假紀錄</button>
+          <div id="leaveHistory" class="table-list">尚未查詢</div>
+        </div>
+      </div>
+      <!-- Future entry points, safe UI only: never invent balances or salary -->
+      <div id="page-annual" class="page" role="region" aria-label="特休查詢">
+        <h3>特休查詢</h3>
+        <div class="feature-placeholder"><div class="symbol" aria-hidden="true">✦</div>
+          <h4>特休查詢建置中</h4>
+          <p>將顯示到職週年制的應有時數、已使用、申請中、可用餘額、到期日與異動紀錄。</p>
+          <span class="tag">尚未串接特休台帳，不顯示推估餘額</span></div>
+      </div>
+      <div id="page-payslip" class="page" role="region" aria-label="薪資查詢">
+        <h3>薪資單查詢</h3>
+        <div class="feature-placeholder"><div class="symbol" aria-hidden="true">＄</div>
+          <h4>薪資查詢建置中</h4>
+          <p>日後可查看本人各月份已核定、已發布的薪資單；未發布月份不顯示金額。</p>
+          <span class="tag">僅本人可查，薪資資料獨立權限</span></div>
+      </div>
+      <div id="page-history" class="page" role="region" aria-label="歷史紀錄">
+        <h3>年度歷史出勤與假勤</h3>
+        <div class="feature-placeholder"><div class="symbol" aria-hidden="true">▦</div>
+          <h4>歷史查詢建置中</h4>
+          <p>未來可查詢已封存的出勤、補打卡、請假及特休紀錄；保留原本三個月內查詢功能。</p>
+          <span class="tag">仍待年度歷史資料庫串接</span></div>
+      </div>
+
+    </div>
+  </div>
+
+    <script src="./app.js"></script>
+</body>
+</html>
