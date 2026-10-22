@@ -212,6 +212,58 @@ async function suite(){
    assert.equal(c.storage.size,1);
    assert.ok(c.$('todayStatus').textContent.includes('有一筆未確認的送出請求'));
  });
+
+ await test('clock entry saved on backend but iframe reply lost gives UNKNOWN, never fake failure',async()=>{
+   const c=browser({bound:true});
+   await settle();
+   c.browserState.dropClockAck=true;
+   await c.scope.testClock('上班');await settle();
+   assert.equal(c.browserState.clockWrites,1);
+   assert.equal(c.storage.size,1);
+   assert.ok(c.$('clockStatus').textContent.includes('結果未確認'));
+   assert.ok(c.$('clockStatus').textContent.includes('查詢上一筆打卡結果'));
+   assert.ok(!c.$('clockStatus').textContent.includes('打卡未寫入'));
+ });
+ await test('pending request prevents new duplicate clock POST while status unknown',async()=>{
+   const c=browser({bound:true});
+   await settle();
+   c.browserState.dropClockAck=true;
+   await c.scope.testClock('上班');await settle();
+   const count=c.forms.filter(x=>x.op==='clock').length;
+   await c.scope.testClock('上班');await settle();
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,count);
+   assert.equal(c.browserState.clockWrites,1);
+   assert.equal(c.storage.size,1);
+ });
+ await test('same request ID status query after lost reply confirms write and clears pending',async()=>{
+   const c=browser({bound:true});
+   await settle();
+   c.browserState.dropClockAck=true;
+   await c.scope.testClock('上班');await settle();
+   assert.equal(c.storage.size,1);
+   c.browserState.dropClockAck=false;
+   await c.scope.checkPendingClock();await settle();
+   assert.ok(c.$('clockStatus').textContent.includes('已確認打卡成功'));
+   assert.equal(c.storage.size,0);
+   assert.equal(c.browserState.clockWrites,1);
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,1);
+ });
+ await test('full LINE page restart after lost acknowledgment still discovers committed record',async()=>{
+   const state={clockIn:null,clockOut:null};
+   const first=browser({bound:true,history:state});
+   await settle();
+   first.browserState.dropClockAck=true;
+   await first.scope.testClock('上班');await settle();
+   assert.equal(first.storage.size,1);
+   assert.equal(state.clockIn.time,'12:34:56');
+   // A completely new browser context has no saved request ID at all.
+   const again=browser({bound:true,history:state});
+   await settle();
+   assert.equal(again.storage.size,0);
+   assert.ok(again.$('todayStatus').textContent.includes('上班：12:34:56'));
+   assert.ok(again.$('todayStatus').textContent.includes('下班：尚未查到紀錄'));
+   assert.deepEqual(again.forms.map(x=>x.op),['verify','whoami','todayAttendance']);
+ });
  console.log('TOTAL '+passed+' passed');
 }
 suite().catch(e=>{console.error(e);process.exitCode=1});
