@@ -47,6 +47,12 @@
       <button id="retryClockBtn" type="button" class="secondary">使用原請求編號重新送出</button>
       <div class="box" id="clockStatus" role="status">尚未送出測試打卡</div>
     </div>
+    <section id="todayPane" hidden>
+      <h2>今日打卡紀錄（隔離測試）</h2>
+      <p class="hint">重新開啟 LINE 也能查詢自己的今日紀錄，不必記住原本打卡的請求編號。</p>
+      <div class="box" id="todayStatus" role="status">尚未查詢今日紀錄</div>
+      <button id="todayRefreshBtn" type="button" class="secondary">重新查詢今日打卡紀錄</button>
+    </section>
     <button id="refreshTestBtn" type="button" class="secondary">重新確認我的測試員工身分</button>
   </section>
 </main>
@@ -57,7 +63,8 @@ const CONFIG=Object.freeze({
   enableServerVerification:true, // The established verify-only service
   enableDataTesting:true, // Phase 3: test data-service connectivity (read-only first)
   enableBinding:true, // iPhone whoami verified; only TEST001 with one-time invitation
-  enableClock:true, // UNPUBLISHED: only enable after TESTSITE 50m saving is verified
+  enableClock:true, // TEST001 isolated iPhone GPS clock tests
+  enableTodayQuery:false, // Activate only after dedicated GAS todayAttendance deployment
   dataApi:"https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec",
   api:"https://script.google.com/macros/s/AKfycbx2s-MtBVoHT2061E8XHNk92F9PhCbI0HtyKzQ7c5l5rasc__XZ84BL-A2HyxIyc6_OEw/exec",
   allowedResponseOrigins:["https://script.google.com"],
@@ -187,6 +194,7 @@ async function refreshSandbox(){
     if(r.bound){
       $("bindPane").hidden=true;
       $("clockPane").hidden=!CONFIG.enableClock;
+      $("todayPane").hidden=!CONFIG.enableTodayQuery;
       state.textContent="✅ 已綁定："+r.employee.name+"（"+r.employee.employeeId+"）"+
         (CONFIG.enableClock?"\n僅供 TEST001 隔離打卡測試，不影響正式紀錄。":"\n目前 GPS 打卡仍未開放。");
       $("clockStatus").textContent=pendingClock()
@@ -195,14 +203,54 @@ async function refreshSandbox(){
     }else{
       $("bindPane").hidden=!CONFIG.enableBinding;
       $("clockPane").hidden=true;
+      $("todayPane").hidden=true;
       state.textContent=CONFIG.enableBinding
         ?"✅ 隔離資料服務連線成功。\nLINE 已驗證；TEST001 尚未綁定。\n請輸入管理者核發的 32 位一次性邀請碼。"
         :"✅ 隔離資料服務連線成功。\nLINE 已驗證；TEST001 尚未綁定。\n目前僅檢查連線，不開放綁定或打卡。";
     }
     status("✅ LINE 後端驗證成功，隔離資料服務連線成功。");
+    if(r.bound && CONFIG.enableTodayQuery) await refreshTodayAttendance();
   } catch(e){
     state.textContent="⚠️ 測試身分查詢未完成："+e.message;
     status("✅ LINE 後端驗證成功，但模擬資料查詢尚未確認。");
+  }
+}
+let todayBusy=false;
+async function refreshTodayAttendance(){
+  if(!CONFIG.enableTodayQuery)throw Error("今日打卡查詢尚未開放");
+  if(todayBusy)return;
+  todayBusy=true;
+  $("todayRefreshBtn").disabled=true;
+  $("todayStatus").textContent="正在核對今天已寫入的上班、下班紀錄…";
+  try{
+    const data=await sandboxCall("todayAttendance",{});
+    if(!data||!data.ok||!Array.isArray([data.clockIn,data.clockOut])||
+       !/^\d{4}\/\d{2}\/\d{2}$/.test(String(data.date||""))){
+      throw Error("今日打卡查詢回覆格式不正確");
+    }
+    const show=(name,item)=>{
+      if(item==null)return name+"：尚未查到紀錄";
+      if(typeof item!=="object"||!/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(String(item.time||"")))
+        throw Error("打卡時間格式異常，請管理員核對");
+      return name+"："+item.time+(item.placeName?"（"+String(item.placeName).slice(0,80)+"）":"");
+    };
+    const lines=[
+      "✅ 今日打卡紀錄（"+data.date+"，台灣時間）",
+      show("上班",data.clockIn),
+      show("下班",data.clockOut)
+    ];
+    if(pendingClock()){
+      lines.push("⚠️ 尚有一筆未確認的送出請求；請用「查詢上一筆打卡結果」核對。");
+    }else{
+      lines.push("未查到紀錄不代表正在處理中的打卡失敗；若剛送出，請稍後重新查詢。");
+    }
+    $("todayStatus").textContent=lines.join("\n");
+  }catch(e){
+    $("todayStatus").textContent="⚠️ 今日打卡紀錄查詢未完成："+String(e&&e.message||e)+
+      "\n請稍後重新查詢；不要因查詢失敗就重複打卡。";
+  }finally{
+    todayBusy=false;
+    $("todayRefreshBtn").disabled=false;
   }
 }
 async function bindSandbox(){
@@ -274,6 +322,7 @@ async function sendPendingClock(request){
     if(r.ok && r.found){
       clearPendingClock();
       $("clockStatus").textContent="✅ "+r.message+"\n"+r.date+" "+r.time+"｜"+r.type;
+      if(CONFIG.enableTodayQuery)await refreshTodayAttendance();
     } else if(r.code==="ALREADY_CLOCKED"){
       clearPendingClock();
       $("clockStatus").textContent="⚠️ "+r.message;
@@ -305,6 +354,7 @@ async function checkPendingClock(){
       clearPendingClock();
       $("clockStatus").textContent="✅ 已確認打卡成功："+
         r.date+" "+r.time+"｜"+r.type;
+      if(CONFIG.enableTodayQuery)await refreshTodayAttendance();
     }else{
       $("clockStatus").textContent=
         "⚠️ 尚未查到紀錄，可能仍在處理中。稍後可重新查詢或用原編號重送。";
@@ -326,6 +376,7 @@ async function retryPendingClock(){
 button.addEventListener("click",()=>verifyLine(false));
 $("bindBtn").addEventListener("click",bindSandbox);
 $("refreshTestBtn").addEventListener("click",refreshSandbox);
+$("todayRefreshBtn").addEventListener("click",refreshTodayAttendance);
 $("clockIn").addEventListener("click",()=>testClock("上班"));
 $("clockOut").addEventListener("click",()=>testClock("下班"));
 $("clockStatusBtn").addEventListener("click",checkPendingClock);
