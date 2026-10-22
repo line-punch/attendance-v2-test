@@ -274,6 +274,71 @@ async function suite(){
    assert.ok(again.$('todayStatus').textContent.includes('下班：尚未查到紀錄'));
    assert.deepEqual(again.forms.map(x=>x.op),['verify','whoami','todayAttendance']);
  });
+
+ await test('iPhone permission denial creates no POST, no pending request, and actionable guidance',async()=>{
+   const c=browser({bound:true,gpsMode:'denied'});await settle();
+   const prev=c.forms.length;
+   await c.scope.testClock('上班');await settle();
+   assert.equal(c.forms.length,prev);
+   assert.equal(c.storage.size,0);
+   assert.equal(c.browserState.gpsReads,1);
+   assert.ok(c.$('clockStatus').textContent.includes('定位權限遭拒'));
+   assert.ok(c.$('clockStatus').textContent.includes('精確位置'));
+   assert.equal(c.$('clockIn').disabled,false);
+   assert.equal(c.$('clockOut').disabled,false);
+ });
+ await test('GPS temporarily unavailable never sends a punch',async()=>{
+   const c=browser({bound:true,gpsMode:'unavailable'});await settle();
+   await c.scope.testClock('上班');await settle();
+   assert.ok(c.$('clockStatus').textContent.includes('無法取得 GPS'));
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,0);
+   assert.equal(c.storage.size,0);
+ });
+ await test('GPS timeout never sends a punch and allows user-initiated retry',async()=>{
+   const c=browser({bound:true,gpsMode:'timeout'});await settle();
+   await c.scope.testClock('下班');await settle();
+   assert.ok(c.$('clockStatus').textContent.includes('定位'));
+   assert.ok(c.$('clockStatus').textContent.includes('逾時'));
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,0);
+   assert.equal(c.storage.size,0);
+   assert.equal(c.$('clockOut').disabled,false);
+ });
+ await test('permission restoration requires a fresh GPS reading before first write',async()=>{
+   const c=browser({bound:true,gpsMode:'denied'});await settle();
+   await c.scope.testClock('上班');await settle();
+   c.browserState.gpsMode='ok';
+   await c.scope.testClock('上班');await settle();
+   assert.equal(c.browserState.gpsReads,2);
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,1);
+   assert.equal(c.browserState.clockWrites,1);
+   assert.equal(c.storage.size,0);
+ });
+ await test('out of 50m geofence server denial does not persist or leave pending state',async()=>{
+   const c=browser({bound:true});await settle();
+   c.browserState.failGPS=true;
+   await c.scope.testClock('上班');await settle();
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,1);
+   assert.equal(c.browserState.clockWrites,0);
+   assert.equal(c.storage.size,0);
+   assert.ok(c.$('clockStatus').textContent.includes('超出測試打卡允許範圍'));
+   assert.ok(c.$('clockStatus').textContent.includes('打卡未寫入'));
+ });
+ await test('double taps while GPS is still loading result in one clock POST',async()=>{
+   const c=browser({bound:true,gpsMode:'pending'});await settle();
+   const pending=c.scope.testClock('上班');
+   await settle();
+   assert.equal(c.$('clockIn').disabled,true);
+   assert.equal(c.$('clockOut').disabled,true);
+   await c.scope.testClock('上班');await settle();
+   assert.equal(c.browserState.gpsReads,1);
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,0);
+   assert.ok(typeof c.browserState.completeGPS==='function');
+   c.browserState.completeGPS();
+   await pending;await settle();
+   assert.equal(c.forms.filter(x=>x.op==='clock').length,1);
+   assert.equal(c.browserState.clockWrites,1);
+   assert.equal(c.$('clockIn').disabled,false);
+ });
  console.log('TOTAL '+passed+' passed');
 }
 suite().catch(e=>{console.error(e);process.exitCode=1});
