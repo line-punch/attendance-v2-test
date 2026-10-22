@@ -202,3 +202,13 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 - 打卡 GAS：line-punch/line-punch 分支 feature/v2-today-attendance-query-20261022，檔案 staging/AttendanceV2_SandboxDataService.gs。
 - 測試 LIFF 網頁：line-punch/attendance-v2-test 分支 feature/today-attendance-query-20261022，檔案 index.html；enableTodayQuery=false，不會提前呼叫尚未部署的新後端功能。
 - 需要更新專用 DATA TEST Apps Script 同一既有網頁應用程式部署並核對 URL 不變，之後才能啟用前端；**正式打卡不動**。
+
+## 2026-10-22：今日打卡紀錄查詢開發完成、待隔離部署
+
+因使用者確認「iPhone LINE 關閉後重開，再按上班測試打卡會被今日已打卡訊息阻擋」，需要進一步解決「打卡後不知道是否真的成功」的 UX 問題，已完成下列尚未發布的功能：
+
+- **DATA TEST GAS**：`line-punch/line-punch` 分支 `feature/v2-today-attendance-query-20261022` 中 `staging/AttendanceV2_SandboxDataService.gs`（SHA `523a6ec271a4e5241968fdd375c55897dffd2a54`）。增加 `todayAttendance` 操作，驗證 LINE ID token、只查綁定的 TEST001、台灣當天「上班／下班」時間，無 GPS / LINE ID / requestId 回傳；日期儲存格支援 Date 與文字，重複紀錄警示。保留 `v2CheckSandboxDataSetup` 唯讀檢查函式，適合完整覆蓋原 GAS 程式碼。
+- **UI test branch**：`line-punch/attendance-v2-test` 分支 `feature/today-attendance-query-20261022` 中 `index.html`（SHA `e7503e0935dc958e919a6d7189eb687556dd9781`）。新增「今日打卡紀錄」「重新查詢」介面與登入後自動載入，僅已綁定者可見；對逾時顯示不確定、不推論打卡失敗；`enableTodayQuery:false` 在後端更新前保持關閉。
+- **自動模擬回歸**：GAS 46/46 PASS；前端 16/16 PASS。
+- **尚未實際部署**：必須由使用者在打卡專用 Google 帳號的 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` Apps Script 編輯器，使用以上 GAS 檔案整份覆蓋、儲存，並編輯既有 Web App 部署 → 新版本；保留原 /exec URL，不要建立新部署或更動任何指令碼屬性。
+- 後端部署完成、測試既有 URL 與資料皆正確後，再將**測試 GitHub Pages** `enableTodayQuery:true`，並在 iPhone 實際確認上下班紀錄。正式員工網站及員工資料均不動。
