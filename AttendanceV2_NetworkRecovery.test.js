@@ -35,6 +35,15 @@ async function suite(){
           total:Number(!!browserState.history.clockIn)+Number(!!browserState.history.clockOut)};
       else if(call.op==='clock'){
         browserState.record=call.request;
+        if(!browserState.failUnknown && !browserState.failGPS){
+          const which=call.request.type==='上班'?'clockIn':'clockOut';
+          if(!browserState.history[which]){
+            browserState.clockWrites++;
+            browserState.history[which]={
+              time:'12:34:56',placeName:'測試場地'
+            };
+          }
+        }
         if(browserState.failUnknown)result={ok:false,code:'UNKNOWN',error:'結果未確認'};
         else result=browserState.failGPS?
           {ok:false,error:'超出測試打卡允許範圍',code:'OUT_OF_RANGE',persisted:false}:
@@ -43,6 +52,8 @@ async function suite(){
       }else if(call.op==='clockStatus')result={ok:true,found:!!browserState.record,
         date:'2026/10/22',time:'12:34:56',type:'上班'};
       else throw Error('Unexpected API operation '+call.op);
+      // The backend may have committed the clock entry but the reply gets lost.
+      if(call.op==='clock' && browserState.dropClockAck)return;
       Promise.resolve().then(()=>listeners.message?.({
         origin:'https://script.googleusercontent.com',
         source:frame.contentWindow,
