@@ -77,7 +77,7 @@ async function suite(){
   function getRandomValues(bytes){randomSequence++;
     for(let i=0;i<bytes.length;i++)bytes[i]=(i+11+randomSequence)%256;
     return bytes}
-  const src=options&&options.today?match[1].replace('enableTodayQuery:false','enableTodayQuery:true'):match[1];
+  const src=match[1]; // after standalone DATA TEST redeploy, feature flag is ON
   vm.createContext(scope);vm.runInContext(src,scope);
   return {$,forms,storage,browserState,scope};
  }
@@ -149,8 +149,8 @@ async function suite(){
    assert.ok(b.$('clockStatus').textContent.includes('已確認打卡成功'));
  });
 
- test('today query is not published before new GAS redeployment',()=>{
-   assert.ok(html.includes('enableTodayQuery:false'));
+ test('today query is enabled only after sandbox LINE binding',()=>{
+   assert.ok(html.includes('enableTodayQuery:true'));
    assert.equal(a.forms.some(x=>x.op==='todayAttendance'),false);
    assert.equal(a.$('todayPane').hidden,true);
  });
