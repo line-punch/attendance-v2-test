@@ -23,7 +23,7 @@
 <body>
 <main>
   <h1>打卡系統 V2.0｜隔離測試</h1>
-  <p id="intro">這是獨立的 LINE V2.0 模擬員工測試，不是正式員工打卡入口。目前僅開放 TEST001 一次性綁定；GPS 打卡與請假仍關閉。</p>
+  <p id="intro">這是獨立的 LINE V2.0 模擬員工測試，不是正式員工打卡入口。此版本僅供 TEST001 隔離 GPS 打卡測試，不是正式員工入口；請假及主管審核仍未開放。</p>
   <button id="login" type="button">驗證 LINE 登入</button>
   <div id="status" class="box" role="status">尚未開始</div>
   <small>此頁不顯示或儲存任何 LINE ID Token。隔離測試資料不會寫入正式員工打卡系統。</small>
@@ -38,7 +38,7 @@
       <button id="bindBtn" type="button" class="secondary">確認綁定模擬員工</button>
     </div>
     <div id="clockPane" hidden>
-      <p class="hint">使用手機 GPS 定位。測試場地需先由管理者設定；目前預設 0,0 會拒絕打卡。</p>
+      <p class="hint">僅對隔離員工 TEST001 測試。使用當下 GPS 定位，容許距離由測試資料庫設定（預計 50 公尺），若定位失準請勿連續重按。</p>
       <div class="row">
         <button id="clockIn" type="button">上班測試打卡</button>
         <button id="clockOut" type="button">下班測試打卡</button>
@@ -57,7 +57,7 @@ const CONFIG=Object.freeze({
   enableServerVerification:true, // The established verify-only service
   enableDataTesting:true, // Phase 3: test data-service connectivity (read-only first)
   enableBinding:true, // iPhone whoami verified; only TEST001 with one-time invitation
-  enableClock:false, // Only enable after TESTSITE GPS location is explicitly configured
+  enableClock:true, // UNPUBLISHED: only enable after TESTSITE 50m saving is verified
   dataApi:"https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec",
   api:"https://script.google.com/macros/s/AKfycbx2s-MtBVoHT2061E8XHNk92F9PhCbI0HtyKzQ7c5l5rasc__XZ84BL-A2HyxIyc6_OEw/exec",
   allowedResponseOrigins:["https://script.google.com"],
@@ -188,7 +188,7 @@ async function refreshSandbox(){
       $("bindPane").hidden=true;
       $("clockPane").hidden=!CONFIG.enableClock;
       state.textContent="✅ 已綁定："+r.employee.name+"（"+r.employee.employeeId+"）"+
-        (CONFIG.enableClock?"":"\n目前僅開放模擬員工綁定；GPS 打卡仍未開放。");
+        (CONFIG.enableClock?"\n僅供 TEST001 隔離打卡測試，不影響正式紀錄。":"\n目前 GPS 打卡仍未開放。");
       $("clockStatus").textContent=pendingClock()
         ?"有一筆先前的測試打卡待確認，請先查詢結果。"
         :"尚未送出測試打卡";
