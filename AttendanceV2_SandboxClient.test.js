@@ -6,7 +6,7 @@ const match=html.match(/<script>\s*("use strict";[\s\S]*?)<\/script>/);
 if(!match)throw Error('LIFF inline script missing');
 async function suite(){
  let passed=0;function test(name,fn){fn();passed++;console.log('PASS '+name)}
- function browser(enableData){
+ function browser(enableWrites){
   const nodes={},events={},forms=[],storage=new Map();
   const $=id=>nodes[id]||(nodes[id]={id,hidden:true,disabled:false,
     textContent:'',value:'',addEventListener(n,fn){this.listener=fn}});
@@ -72,18 +72,33 @@ async function suite(){
   function getRandomValues(bytes){randomSequence++;
     for(let i=0;i<bytes.length;i++)bytes[i]=(i+11+randomSequence)%256;
     return bytes}
-  const src=enableData?match[1]
-    .replace('enableDataTesting:false','enableDataTesting:true')
-    .replace('__PENDING_V2_SANDBOX_DATA_EXEC_URL__','https://example.test/data'):match[1];
+  const src=enableWrites?match[1]
+    .replace('enableBinding:false','enableBinding:true')
+    .replace('enableClock:false','enableClock:true'):match[1];
   vm.createContext(scope);vm.runInContext(src,scope);
   return {$,forms,storage,browserState,scope};
  }
  const settle=async()=>{for(let i=0;i<50;i++)await Promise.resolve()};
  const a=browser(false);await settle();
- test('feature flag disabled by default',()=>assert.ok(html.includes('enableDataTesting:false')));
- test('verify-only page sends one request and hides data UI',()=>{
-   assert.deepEqual(a.forms.map(x=>x.op),['verify']);
-   assert.equal(a.$('sandbox').hidden,true);
+ test('data service is enabled but all write features disabled by default',()=>{
+   assert.ok(html.includes('enableDataTesting:true'));
+   assert.ok(html.includes('enableBinding:false'));
+   assert.ok(html.includes('enableClock:false'));
+ });
+ test('read-only page verifies LINE then checks sandbox whoami only',()=>{
+   assert.deepEqual(a.forms.map(x=>x.op),['verify','whoami']);
+   assert.equal(a.$('sandbox').hidden,false);
+   assert.equal(a.$('bindPane').hidden,true);
+   assert.equal(a.$('clockPane').hidden,true);
+   assert.ok(a.$('bindState').textContent.includes('連線成功'));
+ });
+ await test('read-only gate prevents calling any write API directly',async()=>{
+   let deniedBind=false,deniedClock=false;
+   try {await a.scope.bindSandbox()}catch(e){deniedBind=/尚未開放/.test(e.message)}
+   try {await a.scope.testClock('上班')}catch(e){deniedClock=/尚未開放/.test(e.message)}
+   assert.equal(deniedBind,true);
+   assert.equal(deniedClock,true);
+   assert.deepEqual(a.forms.map(x=>x.op),['verify','whoami']);
  });
  const b=browser(true);await settle();
  test('data phase checks whoami after verified LINE login',()=>{
@@ -101,7 +116,7 @@ async function suite(){
    const clock=b.forms.find(x=>x.op==='clock');
    assert.equal(clock.request.accuracy,12);
    assert.ok(Number.isFinite(clock.request.capturedAt));
-   assert.equal(clock.api,'https://example.test/data');
+   assert.equal(clock.api,'https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec');
    assert.ok(b.$('clockStatus').textContent.includes('測試打卡成功'));
  });
  test('success clears pending duplicate-protection state',()=>assert.equal(b.storage.size,0));
