@@ -56,7 +56,7 @@ async function suite(){
    },
    body:{appendChild(item){if(item.tag==='iframe')frames.push(item)}}
   };
-  const browserState={bound:!!(options&&options.bound),record:null,failGPS:false,failUnknown:false,failToday:false,history:(options&&options.history)||{clockIn:null,clockOut:null}};
+  const browserState={bound:!!(options&&options.bound),record:null,failGPS:false,failUnknown:false,failToday:false,dropClockAck:false,clockWrites:0,history:(options&&options.history)||{clockIn:null,clockOut:null}};
   const storageAPI={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),
     removeItem:k=>storage.delete(k)};
   const win={addEventListener:(n,cb)=>listeners[n]=cb,
@@ -71,7 +71,7 @@ async function suite(){
     Uint8Array,JSON,Object,Array,Promise,Math,Number,String,Error,Date,URL:MockURL,
     globalThis:{crypto:{getRandomValues}},
     crypto:{getRandomValues},
-    setTimeout:(fn,ms)=>{if(ms!==45000)Promise.resolve().then(fn);return 1},
+    setTimeout:(fn,ms)=>{if(ms!==45000||browserState.dropClockAck)Promise.resolve().then(fn);return 1},
     clearTimeout(){}};
   let randomSequence=0;
   function getRandomValues(bytes){randomSequence++;
