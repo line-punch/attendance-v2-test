@@ -117,7 +117,7 @@ const settle=async()=>{for(let i=0;i<25;i++)await Promise.resolve()};
  test('new annual leave, payslip and history panels are present and explicitly marked as pending',()=>{
    for(const p of ['annual','payslip','history']){
      assert.ok(html.includes('id="page-'+p+'"'));
-     assert.ok(html.includes('data-page="'+p+'"'));
+     assert.equal(html.includes('data-page="'+p+'"'),false);
    }
    for(const word of ['特休查詢建置中','薪資查詢建置中','歷史查詢建置中'])
      assert.ok(html.includes(word));
@@ -128,14 +128,15 @@ const settle=async()=>{for(let i=0;i<25;i++)await Promise.resolve()};
      assert.equal(a.el('page-'+p).classList.contains('active'),true);
      assert.equal(a.events.length,0);
      assert.equal(a.navItems.filter(x=>x.classList.contains('active')).length,1);
-     assert.equal(a.navItems.find(x=>x.page===p).getAttribute('aria-current'),'page');
+     assert.equal(a.navItems.find(x=>x.page==='query').getAttribute('aria-current'),'page');
    }
  });
  test('all seven modules retain working back-and-forth navigation',()=>{
    for(const p of ['clock','miss','query','leave','annual','payslip','history']){
      a.context.showPage(p);
      assert.ok(a.el('page-'+p).classList.contains('active'));
-     assert.equal(a.navItems.find(x=>x.page===p).classList.contains('active'),true);
+     const root=['annual','payslip','history'].includes(p)?'query':p;
+     assert.equal(a.navItems.find(x=>x.page===root).classList.contains('active'),true);
    }
    a.context.showPage('does-not-exist');
    assert.ok(a.el('page-clock').classList.contains('active'));
