@@ -13,8 +13,9 @@ function showPage(page){
  const next=PREVIEW_PAGES.includes(page)?page:"clock";
  for(const name of PREVIEW_PAGES)el("page-"+name).classList.toggle("active",name===next);
  el("pageTitle").textContent=PREVIEW_TITLES[next]+"｜介面預覽";
+ const parentTile=["annual","payslip","history"].includes(next)?"query":next;
  for(const item of el("v2Navigation").querySelectorAll("[data-page]")){
-   const yes=item.getAttribute("data-page")===next;
+   const yes=item.getAttribute("data-page")===parentTile;
    item.classList.toggle("active",yes);
    if(yes)item.setAttribute("aria-current","page");
    else item.removeAttribute("aria-current");
@@ -84,5 +85,12 @@ function loadLeaveHistory(){
  el("missMsg").textContent="原有補打卡表單已保留，送出功能建置中。";
  el("leaveMsg").textContent="原有請假表單與六種假別已保留，送出功能建置中。";
  el("queryMsg").textContent="原有三個月出勤查詢入口已保留，待資料串接。";
- showPage("clock");
+ let initial="clock";
+ try{
+   if(typeof location!=="undefined"){
+     const selected=new URLSearchParams(location.search).get("page");
+     if(PREVIEW_PAGES.includes(selected))initial=selected;
+   }
+ }catch(_){}
+ showPage(initial);
 })();
