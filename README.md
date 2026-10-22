@@ -56,3 +56,24 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 若 iframe 確定受阻，最終架構應移除 iframe 回覆通道，
 改用能提供標準 HTTPS JSON 回應及受限 CORS 的獨立後端，
 避免依賴瀏覽器第三方 Cookie 設定。
+
+## 2026-10-22：真實後端驗證成功
+
+使用者透過 Edge InPrivate，開啟 **測試 LIFF** 並以開發者測試帳號登入後，前端顯示：
+
+> ✅ 已由 LINE 與獨立 Apps Script 後端驗證登入。  
+> 本階段仍不開放任何打卡、請假或寫入功能。
+
+這個結果表示在本次測試環境中，**LINE 前端登入 → GitHub Pages → 獨立 GAS verify-only 服務 → 前端成功回覆** 的實際通道已完成驗證。不同手機、瀏覽器與同時使用者仍需測試。
+
+同時核對：
+- 測試網站 main 仍只呼叫 `verify`，後端驗證功能已啟用。
+- 專用 GAS 驗證程式不含 `SpreadsheetApp` 及員工資料存取。
+- 正式 `line-punch/line-punch` 的 `main/index.html` SHA 仍維持先前值 `fe86e76285938f0013e8d457c9547866654fb9b6`。
+- **尚未**將 LINE 登入綁定到模擬員工，也尚未以手機真正操作打卡、請假、查詢、審核。
+
+### 下一個里程碑
+
+1. 同一測試 LIFF 在 iPhone／Android 實際開啟與重新登入，排除桌機成功、手機失敗。
+2. 另行設計授權的測試員工綁定與具防重覆／逾時查詢的 GAS 資料操作 API，維持專用 verify-only 服務不做資料寫入。
+3. 完成權限與同時操作安全測試後，才考慮讓獨立 LIFF 操作模擬試算表；不得直接重用原有不安全 JSONP API，也不得放寬正式專案權限。
