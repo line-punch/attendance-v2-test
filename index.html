@@ -23,7 +23,7 @@
 <body>
 <main>
   <h1>打卡系統 V2.0｜隔離測試</h1>
-  <p id="intro">這是獨立的 LINE 登入測試，不是正式員工打卡入口。此階段不提供寫入或打卡功能。</p>
+  <p id="intro">這是獨立的 LINE V2.0 模擬員工測試，不是正式員工打卡入口。目前僅開放 TEST001 一次性綁定；GPS 打卡與請假仍關閉。</p>
   <button id="login" type="button">驗證 LINE 登入</button>
   <div id="status" class="box" role="status">尚未開始</div>
   <small>此頁不顯示或儲存任何 LINE ID Token。隔離測試資料不會寫入正式員工打卡系統。</small>
@@ -56,7 +56,7 @@ const CONFIG=Object.freeze({
   liffId:"2012136707-2dDU0aSJ",
   enableServerVerification:true, // The established verify-only service
   enableDataTesting:true, // Phase 3: test data-service connectivity (read-only first)
-  enableBinding:false, // Only enable after confirmed iPhone whoami and one-time invitation
+  enableBinding:true, // iPhone whoami verified; only TEST001 with one-time invitation
   enableClock:false, // Only enable after TESTSITE GPS location is explicitly configured
   dataApi:"https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec",
   api:"https://script.google.com/macros/s/AKfycbx2s-MtBVoHT2061E8XHNk92F9PhCbI0HtyKzQ7c5l5rasc__XZ84BL-A2HyxIyc6_OEw/exec",
@@ -188,7 +188,7 @@ async function refreshSandbox(){
       $("bindPane").hidden=true;
       $("clockPane").hidden=!CONFIG.enableClock;
       state.textContent="✅ 已綁定："+r.employee.name+"（"+r.employee.employeeId+"）"+
-        (CONFIG.enableClock?"":"\n目前僅檢查資料連線，暫不開放 GPS 打卡。");
+        (CONFIG.enableClock?"":"\n目前僅開放模擬員工綁定；GPS 打卡仍未開放。");
       $("clockStatus").textContent=pendingClock()
         ?"有一筆先前的測試打卡待確認，請先查詢結果。"
         :"尚未送出測試打卡";
@@ -196,10 +196,14 @@ async function refreshSandbox(){
       $("bindPane").hidden=!CONFIG.enableBinding;
       $("clockPane").hidden=true;
       state.textContent=CONFIG.enableBinding
-        ?"LINE 已驗證，但尚未綁定模擬員工 TEST001。"
+        ?"✅ 隔離資料服務連線成功。\nLINE 已驗證；TEST001 尚未綁定。\n請輸入管理者核發的 32 位一次性邀請碼。"
         :"✅ 隔離資料服務連線成功。\nLINE 已驗證；TEST001 尚未綁定。\n目前僅檢查連線，不開放綁定或打卡。";
     }
-  } catch(e){state.textContent="⚠️ 測試身分查詢未完成："+e.message}
+    status("✅ LINE 後端驗證成功，隔離資料服務連線成功。");
+  } catch(e){
+    state.textContent="⚠️ 測試身分查詢未完成："+e.message;
+    status("✅ LINE 後端驗證成功，但模擬資料查詢尚未確認。");
+  }
 }
 async function bindSandbox(){
   if(!CONFIG.enableBinding)throw Error("綁定測試尚未開放");
