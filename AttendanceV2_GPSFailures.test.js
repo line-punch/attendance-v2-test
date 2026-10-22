@@ -322,6 +322,7 @@ async function suite(){
    assert.equal(c.storage.size,0);
    assert.ok(c.$('clockStatus').textContent.includes('超出測試打卡允許範圍'));
    assert.ok(c.$('clockStatus').textContent.includes('打卡未寫入'));
+   assert.ok(c.$('clockStatus').textContent.includes('精確位置'));
  });
  await test('double taps while GPS is still loading result in one clock POST',async()=>{
    const c=browser({bound:true,gpsMode:'pending'});await settle();
