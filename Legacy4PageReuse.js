@@ -88,18 +88,33 @@ function v2SafeCall(operation,payload){
   return v2PostForm(V2_REUSE.dataApi,operation,
     Object.assign({idToken:v2IdToken()},payload||{}));
 }
+const V2_PAGES=Object.freeze(["clock","miss","query","leave","annual","payslip","history"]);
+const V2_PAGE_TITLES=Object.freeze({
+  clock:"正常打卡",miss:"補打卡申請",query:"個人出勤查詢",
+  leave:"請假申請",annual:"特休查詢｜建置中",
+  payslip:"個人薪資查詢｜建置中",history:"年度歷史紀錄｜建置中"
+});
 function getPage(){
   const page=new URLSearchParams(location.search).get("page");
-  return ["clock","miss","query","leave"].includes(page)?page:"clock";
+  return V2_PAGES.includes(page)?page:"clock";
 }
 function showPage(page){
-  const p=["clock","miss","query","leave"].includes(page)?page:"clock";
+  const p=V2_PAGES.includes(page)?page:"clock";
   v2State.page=p;
-  const names={clock:"正常打卡",miss:"補打卡申請",query:"個人月查詢",leave:"請假系統"};
-  for(const id of ["clock","miss","query","leave"]){
+  for(const id of V2_PAGES){
     $("page-"+id).classList.toggle("active",id===p);
   }
-  $("pageTitle").textContent=names[p]+"｜V2 隔離介面";
+  // The old four features remain as-is; future pages are honest placeholders.
+  $("pageTitle").textContent=V2_PAGE_TITLES[p]+"｜V2 隔離介面";
+  const nav=$("v2Navigation");
+  if(nav){
+    for(const button of nav.querySelectorAll("[data-page]")){
+      const active=button.getAttribute("data-page")===p;
+      button.classList.toggle("active",active);
+      if(active)button.setAttribute("aria-current","page");
+      else button.removeAttribute("aria-current");
+    }
+  }
 }
 function v2EmployeeInfo(){
   if(!v2State.employee){
