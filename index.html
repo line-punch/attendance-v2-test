@@ -216,10 +216,20 @@ async function refreshSandbox(){
   }
 }
 let todayBusy=false;
+const confirmedToday={上班:false,下班:false};
+function applyClockButtonState_(){
+  $("clockIn").disabled=clockBusy||todayBusy||confirmedToday.上班;
+  $("clockOut").disabled=clockBusy||todayBusy||confirmedToday.下班;
+  $("clockIn").textContent=confirmedToday.上班?"✅ 今日上班已打卡":"上班測試打卡";
+  $("clockOut").textContent=confirmedToday.下班?"✅ 今日下班已打卡":"下班測試打卡";
+  $("clockStatusBtn").disabled=clockBusy;
+  $("retryClockBtn").disabled=clockBusy;
+}
 async function refreshTodayAttendance(){
   if(!CONFIG.enableTodayQuery)throw Error("今日打卡查詢尚未開放");
   if(todayBusy)return;
   todayBusy=true;
+  applyClockButtonState_();
   $("todayRefreshBtn").disabled=true;
   $("todayStatus").textContent="正在核對今天已寫入的上班、下班紀錄…";
   try{
@@ -245,12 +255,15 @@ async function refreshTodayAttendance(){
       lines.push("未查到紀錄不代表正在處理中的打卡失敗；若剛送出，請稍後重新查詢。");
     }
     $("todayStatus").textContent=lines.join("\n");
+    confirmedToday.上班=!!data.clockIn;
+    confirmedToday.下班=!!data.clockOut;
   }catch(e){
     $("todayStatus").textContent="⚠️ 今日打卡紀錄查詢未完成："+String(e&&e.message||e)+
       "\n請稍後重新查詢；不要因查詢失敗就重複打卡。";
   }finally{
     todayBusy=false;
     $("todayRefreshBtn").disabled=false;
+    applyClockButtonState_();
   }
 }
 async function bindSandbox(){
@@ -276,9 +289,7 @@ async function bindSandbox(){
 }
 function setClockBusy(value){
   clockBusy=value;
-  for(const id of ["clockIn","clockOut","clockStatusBtn","retryClockBtn"]){
-    $(id).disabled=value;
-  }
+  applyClockButtonState_();
 }
 function obtainGPS(){
   return new Promise((resolve,reject)=>{
@@ -307,6 +318,18 @@ function obtainGPS(){
 async function testClock(type){
   if(!CONFIG.enableClock)throw Error("GPS 打卡測試尚未開放");
   if(clockBusy)return;
+  if(pendingClock()){
+    $("clockStatus").textContent="上一筆打卡尚未確認，請先查詢結果，避免重複打卡。";
+    return;
+  }
+  if(todayBusy){
+    $("clockStatus").textContent="正在核對今日打卡紀錄，請勿重複點擊。";
+    return;
+  }
+  if(confirmedToday[type]){
+    $("clockStatus").textContent="✅ 今日已完成"+type+"打卡，請查看今日打卡紀錄。";
+    return;
+  }
   setClockBusy(true);
   try{
     if(pendingClock()){
