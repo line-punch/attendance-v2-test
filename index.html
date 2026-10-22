@@ -23,7 +23,7 @@
 <body>
 <main>
   <h1>打卡系統 V2.0｜隔離測試</h1>
-  <p>這是獨立的 LINE 登入測試，不是正式員工打卡入口。此階段不提供寫入或打卡功能。</p>
+  <p id="intro">這是獨立的 LINE 登入測試，不是正式員工打卡入口。此階段不提供寫入或打卡功能。</p>
   <button id="login" type="button">驗證 LINE 登入</button>
   <div id="status" class="box" role="status">尚未開始</div>
   <small>此頁不顯示或儲存任何 LINE ID Token。隔離測試資料不會寫入正式員工打卡系統。</small>
@@ -55,8 +55,10 @@
 const CONFIG=Object.freeze({
   liffId:"2012136707-2dDU0aSJ",
   enableServerVerification:true, // The established verify-only service
-  enableDataTesting:false, // UNPUBLISHED BRANCH: enable after separate data service is deployed
-  dataApi:"__PENDING_V2_SANDBOX_DATA_EXEC_URL__",
+  enableDataTesting:true, // Phase 3: test data-service connectivity (read-only first)
+  enableBinding:false, // Only enable after confirmed iPhone whoami and one-time invitation
+  enableClock:false, // Only enable after TESTSITE GPS location is explicitly configured
+  dataApi:"https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec",
   api:"https://script.google.com/macros/s/AKfycbx2s-MtBVoHT2061E8XHNk92F9PhCbI0HtyKzQ7c5l5rasc__XZ84BL-A2HyxIyc6_OEw/exec",
   allowedResponseOrigins:["https://script.google.com"],
   expectedResponseSuffix:".googleusercontent.com"
@@ -106,7 +108,6 @@ function postForm(operation,payload,apiOverride) {
     };
     const listener=e=>{
       if(!originOK(e.origin)||!e.data||typeof e.data!=="object")return;
-      if(apiOverride && e.source!==iframe.contentWindow)return;
       const data=e.data;
       if(data.bridge!=="YC_V2_STAGING_FORM_V1" || data.nonce!==nonce)return;
       if(!data.ok) {
@@ -185,19 +186,23 @@ async function refreshSandbox(){
     if(!r.ok)throw Error("尚未確認模擬員工");
     if(r.bound){
       $("bindPane").hidden=true;
-      $("clockPane").hidden=false;
-      state.textContent="✅ 已綁定："+r.employee.name+"（"+r.employee.employeeId+"）";
+      $("clockPane").hidden=!CONFIG.enableClock;
+      state.textContent="✅ 已綁定："+r.employee.name+"（"+r.employee.employeeId+"）"+
+        (CONFIG.enableClock?"":"\n目前僅檢查資料連線，暫不開放 GPS 打卡。");
       $("clockStatus").textContent=pendingClock()
         ?"有一筆先前的測試打卡待確認，請先查詢結果。"
         :"尚未送出測試打卡";
     }else{
-      $("bindPane").hidden=false;
+      $("bindPane").hidden=!CONFIG.enableBinding;
       $("clockPane").hidden=true;
-      state.textContent="LINE 已驗證，但尚未綁定模擬員工 TEST001。";
+      state.textContent=CONFIG.enableBinding
+        ?"LINE 已驗證，但尚未綁定模擬員工 TEST001。"
+        :"✅ 隔離資料服務連線成功。\nLINE 已驗證；TEST001 尚未綁定。\n目前僅檢查連線，不開放綁定或打卡。";
     }
   } catch(e){state.textContent="⚠️ 測試身分查詢未完成："+e.message}
 }
 async function bindSandbox(){
+  if(!CONFIG.enableBinding)throw Error("綁定測試尚未開放");
   if(bindBusy)return;
   const code=$("inviteCode").value.trim().toUpperCase();
   if(!/^[A-F0-9]{32}$/.test(code)){
@@ -238,6 +243,7 @@ function obtainGPS(){
   });
 }
 async function testClock(type){
+  if(!CONFIG.enableClock)throw Error("GPS 打卡測試尚未開放");
   if(clockBusy)return;
   setClockBusy(true);
   try{
@@ -257,6 +263,7 @@ async function testClock(type){
   }finally{setClockBusy(false)}
 }
 async function sendPendingClock(request){
+  if(!CONFIG.enableClock)throw Error("GPS 打卡測試尚未開放");
   $("clockStatus").textContent="正在送出隔離測試打卡…";
   try {
     const r=await sandboxCall("clock",request);
@@ -280,6 +287,7 @@ async function sendPendingClock(request){
   }
 }
 async function checkPendingClock(){
+  if(!CONFIG.enableClock)throw Error("GPS 打卡測試尚未開放");
   if(clockBusy)return;
   setClockBusy(true);
   try{
@@ -302,6 +310,7 @@ async function checkPendingClock(){
   }finally{setClockBusy(false)}
 }
 async function retryPendingClock(){
+  if(!CONFIG.enableClock)throw Error("GPS 打卡測試尚未開放");
   if(clockBusy)return;
   setClockBusy(true);
   try{
