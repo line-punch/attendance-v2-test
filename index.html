@@ -224,7 +224,7 @@ async function refreshTodayAttendance(){
   $("todayStatus").textContent="正在核對今天已寫入的上班、下班紀錄…";
   try{
     const data=await sandboxCall("todayAttendance",{});
-    if(!data||!data.ok||!Array.isArray([data.clockIn,data.clockOut])||
+    if(!data||!data.ok||
        !/^\d{4}\/\d{2}\/\d{2}$/.test(String(data.date||""))){
       throw Error("今日打卡查詢回覆格式不正確");
     }
