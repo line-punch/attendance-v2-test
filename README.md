@@ -254,3 +254,27 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 - 正式 line-punch/line-punch main/index.html SHA `fe86e76285938f0013e8d457c9547866654fb9b6` 沒修改。
 
 下一階段仍需 GPS 拒絕定位、越界、同時操作/真實網路中斷、跨日交班及管理員權限驗證；這些不影響現在已實機通過的基本查詢。
+
+## 2026-10-22：GPS 定位失敗與 50 公尺邊界回歸
+
+使用者表示目前操作／思考強度選擇「高」；本階段不需要再調高。如遇需要提高的情況再告知。
+
+### 前端（隔離測試 GitHub Pages）
+
+- 已在 `feature/gps-error-ux-regression-20261022` 分支補強 iPhone GPS 定位權限被拒（code 1）、定位不可用（code 2）與定位逾時（code 3）的**可操作中文提示**。超出 50m 允許距離時，也提示檢查「精確位置」設定後再試。
+- **26/26 項前端非同步回歸測試通過**，涵蓋沒有 GPS 就不 POST、不產生錯誤待處理紀錄、GPS 恢復後重取新位置、正在定位時快速重複點擊只送一次、資料已寫入但成功回覆遺失後查詢原請求、重新開啟 LINE 後查今日紀錄。
+- 先保留上一版經 iPhone 實測成功的查詢頁於 `backup/stage6-before-gps-error-ux-20261022`（SHA `aa002a8257d1a5963766df026cc04c37b3ab38f4`），再將**僅前端錯誤提示**發布至隔離測試 GitHub Pages `main/index.html` SHA `a5a2d414872fd74b17bba7060505729cecb35502`。
+- 本輪未對上班/下班實際寫入流程、後端 URL、身分綁定或正式員工打卡作任何修改；新版錯誤提示**尚未做真實 iPhone 拒絕定位測試**，不能宣告該項實機 PASS。
+
+### GAS 後端（尚未部署的安全改善）
+
+- `line-punch/line-punch` 私有開發分支 `feature/v2-gps-boundary-regression-20261022`，測試檔 `staging/AttendanceV2_SandboxDataService.test.js`，**55/55 項模擬回歸通過**。
+- 嚴格測試 50m 近邊界（49m 可通過／51m 應拒絕）、無效 GPS 精度、過期與未來時間、重複測試場地和超大半徑等拒絕情況。
+- 已在**僅此後端開發分支**修正順序：已綁定 TEST001 的同日同類型打卡紀錄，應先由伺服器判斷 `ALREADY_CLOCKED`，再要求 GPS；這能避免員工打卡後離開場地，再按同類型卻只看到「超出距離」。同一請求 ID 的重播仍優先核對原已寫入紀錄。
+- **此伺服器順序改善目前尚未複製到 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` GAS，也沒有更新該服務部署**；不可對使用者宣告已在真實 iPhone 生效。
+- 對晚班跨午夜／多人同時操作／真實短暫斷網與 iPhone GPS 權限拒絕，仍需要後續實機驗證。
+
+### 版本安全核對
+
+- V2 隔離測試 GitHub Pages `main/index.html` SHA `a5a2d414872fd74b17bba7060505729cecb35502`。
+- 正式 `line-punch/line-punch/main/index.html` SHA `fe86e76285938f0013e8d457c9547866654fb9b6`，依核對未更動。
