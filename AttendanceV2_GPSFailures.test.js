@@ -67,7 +67,7 @@ async function suite(){
    },
    body:{appendChild(item){if(item.tag==='iframe')frames.push(item)}}
   };
-  const browserState={bound:!!(options&&options.bound),record:null,failGPS:false,failUnknown:false,failToday:false,dropClockAck:false,clockWrites:0,history:(options&&options.history)||{clockIn:null,clockOut:null}};
+  const browserState={bound:!!(options&&options.bound),record:null,failGPS:false,failUnknown:false,failToday:false,dropClockAck:false,clockWrites:0,gpsReads:0,gpsMode:(options&&options.gpsMode)||'ok',completeGPS:null,history:(options&&options.history)||{clockIn:null,clockOut:null}};
   const storageAPI={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),
     removeItem:k=>storage.delete(k)};
   const win={addEventListener:(n,cb)=>listeners[n]=cb,
@@ -75,8 +75,18 @@ async function suite(){
   class MockURL {constructor(uri){this.protocol=uri.split(':')[0]+':';
     this.hostname=uri.split('/')[2]||''}}
   const scope={document:doc,window:win,sessionStorage:storageAPI,
-    navigator:{geolocation:{getCurrentPosition:cb=>cb({coords:{
-      latitude:25,longitude:121,accuracy:12}})}},
+    navigator:{geolocation:{getCurrentPosition:(success,failure,params)=>{
+      browserState.gpsReads++;
+      const ok=()=>success({coords:{latitude:25,longitude:121,accuracy:12}});
+      if(browserState.gpsMode==='denied')return failure({code:1,message:'Permission denied'});
+      if(browserState.gpsMode==='unavailable')return failure({code:2,message:'Position unavailable'});
+      if(browserState.gpsMode==='timeout')return failure({code:3,message:'Position timeout'});
+      if(browserState.gpsMode==='pending'){
+        browserState.completeGPS=ok;
+        return;
+      }
+      return ok();
+    }}},
     liff:{async init(){},isLoggedIn:()=>true,
       getIDToken:()=> 'synthetic.jwt.token',login(){throw Error('unexpected login')}},
     Uint8Array,JSON,Object,Array,Promise,Math,Number,String,Error,Date,URL:MockURL,
