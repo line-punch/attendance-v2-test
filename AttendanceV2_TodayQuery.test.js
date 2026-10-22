@@ -28,6 +28,11 @@ async function suite(){
         {ok:true,bound:true,employee:{name:'模擬員工甲',employeeId:'TEST001'}}:
         {ok:true,bound:false};
       else if(call.op==='bind'){browserState.bound=true;result={ok:true,bound:true}}
+      else if(call.op==='todayAttendance')result=browserState.failToday
+        ?{ok:false,error:'今日資料查詢尚未完成',code:'UNKNOWN'}
+        :{ok:true,date:'2026/10/22',
+          clockIn:browserState.history.clockIn,clockOut:browserState.history.clockOut,
+          total:Number(!!browserState.history.clockIn)+Number(!!browserState.history.clockOut)};
       else if(call.op==='clock'){
         browserState.record=call.request;
         if(browserState.failUnknown)result={ok:false,code:'UNKNOWN',error:'結果未確認'};
