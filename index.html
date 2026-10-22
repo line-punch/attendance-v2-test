@@ -12,6 +12,12 @@
   .box{border-radius:10px;background:#eef3f7;padding:14px;white-space:pre-wrap;margin:14px 0}
   button{border:0;border-radius:12px;padding:14px 18px;background:#26755a;color:#fff;font-size:16px;width:100%}
   button:disabled{background:#87928e}small{color:#697585}
+  .section{margin-top:20px;padding-top:16px;border-top:1px solid #dce5eb}
+  .section h2{font-size:18px}label{display:block;margin-top:12px;font-size:15px}
+  input{padding:13px;border:1px solid #9caaba;border-radius:10px;width:100%;box-sizing:border-box;font-size:16px}
+  .row{display:flex;gap:10px}.row button{flex:1}
+  .secondary{background:#446782;margin-top:8px}
+  .hint{color:#657285;font-size:13px}
   </style>
 </head>
 <body>
@@ -20,13 +26,37 @@
   <p>這是獨立的 LINE 登入測試，不是正式員工打卡入口。此階段不提供寫入或打卡功能。</p>
   <button id="login" type="button">驗證 LINE 登入</button>
   <div id="status" class="box" role="status">尚未開始</div>
-  <small>第二階段：唯讀驗證 LINE ID Token。此頁不顯示或儲存任何 LINE ID Token、員工個資或打卡資料。</small>
+  <small>此頁不顯示或儲存任何 LINE ID Token。隔離測試資料不會寫入正式員工打卡系統。</small>
+  <section id="sandbox" class="section" hidden>
+    <h2>模擬員工與打卡測試</h2>
+    <div id="bindState" class="box" role="status">尚未確認模擬員工綁定</div>
+    <div id="bindPane" hidden>
+      <p class="hint">只能使用管理者核發的 32 位一次性測試邀請碼，綁定模擬員工 TEST001。</p>
+      <label for="inviteCode">一次性測試邀請碼</label>
+      <input id="inviteCode" type="text" autocomplete="off" maxlength="32"
+        placeholder="32 位英文及數字" spellcheck="false">
+      <button id="bindBtn" type="button" class="secondary">確認綁定模擬員工</button>
+    </div>
+    <div id="clockPane" hidden>
+      <p class="hint">使用手機 GPS 定位。測試場地需先由管理者設定；目前預設 0,0 會拒絕打卡。</p>
+      <div class="row">
+        <button id="clockIn" type="button">上班測試打卡</button>
+        <button id="clockOut" type="button">下班測試打卡</button>
+      </div>
+      <button id="clockStatusBtn" type="button" class="secondary">查詢上一筆打卡結果</button>
+      <button id="retryClockBtn" type="button" class="secondary">使用原請求編號重新送出</button>
+      <div class="box" id="clockStatus" role="status">尚未送出測試打卡</div>
+    </div>
+    <button id="refreshTestBtn" type="button" class="secondary">重新確認我的測試員工身分</button>
+  </section>
 </main>
 <script>
 "use strict";
 const CONFIG=Object.freeze({
   liffId:"2012136707-2dDU0aSJ",
-  enableServerVerification:true, // Isolated verification service only; no employee writes
+  enableServerVerification:true, // The established verify-only service
+  enableDataTesting:false, // UNPUBLISHED BRANCH: enable after separate data service is deployed
+  dataApi:"__PENDING_V2_SANDBOX_DATA_EXEC_URL__",
   api:"https://script.google.com/macros/s/AKfycbx2s-MtBVoHT2061E8XHNk92F9PhCbI0HtyKzQ7c5l5rasc__XZ84BL-A2HyxIyc6_OEw/exec",
   allowedResponseOrigins:["https://script.google.com"],
   expectedResponseSuffix:".googleusercontent.com"
@@ -48,7 +78,7 @@ function originOK(origin) {
        u.hostname.endsWith(CONFIG.expectedResponseSuffix));
   } catch(_) {return false}
 }
-function postForm(operation,payload) {
+function postForm(operation,payload,apiOverride) {
   return new Promise((resolve,reject)=>{
     let nonce;
     try{nonce=randomId()}catch(e){reject(e);return}
@@ -58,7 +88,7 @@ function postForm(operation,payload) {
     iframe.setAttribute("aria-hidden","true");
     const form=document.createElement("form");
     form.style.display="none";form.method="POST";
-    form.action=CONFIG.api;form.target=iframe.name;
+    form.action=apiOverride||CONFIG.api;form.target=iframe.name;
     form.acceptCharset="UTF-8";
     const fields={nonce,operation,payload:JSON.stringify(payload)};
     for(const [key,value] of Object.entries(fields)){
@@ -76,10 +106,15 @@ function postForm(operation,payload) {
     };
     const listener=e=>{
       if(!originOK(e.origin)||!e.data||typeof e.data!=="object")return;
+      if(apiOverride && e.source!==iframe.contentWindow)return;
       const data=e.data;
       if(data.bridge!=="YC_V2_STAGING_FORM_V1" || data.nonce!==nonce)return;
-      if(!data.ok)finish(Error(String(data.error||"LINE 驗證失敗")));
-      else finish(null,data.result);
+      if(!data.ok) {
+        const err=Error(String(data.error||"操作結果尚未確認"));
+        err.code=String(data.code||"UNKNOWN");
+        err.persisted=data.persisted===false?false:null;
+        finish(err);
+      } else finish(null,data.result);
     };
     const timer=setTimeout(()=>finish(Error("驗證逾時，可能是 Google 限制內嵌回應；未確認結果")),45000);
     window.addEventListener("message",listener);
@@ -111,12 +146,177 @@ async function verifyLine(autoCheck=false){
     status("LINE 登入已完成，正在向隔離測試後端確認身分…");
     const response=await postForm("verify",{idToken});
     if(!response||!response.ok||response.verified!==true)throw Error("後端沒有確認身分");
-    status("✅ 已由 LINE 與獨立 Apps Script 後端驗證登入。\n本階段仍不開放任何打卡、請假或寫入功能。");
+    status(CONFIG.enableDataTesting
+      ? "✅ LINE 後端驗證成功。正在確認隔離模擬員工…"
+      : "✅ 已由 LINE 與獨立 Apps Script 後端驗證登入。\n本階段仍不開放任何打卡、請假或寫入功能。");
+    if(CONFIG.enableDataTesting){
+      document.getElementById("sandbox").hidden=false;
+      await refreshSandbox();
+    }
   }catch(e){
     status("⚠️ 登入測試尚未完成："+String(e&&e.message||e));
   }finally{busy=false;button.disabled=false;button.textContent="驗證 LINE 登入";}
 }
+const $=id=>document.getElementById(id);
+const pendingKey="attendance-v2-test-clock-pending";
+let clockBusy=false,bindBusy=false;
+function idTokenForTest(){
+  if(!liff.isLoggedIn())throw Error("LINE 登入已失效，請重新開啟測試頁");
+  const t=liff.getIDToken();
+  if(!t)throw Error("LINE 無法取得登入資料");
+  return t;
+}
+function pendingClock(){
+  try{return JSON.parse(sessionStorage.getItem(pendingKey)||"null")}
+  catch(_){return null}
+}
+function setPendingClock(p){sessionStorage.setItem(pendingKey,JSON.stringify(p))}
+function clearPendingClock(){sessionStorage.removeItem(pendingKey)}
+async function sandboxCall(operation,payload){
+  if(!CONFIG.enableDataTesting || CONFIG.dataApi.startsWith("__"))
+    throw Error("隔離資料服務尚未啟用");
+  return postForm(operation,{idToken:idTokenForTest(),...payload},CONFIG.dataApi);
+}
+async function refreshSandbox(){
+  const state=$("bindState");
+  state.textContent="正在讀取隔離模擬員工身分…";
+  try {
+    const r=await sandboxCall("whoami",{});
+    if(!r.ok)throw Error("尚未確認模擬員工");
+    if(r.bound){
+      $("bindPane").hidden=true;
+      $("clockPane").hidden=false;
+      state.textContent="✅ 已綁定："+r.employee.name+"（"+r.employee.employeeId+"）";
+      $("clockStatus").textContent=pendingClock()
+        ?"有一筆先前的測試打卡待確認，請先查詢結果。"
+        :"尚未送出測試打卡";
+    }else{
+      $("bindPane").hidden=false;
+      $("clockPane").hidden=true;
+      state.textContent="LINE 已驗證，但尚未綁定模擬員工 TEST001。";
+    }
+  } catch(e){state.textContent="⚠️ 測試身分查詢未完成："+e.message}
+}
+async function bindSandbox(){
+  if(bindBusy)return;
+  const code=$("inviteCode").value.trim().toUpperCase();
+  if(!/^[A-F0-9]{32}$/.test(code)){
+    $("bindState").textContent="請填入 32 位一次性測試邀請碼";
+    return;
+  }
+  bindBusy=true;$("bindBtn").disabled=true;
+  $("bindState").textContent="正在綁定模擬員工，請勿重複點擊…";
+  try{
+    const r=await sandboxCall("bind",{invitationCode:code});
+    if(!r.ok||!r.bound)throw Error("尚未完成綁定");
+    $("inviteCode").value="";
+    await refreshSandbox();
+  }catch(e){
+    $("bindState").textContent=e.persisted===false
+      ?"❌ "+e.message
+      :"⚠️ 綁定結果尚未確認："+e.message+"，請重新確認身分。";
+  }finally{bindBusy=false;$("bindBtn").disabled=false}
+}
+function setClockBusy(value){
+  clockBusy=value;
+  for(const id of ["clockIn","clockOut","clockStatusBtn","retryClockBtn"]){
+    $(id).disabled=value;
+  }
+}
+function obtainGPS(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){reject(Error("此裝置不支援 GPS"));return}
+    navigator.geolocation.getCurrentPosition(
+      loc=>resolve({
+        lat:loc.coords.latitude,
+        lng:loc.coords.longitude,
+        accuracy:loc.coords.accuracy,
+        capturedAt:Date.now()
+      }),
+      e=>reject(Error("無法定位："+(e&&e.message||"未知錯誤"))),
+      {enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  });
+}
+async function testClock(type){
+  if(clockBusy)return;
+  setClockBusy(true);
+  try{
+    if(pendingClock()){
+      $("clockStatus").textContent="上一筆打卡尚未確認，請先查詢結果，避免重複打卡。";
+      return;
+    }
+    $("clockStatus").textContent="正在取得新的 GPS 定位…";
+    const gps=await obtainGPS();
+    const request={requestId:randomId(),type,...gps};
+    setPendingClock(request);
+    await sendPendingClock(request);
+  }catch(e){
+    $("clockStatus").textContent=pendingClock()
+      ?"⚠️ 打卡結果尚未確認："+e.message+"。請查詢原請求。"
+      :"打卡尚未送出："+e.message;
+  }finally{setClockBusy(false)}
+}
+async function sendPendingClock(request){
+  $("clockStatus").textContent="正在送出隔離測試打卡…";
+  try {
+    const r=await sandboxCall("clock",request);
+    if(r.ok && r.found){
+      clearPendingClock();
+      $("clockStatus").textContent="✅ "+r.message+"\n"+r.date+" "+r.time+"｜"+r.type;
+    } else if(r.code==="ALREADY_CLOCKED"){
+      clearPendingClock();
+      $("clockStatus").textContent="⚠️ "+r.message;
+    } else{
+      $("clockStatus").textContent="⚠️ 送出結果未確認，請先查詢原請求。";
+    }
+  }catch(e){
+    if(e.persisted===false){
+      clearPendingClock();
+      $("clockStatus").textContent="❌ 打卡未寫入："+e.message;
+    } else{
+      $("clockStatus").textContent="⚠️ 結果未確認："+e.message+
+        "\n請使用「查詢上一筆打卡結果」，不要建立新請求。";
+    }
+  }
+}
+async function checkPendingClock(){
+  if(clockBusy)return;
+  setClockBusy(true);
+  try{
+    const request=pendingClock();
+    if(!request){$("clockStatus").textContent="沒有待確認的打卡";return}
+    $("clockStatus").textContent="正在查詢原打卡編號…";
+    const r=await sandboxCall("clockStatus",{
+      requestId:request.requestId,type:request.type
+    });
+    if(r.ok&&r.found){
+      clearPendingClock();
+      $("clockStatus").textContent="✅ 已確認打卡成功："+
+        r.date+" "+r.time+"｜"+r.type;
+    }else{
+      $("clockStatus").textContent=
+        "⚠️ 尚未查到紀錄，可能仍在處理中。稍後可重新查詢或用原編號重送。";
+    }
+  }catch(e){
+    $("clockStatus").textContent="⚠️ 查詢未完成："+e.message;
+  }finally{setClockBusy(false)}
+}
+async function retryPendingClock(){
+  if(clockBusy)return;
+  setClockBusy(true);
+  try{
+    const request=pendingClock();
+    if(!request){$("clockStatus").textContent="沒有待確認的打卡";return}
+    await sendPendingClock(request); // server checks capturedAt for first write
+  }finally{setClockBusy(false)}
+}
 button.addEventListener("click",()=>verifyLine(false));
+$("bindBtn").addEventListener("click",bindSandbox);
+$("refreshTestBtn").addEventListener("click",refreshSandbox);
+$("clockIn").addEventListener("click",()=>testClock("上班"));
+$("clockOut").addEventListener("click",()=>testClock("下班"));
+$("clockStatusBtn").addEventListener("click",checkPendingClock);
+$("retryClockBtn").addEventListener("click",retryPendingClock);
 // On returning from LINE OAuth, the whole page reloads. Resume the successful
 // login check automatically; never initiate a login redirect without a click.
 verifyLine(true);
