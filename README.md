@@ -187,3 +187,18 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 3. 針對「請求逾時」以測試專用方式模擬已寫入但回覆遺失，要求按原 requestId 查詢，不准無辨識碼重送。
 4. 加做 GPS 超出距離、拒絕定位、同時寫入與跨日測試。
 5. 正式打卡應用和真實員工資料不變。
+
+## 2026-10-22：重新開啟 iPhone LINE 後防重複打卡通過
+
+使用者用 iPhone 關閉 LINE 內建測試頁後，重新由測試 LIFF 進入，再按「上班測試打卡」：
+- 顯示「今日已完成此類型打卡，請先查詢紀錄」；使用者確認 OK。
+- 前輪已獨立打開隔離測試 Sheet 確認總共兩筆：TEST001 上班一筆、下班一筆。
+- 這證實在已查到當日成功寫入資料的情況下，跨頁重新載入仍能在後端阻擋重複上班打卡。
+- 本輪尚未再次直接核實 Sheet 有無第三筆，但返回的後端防重複訊息符合既有規則。
+
+下一步優先開發經 LINE 身分驗證的本人「今日打卡紀錄」，不依賴同一瀏覽器 sessionStorage 的原 requestId；必須後端驗證與指定隔離資料庫，僅查 TEST001 當日上、下班時間，不回傳 GPS、LINE ID、請求碼。其他正式員工資料不能查。
+
+開發分支：
+- 打卡 GAS：line-punch/line-punch 分支 feature/v2-today-attendance-query-20261022，檔案 staging/AttendanceV2_SandboxDataService.gs。
+- 測試 LIFF 網頁：line-punch/attendance-v2-test 分支 feature/today-attendance-query-20261022，檔案 index.html；enableTodayQuery=false，不會提前呼叫尚未部署的新後端功能。
+- 需要更新專用 DATA TEST Apps Script 同一既有網頁應用程式部署並核對 URL 不變，之後才能啟用前端；**正式打卡不動**。
