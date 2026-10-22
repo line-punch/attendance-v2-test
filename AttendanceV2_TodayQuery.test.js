@@ -148,6 +148,35 @@ async function suite(){
    assert.equal(b.storage.size,0);
    assert.ok(b.$('clockStatus').textContent.includes('已確認打卡成功'));
  });
+
+ test('today query is not published before new GAS redeployment',()=>{
+   assert.ok(html.includes('enableTodayQuery:false'));
+   assert.equal(a.forms.some(x=>x.op==='todayAttendance'),false);
+   assert.equal(a.$('todayPane').hidden,true);
+ });
+ await test('returning bound iPhone auto-displays today in/out times without request ID',async()=>{
+   const c=browser({bound:true,today:true,history:{
+     clockIn:{time:'09:13:05',placeName:'測試場地'},
+     clockOut:{time:'18:47:56',placeName:'測試場地'}
+   }});
+   await settle();
+   assert.deepEqual(c.forms.map(x=>x.op),['verify','whoami','todayAttendance']);
+   assert.equal(c.$('todayPane').hidden,false);
+   assert.equal(c.$('clockPane').hidden,false);
+   assert.ok(c.$('todayStatus').textContent.includes('上班：09:13:05'));
+   assert.ok(c.$('todayStatus').textContent.includes('下班：18:47:56'));
+   assert.equal(c.storage.size,0);
+ });
+ await test('manual today refresh shows newly completed shift',async()=>{
+   const c=browser({bound:true,today:true,history:{
+     clockIn:{time:'09:13:05',placeName:'測試場地'},clockOut:null
+   }});
+   await settle();
+   assert.ok(c.$('todayStatus').textContent.includes('下班：尚未查到紀錄'));
+   c.browserState.history.clockOut={time:'18:47:56',placeName:'測試場地'};
+   await c.scope.refreshTodayAttendance();await settle();
+   assert.ok(c.$('todayStatus').textContent.includes('下班：18:47:56'));
+ });
  console.log('TOTAL '+passed+' passed');
 }
 suite().catch(e=>{console.error(e);process.exitCode=1});
