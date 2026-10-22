@@ -121,3 +121,24 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 使用者回覆「綁定成功」。此為真實 iPhone LINE 內建瀏覽器發起的一次性 TEST001 綁定操作結果，尚未額外獨立查詢 Google Sheet 確認 D2；需要時可由管理員重跑只讀 v2CheckSandboxDataSetup，預期顯示「TEST001：已綁定」。
 
 下一步將隔離測試 Sheet `YC_ATTENDANCE_V2_TEST_ONLY` 的「上班地點」分頁 D2 由 `0,0` 設為測試者實際所在地點的 `緯度,經度`。E2 保持 30 公尺或依場地定位精度審慎調整（後端只接受 10–300 公尺）。此時仍保持測試網站 `enableClock:false`，待實際 GPS 地點填妥再啟用。切勿傳送私人測試地點座標或邀請碼到聊天，也不可更動正式資料表或正式打卡系統。
+
+## 2026-10-22：50 公尺 GPS 隔離實機測試版發布
+
+使用者確認在隔離測試 Sheet 上班地點 D2 GPS 座標、E2 50 公尺設定重新整理後仍保留。此前 TEST001 已由真實 iPhone LINE 帳號完成模擬綁定。
+
+- 已備份上一版成功的綁定測試：backup/stage3-test001-bound-20261022。
+- 已發布隔離 GitHub Pages `attendance-v2-test/main/index.html`：SHA `8cf6a31784a0f71048ed5d96ad44eefcb1578b13`。
+- 前端功能 enableDataTesting=true / enableBinding=true / enableClock=true，GPS 模擬測試 11/11 PASS。
+- 原 Apps Script DATA TEST 後端不變；本次已增補本地 GPS 50 公尺範圍測試，後端 37/37 PASS。
+- 正式 `line-punch/line-punch/main/index.html` SHA 仍為 `fe86e76285938f0013e8d457c9547866654fb9b6`。
+- 尚未實際用 iPhone 執行 GPS 寫入，亦未確認打卡紀錄資料表產生新列。
+
+實機操作順序：
+1. 使用 `https://liff.line.me/2012136707-2dDU0aSJ/?v=20261022gps1`（版本參數只為避免快取）。
+2. 確認已綁定 TEST001、看到「上班測試打卡」「下班測試打卡」按鈕。
+3. 在隔離 Sheet 設定的實際場地附近，手機開啟位置服務、同意 LINE 定位權限；先單次按「上班測試打卡」。
+4. 如果成功，先查看隔離 Sheet 打卡紀錄是否有一筆員工 TEST001、來源 LINE-V2:<requestId>；下一步才測重複處理及下班。
+5. 若出現「結果未確認」或逾時，先按「查詢上一筆打卡結果」，不要產生新打卡。
+6. 若出現「超出打卡範圍」，核實測試場地和手機定位精度；勿為了測試任意提高範圍上限。
+
+限制：瀏覽器 GPS 不是防偽定位；NFC / NFC SUN-SDM 驗證、正式權限與大量同時打卡仍未完成，不應提供正式員工使用。
