@@ -149,10 +149,12 @@ async function suite(){
    assert.ok(b.$('clockStatus').textContent.includes('已確認打卡成功'));
  });
 
- test('today query is enabled only after sandbox LINE binding',()=>{
+ test('today query is enabled after sandbox LINE binding, not before',()=>{
    assert.ok(html.includes('enableTodayQuery:true'));
-   assert.equal(a.forms.some(x=>x.op==='todayAttendance'),false);
-   assert.equal(a.$('todayPane').hidden,true);
+   assert.equal(a.forms.slice(0,2).map(x=>x.op).join(','),'verify,whoami');
+   assert.equal(a.forms.some(x=>x.op==='todayAttendance'),true);
+   assert.equal(a.$('todayPane').hidden,false);
+   assert.ok(a.$('todayStatus').textContent.includes('上班：尚未查到紀錄'));
  });
  await test('returning bound iPhone auto-displays today in/out times without request ID',async()=>{
    const c=browser({bound:true,today:true,history:{
