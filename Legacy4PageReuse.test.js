@@ -24,7 +24,7 @@ function runtime(options={}){
     return els[id];
   };
   // Simulate the seven navigation buttons and their selected state.
-  const navItems=['clock','miss','query','leave','annual','payslip','history'].map(page=>{
+  const navItems=['clock','miss','query','leave'].map(page=>{
     const item={page,attributes:{'data-page':page},classList:null,
       getAttribute(k){return this.attributes[k]||null},
       setAttribute(k,v){this.attributes[k]=v},
@@ -95,6 +95,24 @@ const settle=async()=>{for(let i=0;i<25;i++)await Promise.resolve()};
    assert.equal(a.context.v2State?.page,undefined); // lexical state not exposed
    assert.ok(a.el('page-miss').classList.contains('active'));
    assert.equal(a.el('page-clock').classList.contains('active'),false);
+ });
+ test('only original four buttons occupy LINE menu root in the integration UI',()=>{
+   for(const page of ['clock','miss','query','leave'])
+     assert.ok(html.includes('data-page="'+page+'"'));
+   for(const page of ['annual','payslip','history'])
+     assert.equal(html.includes('data-page="'+page+'"'),false);
+   assert.equal((html.match(/data-page="(?:clock|miss|query|leave)"/g)||[]).length,4);
+ });
+ test('additional queries are reachable only from existing query page',()=>{
+   const beginning=html.indexOf('id="page-query"');
+   const end=html.indexOf('id="page-leave"',beginning);
+   const query=html.slice(beginning,end);
+   for(const page of ['annual','payslip','history']){
+     assert.ok(query.includes("showPage('"+page+"')"));
+     a.context.showPage(page);
+     assert.ok(a.el('page-'+page).classList.contains('active'));
+     assert.ok(a.navItems.find(item=>item.page==='query').classList.contains('active'));
+   }
  });
  test('new annual leave, payslip and history panels are present and explicitly marked as pending',()=>{
    for(const p of ['annual','payslip','history']){
