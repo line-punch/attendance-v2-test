@@ -105,3 +105,13 @@ Google 官方 HTMLService 文件指出網頁以 iframe sandbox 運作：
 - 正式 line-punch/line-punch/main/index.html 維持 SHA fe86e76285938f0013e8d457c9547866654fb9b6
 
 下一步：使用者在打卡帳號所屬的獨立 DATA TEST Apps Script 編輯器，手動執行 v2IssueTestInvitation，取得 30 分鐘有效一次性測試碼；不要貼至聊天／公開儲存庫。用 iPhone LINE 內建瀏覽器輸入邀請碼，測試將本人 LINE 綁到隔離資料表 TEST001。GPS 地點仍為未設定，不得開放打卡。
+
+## 2026-10-22 14:29：iPhone 邀請碼畫面實機確認
+
+使用者提供 iPhone LINE 內建瀏覽器截圖，確認使用帶版本參數的 LIFF 測試入口重新載入後，顯示：
+- LINE 後端驗證成功，隔離資料服務連線成功。
+- TEST001 尚未綁定。
+- 「一次性測試邀請碼」及「確認綁定模擬員工」已可見。
+- GPS 打卡仍未開放。
+
+這是前端畫面與真實後端唯讀查詢確認，不等於已實際寫入綁定。下一步須由管理員從 YC_ATTENDANCE_V2_DATA_TEST_ONLY 私有編輯器執行 v2IssueTestInvitation，在 iPhone 輸入 32 位、30 分鐘有效的邀請碼；不要公開邀請碼或截圖洩漏。此測試僅可修改隔離 Google Sheet TEST001。
