@@ -115,7 +115,9 @@ th{background:#f0f5f5;font-size:13px}
 
 <section class="card page" id="page-leave">
   <h2>我要請假</h2>
-  <p class="hint">一張申請可涵蓋連續多日，主管一次審核；仍保留單日與指定時段。實際工作日天數需依公司行事曆計算。</p>
+  <p class="hint">一張假單可以連續請多個上班日；指定時段限單日，主管一次審核。</p>
+  <div class="notice" id="leaveRuleNotice"><strong>請假日期提醒</strong>：請以實際上班日選擇請假日期。若期間遇到週休、國定假日或公司休假日，請拆分假單，不能跨越非上班日送出。</div>
+  <p class="hint">此預覽只用週一至週五的預設規則示範；正式版還須核對經公司確認的國定假日、補班日及其他休假安排。未核對完整工作日曆前，不開放正式送出。</p>
   <div class="grid2">
     <div><label for="leaveStart">開始日期</label><input id="leaveStart" type="date"></div>
     <div><label for="leaveEnd">結束日期</label><input id="leaveEnd" type="date"></div>
@@ -128,13 +130,15 @@ th{background:#f0f5f5;font-size:13px}
   <label for="leaveType">假別</label><select id="leaveType"><option value="">請選擇</option><option>事假</option><option>病假</option><option>特休</option><option>公假</option><option>婚假</option><option>喪假</option></select>
   <label for="leaveReason">請假原因／備註</label><textarea id="leaveReason" placeholder="請輸入原因"></textarea>
   <div class="status" id="leaveSummary" role="status">請選擇請假日期。</div>
-  <button class="btn" id="leaveSubmit" type="button">預覽送出請假</button>
+  <div class="notice" id="leaveInvalid" role="alert" hidden></div>
+  <button class="btn" id="leaveSubmit" type="button" disabled>預覽送出請假</button>
   <div class="status" id="leaveStatus" role="status" aria-live="polite">不會送出實際請假申請，亦不會通知主管。</div>
   <div class="subhead"><h3>本月請假申請紀錄</h3><span class="tag">範例資料</span></div>
   <div id="leaveTable" class="datawrap"></div>
 </section>
 <p class="foot">隔離純畫面預覽 · 不含個人資料 · 不會產生任何寫入或 LINE 推播</p>
 </main>
+<script src="./workday-rules.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
