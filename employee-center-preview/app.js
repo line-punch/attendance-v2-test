@@ -104,20 +104,46 @@ function renderQuery(){
     $("queryResult").appendChild(box);
   }
 }
+function getLeaveValidation(){
+  const start=$("leaveStart").value,end=$("leaveEnd").value,unit=$("leaveUnit").value;
+  if(!window.V2WorkdayRules)return {ok:false,code:"CALENDAR_NOT_LOADED",message:"工作日驗證模組未載入，不能送出。"};
+  const check=window.V2WorkdayRules.validateRange(start,end,{overrides:{},requireVerifiedCalendar:false});
+  if(!check.ok){
+    if(check.code==="NON_WORKDAY_IN_RANGE"){
+      const examples=check.blocked.slice(0,5).map(x=>x.date+"（"+x.reason+"）").join("、");
+      const more=check.blocked.length>5?"等共 "+check.blocked.length+" 日":"";
+      return {...check,message:"所選期間包含非上班日："+examples+more+"。請拆分不同假單，不可跨過休假日送出。"};
+    }
+    return {...check,message:check.code==="END_BEFORE_START"?"結束日期不能早於開始日期。":
+      check.code==="TOO_LONG"?"請假期間過長，請分別申請。":"請先填妥有效的開始與結束日期。"};
+  }
+  if(start<todayIso)return {...check,ok:false,code:"PAST_DATE",message:"請假日期不能早於今天。"};
+  if(unit==="時數"&&check.calendarDays!==1)return {...check,ok:false,code:"HOURS_MULTI_DAY",message:"指定時段請假目前限同一個上班日，跨日請拆分假單。"};
+  if(unit==="時數"){
+    const a=$("leaveStartTime").value,b=$("leaveEndTime").value;
+    if(!a||!b||a>=b)return {...check,ok:false,code:"INVALID_HOURS",message:"指定時段請輸入有效的開始與結束時間（結束時間需晚於開始）。"};
+  }
+  return {...check,ok:true,code:"OK",message:"預覽判定：日期均為週一至週五，共 "+check.workDays+" 個平日。正式版仍須核對公司工作日曆、國定假日及補班日。"};
+}
 function updateLeave(){
-  const start=$("leaveStart").value,end=$("leaveEnd").value;
+  const start=$("leaveStart").value;
   $("leaveEnd").min=start||todayIso;
   $("leaveHours").hidden=$("leaveUnit").value!=="時數";
-  let msg="請先選擇開始與結束日期。";
-  if(start&&end){
-    if(end<start) msg="結束日期不可早於開始日期。";
-    else {
-      const days=Math.round((Date.parse(end+"T00:00:00Z")-Date.parse(start+"T00:00:00Z"))/86400000)+1;
-      msg="已選擇 "+days+" 個曆日。實際請假工作日與時數，正式版需依公司工作日曆及假別規則計算，不以曆日直接扣假。";
-      if(days>1&&$("leaveUnit").value==="時數")msg+=" 跨日指定時段的計算規則尚需後端核定。";
-    }
+  const r=getLeaveValidation();
+  const summary=$("leaveSummary");
+  const invalid=$("leaveInvalid");
+  if(r.ok){
+    summary.textContent=r.message;
+    invalid.hidden=true;
+    invalid.textContent="";
+  }else{
+    summary.textContent="尚未符合請假日期／時段規則。";
+    invalid.hidden=false;
+    invalid.textContent="⚠️ "+r.message;
   }
-  $("leaveSummary").textContent=msg;
+  const missingDetail=!$("leaveType").value || !$("leaveReason").value.trim();
+  $("leaveSubmit").disabled=!r.ok||missingDetail;
+  $("leaveSubmit").setAttribute("aria-disabled",String($("leaveSubmit").disabled));
 }
 function safePreviewSubmit(kind){
   let id=kind==="miss"?"missStatus":"leaveStatus";
@@ -127,12 +153,11 @@ function safePreviewSubmit(kind){
       "請先填寫類型、補登時間和原因（預覽不送出）。":
       "✅ 已確認表單填寫完整；此為純介面預覽，沒有建立申請、也不會發送主管通知。";
   }else{
-    const start=$("leaveStart").value,end=$("leaveEnd").value;
-    message=(!start||!end||end<start||!$("leaveType").value)?
-      "請填妥有效日期範圍與假別（預覽不送出）。":
-      ($("leaveUnit").value==="時數"&&(!$("leaveStartTime").value||!$("leaveEndTime").value))?
-      "指定時段需填開始與結束時間（預覽不送出）。":
-      "✅ 表單示意完成；此頁不寫入 Google Sheet、不會發送 LINE 通知。";
+    const v=getLeaveValidation();
+    message=!v.ok?v.message:
+      (!$("leaveType").value||!$("leaveReason").value.trim())?
+      "請先選擇假別並填寫原因（預覽不送出）。":
+      "✅ 本頁僅驗證表單示意；不寫入 Google Sheet、不會發送 LINE 通知。";
   }
   $(id).textContent=message;
 }
@@ -151,7 +176,9 @@ function init(){
   $("queryMonth").addEventListener("change",renderQuery);
   $("missSubmit").addEventListener("click",()=>safePreviewSubmit("miss"));
   $("leaveSubmit").addEventListener("click",()=>safePreviewSubmit("leave"));
-  ["leaveStart","leaveEnd","leaveUnit"].forEach(id=>$(id).addEventListener("change",updateLeave));
+  ["leaveStart","leaveEnd","leaveUnit","leaveType","leaveStartTime","leaveEndTime"].forEach(id=>$(id).addEventListener("change",updateLeave));
+  $("leaveReason").addEventListener("input",updateLeave);
+  ["leaveStart","leaveEnd"].forEach(id=>$(id).addEventListener("input",updateLeave));
   $("leaveStart").min=todayIso;$("leaveEnd").min=todayIso;
   $("leaveStart").value=todayIso;$("leaveEnd").value=todayIso;
   const yesterday=new Date(Date.parse(todayIso+"T00:00:00Z")-86400000);
