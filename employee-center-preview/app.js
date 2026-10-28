@@ -1,96 +1,176 @@
 "use strict";
-/*
- * VISUAL PREVIEW ONLY. No LIFF SDK, no Google Apps Script URL, no network API,
- * no geolocation, no employee or payslip information. All actions are inert.
- */
-const PREVIEW_PAGES=Object.freeze(["clock","miss","query","leave","annual","payslip","history"]);
-const PREVIEW_TITLES=Object.freeze({
- clock:"正常打卡",miss:"補打卡",query:"出勤查詢",leave:"請假申請",
- annual:"特休查詢｜建置中",payslip:"薪資查詢｜建置中",history:"歷史紀錄｜建置中"
+/* UI PREVIEW ONLY. No LINE, GPS, Apps Script, network or real employee data. */
+const $ = id => document.getElementById(id);
+const PAGE_NAMES = ["clock","miss","query","leave"];
+const todayParts = new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"})
+  .formatToParts(new Date()).reduce((o,p)=>(o[p.type]=p.value,o),{});
+const todayIso = todayParts.year+"-"+todayParts.month+"-"+todayParts.day;
+const months = Array.from({length:3},(_,i)=>{
+  const date=new Date(Date.UTC(Number(todayParts.year),Number(todayParts.month)-1-i,15));
+  const yy=date.getUTCFullYear();
+  const mm=String(date.getUTCMonth()+1).padStart(2,"0");
+  return {key:String(yy)+mm,label:yy+"年"+Number(mm)+"月"};
 });
-const el=id=>document.getElementById(id);
-function showPage(page){
- const next=PREVIEW_PAGES.includes(page)?page:"clock";
- for(const name of PREVIEW_PAGES)el("page-"+name).classList.toggle("active",name===next);
- el("pageTitle").textContent=PREVIEW_TITLES[next]+"｜介面預覽";
- const parentTile=["annual","payslip","history"].includes(next)?"query":next;
- for(const item of el("v2Navigation").querySelectorAll("[data-page]")){
-   const yes=item.getAttribute("data-page")===parentTile;
-   item.classList.toggle("active",yes);
-   if(yes)item.setAttribute("aria-current","page");
-   else item.removeAttribute("aria-current");
- }
- // Avoid scrolling at startup; navigation is a real tap target.
+let selectedQuery = "attendance";
+function dateStr(month,day){return month.slice(0,4)+"/"+month.slice(4)+"/"+String(day).padStart(2,"0");}
+function demoDays(month) {
+  const maxDay=month===months[0].key?Number(todayParts.day):24;
+  return [...new Set([Math.max(1,maxDay-2),Math.max(1,maxDay-1),maxDay])].reverse();
 }
-function startV2Login(){
- el("v2Status").textContent="ℹ️ 這是員工 LINE 人資中心的畫面預覽。沒有連接 LINE、Google Sheet 或正式打卡功能。";
+function dataForMonth(month){
+  const d=demoDays(month);
+  return d.map((day,i)=>({date:dateStr(month,day),in:i===1?"":"08:23:52",out:i===0?"":(i===1?"17:37:56":"17:41:06")}));
 }
-function bindEmployee(){
- el("bindMsg").textContent="首次綁定會由正式 V2 安全驗證流程處理；預覽不會綁定任何 LINE 帳號。";
+function buildTable(target,headers,rows){
+  const node=$(target); node.replaceChildren();
+  const wrap=document.createElement("table"),thead=document.createElement("thead"),tr=document.createElement("tr");
+  headers.forEach(s=>{const th=document.createElement("th");th.textContent=s;tr.appendChild(th);});
+  thead.appendChild(tr);wrap.appendChild(thead);
+  const body=document.createElement("tbody");
+  rows.forEach(row=>{
+    const t=document.createElement("tr");
+    row.forEach(cell=>{
+      const td=document.createElement("td");
+      if(cell&&typeof cell==="object"&&cell.status){
+        const span=document.createElement("span");
+        span.className="pill "+(cell.status==="核准"?"good":cell.status==="駁回"?"bad":"wait");
+        span.textContent=cell.status;td.appendChild(span);
+      }else td.textContent=cell===undefined||cell===null||cell===""?"—":String(cell);
+      t.appendChild(td);
+    });
+    body.appendChild(t);
+  });
+  wrap.appendChild(body);node.appendChild(wrap);
 }
-function punch(type){
- el("msg").textContent="ℹ️ "+type+"打卡介面展示中。此頁沒有連接 GPS 或打卡資料庫，不會產生任何紀錄。";
+function showPage(page) {
+  const chosen=PAGE_NAMES.includes(page)?page:"clock";
+  PAGE_NAMES.forEach(p=>{$("page-"+p).classList.toggle("active",p===chosen);});
+  document.querySelectorAll("#mainNav [data-page]").forEach(node=>{
+    const active=node.dataset.page===chosen;
+    node.classList.toggle("active",active);
+    if(active)node.setAttribute("aria-current","page");
+    else node.removeAttribute("aria-current");
+  });
+  if(chosen==="clock")renderMonthlyClock();
+  if(chosen==="query")renderQuery();
 }
-function refreshV2Today(){
- el("v2Today").textContent="今日打卡紀錄將在正式串接後從本人資料查詢；預覽不顯示虛構打卡時間。";
+function renderMonthlyClock(){
+  $("clockMonth").textContent=months[0].label+"（示意）";
+  buildTable("clockTable",["日期","上班","下班"],dataForMonth(months[0].key).map(r=>[r.date,r.in,r.out]));
 }
-function checkV2Pending(){
- el("msg").textContent="斷線後原請求查詢功能會接到安全後端；介面預覽不傳送資料。";
+function renderMiss(){
+  const m=months[0].key,d=demoDays(m);
+  const rows=[
+    [dateStr(m,d[0]),"下班","17:37",{status:"審核中"}],
+    [dateStr(m,d[Math.min(1,d.length-1)]),"上班","08:30",{status:"核准"}],
+    [dateStr(m,d[d.length-1]),"下班","17:30",{status:"駁回"}]
+  ];
+  buildTable("missTable",["日期","類型","補卡時間","申請狀態"],rows);
 }
-function submitMiss(){
- el("missMsg").textContent="補打卡申請送出建置中，預覽不儲存申請。";
+function renderLeave(){
+  const m=months[0].key,d=demoDays(m);
+  buildTable("leaveTable",["申請日期","假別","區間","狀態"],[
+    [dateStr(m,d[0]),"事假","1天",{status:"審核中"}],
+    [dateStr(m,d[d.length-1]),"特休","1天",{status:"核准"}]
+  ]);
 }
-function queryAttendance(){
- const month=el("queryMonth").value.trim();
- el("queryMsg").textContent=/^\d{6}$/.test(month)
-  ?"近三個月查詢介面已保留，待安全資料服務串接。"
-  :"請先填入 YYYYMM 格式月份（目前為介面預覽）。";
- el("queryList").textContent="本頁不讀取實際員工出勤資料。";
- el("queryList").classList.remove("hidden");
+function renderQuery(){
+  document.querySelectorAll("[data-query]").forEach(node=>{
+    node.classList.toggle("selected",node.dataset.query===selectedQuery);
+    node.setAttribute("aria-pressed",node.dataset.query===selectedQuery?"true":"false");
+  });
+  const month=$("queryMonth").value||months[0].key;
+  $("queryStatus").textContent="查詢月份："+(months.find(x=>x.key===month)||months[0]).label+"｜純示意、唯讀，未連接員工資料。";
+  if(selectedQuery==="attendance"){
+    const rows=dataForMonth(month).map(r=>[r.date,r.in,r.out]);
+    buildTable("queryResult",["日期","上班","下班"],rows);
+  } else if(selectedQuery==="miss"){
+    const d=demoDays(month);
+    buildTable("queryResult",["補卡日期","類型","申請補登","審核"],[
+      [dateStr(month,d[0]),"上班","08:30",{status:"核准"}],
+      [dateStr(month,d[d.length-1]),"下班","17:30",{status:"審核中"}]
+    ]);
+  } else if(selectedQuery==="leave"){
+    const d=demoDays(month);
+    buildTable("queryResult",["日期","假別","區間","審核"],[
+      [dateStr(month,d[0]),"事假","1天",{status:"審核中"}],
+      [dateStr(month,d[d.length-1]),"特休","1天",{status:"核准"}]
+    ]);
+  }else{
+    $("queryResult").replaceChildren();
+    const box=document.createElement("div");
+    box.className="box";
+    box.textContent="本人基本資料：員工姓名、公司、部門、在職狀態。預覽不顯示任何真實員工資料，正式版將由 LINE 身分驗證後唯讀取得。";
+    $("queryResult").appendChild(box);
+  }
 }
-function toggleLeaveMode(){
- el("hourBox").classList.toggle("hidden",el("leaveUnit").value!=="時數");
+function updateLeave(){
+  const start=$("leaveStart").value,end=$("leaveEnd").value;
+  $("leaveEnd").min=start||todayIso;
+  $("leaveHours").hidden=$("leaveUnit").value!=="時數";
+  let msg="請先選擇開始與結束日期。";
+  if(start&&end){
+    if(end<start) msg="結束日期不可早於開始日期。";
+    else {
+      const days=Math.round((Date.parse(end+"T00:00:00Z")-Date.parse(start+"T00:00:00Z"))/86400000)+1;
+      msg="已選擇 "+days+" 個曆日。實際請假工作日與時數，正式版需依公司工作日曆及假別規則計算，不以曆日直接扣假。";
+      if(days>1&&$("leaveUnit").value==="時數")msg+=" 跨日指定時段的計算規則尚需後端核定。";
+    }
+  }
+  $("leaveSummary").textContent=msg;
 }
-function submitLeave(){
- el("leaveMsg").textContent="請假送出建置中，預覽不建立請假申請。";
+function safePreviewSubmit(kind){
+  let id=kind==="miss"?"missStatus":"leaveStatus";
+  let message="";
+  if(kind==="miss"){
+    message=(!$("missType").value||!$("missTime").value||!$("missReason").value.trim())?
+      "請先填寫類型、補登時間和原因（預覽不送出）。":
+      "✅ 已確認表單填寫完整；此為純介面預覽，沒有建立申請、也不會發送主管通知。";
+  }else{
+    const start=$("leaveStart").value,end=$("leaveEnd").value;
+    message=(!start||!end||end<start||!$("leaveType").value)?
+      "請填妥有效日期範圍與假別（預覽不送出）。":
+      ($("leaveUnit").value==="時數"&&(!$("leaveStartTime").value||!$("leaveEndTime").value))?
+      "指定時段需填開始與結束時間（預覽不送出）。":
+      "✅ 表單示意完成；此頁不寫入 Google Sheet、不會發送 LINE 通知。";
+  }
+  $(id).textContent=message;
 }
-function loadMissHistory(){
- el("missHistory").textContent="補打卡申請歷史介面保留，待安全查詢串接。";
+function init(){
+  document.querySelectorAll("#mainNav [data-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+  document.querySelectorAll("[data-demo-punch]").forEach(b=>b.addEventListener("click",()=>{
+    $("clockStatus").textContent="已按下「"+b.dataset.demoPunch+"打卡」（僅測試按鈕回饋）。尚未連接 GPS／後端，不能視為打卡成功。";
+  }));
+  $("clockRefresh").addEventListener("click",()=>{
+    renderMonthlyClock();
+    $("clockStatus").textContent="已更新介面中的示意資料。正式版才會從伺服器讀回實際紀錄。";
+  });
+  document.querySelectorAll("[data-query]").forEach(b=>b.addEventListener("click",()=>{
+    selectedQuery=b.dataset.query;renderQuery();
+  }));
+  $("queryMonth").addEventListener("change",renderQuery);
+  $("missSubmit").addEventListener("click",()=>safePreviewSubmit("miss"));
+  $("leaveSubmit").addEventListener("click",()=>safePreviewSubmit("leave"));
+  ["leaveStart","leaveEnd","leaveUnit"].forEach(id=>$(id).addEventListener("change",updateLeave));
+  $("leaveStart").min=todayIso;$("leaveEnd").min=todayIso;
+  $("leaveStart").value=todayIso;$("leaveEnd").value=todayIso;
+  const yesterday=new Date(Date.parse(todayIso+"T00:00:00Z")-86400000);
+  const yesterdayIso=yesterday.getUTCFullYear()+"-"+String(yesterday.getUTCMonth()+1).padStart(2,"0")+"-"+String(yesterday.getUTCDate()).padStart(2,"0");
+  [["今天",todayIso],["昨天",yesterdayIso]].forEach(pair=>{
+    const option=document.createElement("option");
+    option.value=pair[1];option.textContent=pair[0]+"："+pair[1];
+    $("missDate").appendChild(option);
+  });
+  months.forEach(m=>{
+    const opt=document.createElement("option");
+    opt.value=m.key;opt.textContent=m.label;
+    $("queryMonth").appendChild(opt);
+  });
+  renderMiss();renderLeave();updateLeave();
+  let initial="clock";
+  try{const requested=new URLSearchParams(location.search).get("page");
+      if(PAGE_NAMES.includes(requested))initial=requested;
+  }catch(_){}
+  showPage(initial);
 }
-function loadLeaveHistory(){
- el("leaveHistory").textContent="請假申請歷史介面保留，待安全查詢串接。";
-}
-(function initPreview(){
- const format=new Intl.DateTimeFormat("en-CA",{
-  timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"
- });
- const parsed=d=>Object.fromEntries(format.formatToParts(d).map(p=>[p.type,p.value]));
- const today=parsed(new Date());
- const date=today.year+"-"+today.month+"-"+today.day;
- el("leaveDate").min=date;
- el("leaveDate").value=date;
- el("queryMonth").value=today.year+today.month;
- const yesterday=parsed(new Date(Date.now()-86400000));
- for(const [name,d] of [["今天",today],["昨天",yesterday]]){
-  const option=document.createElement("option");
-  option.value=d.year+"-"+d.month+"-"+d.day;
-  option.textContent=name+"："+option.value;
-  el("missDate").appendChild(option);
- }
- el("displayName").textContent="介面預覽（尚未登入）";
- el("v2Status").textContent="✅ 介面預覽已載入；未連接 LINE 或任何資料庫。";
- el("locationText").textContent="實際打卡時會即時取得 GPS 定位";
- el("msg").textContent="介面展示中，不會送出真實打卡。";
- el("v2Today").textContent="正式串接後顯示今日上班／下班時間";
- el("missMsg").textContent="原有補打卡表單已保留，送出功能建置中。";
- el("leaveMsg").textContent="原有請假表單與六種假別已保留，送出功能建置中。";
- el("queryMsg").textContent="原有三個月出勤查詢入口已保留，待資料串接。";
- let initial="clock";
- try{
-   if(typeof location!=="undefined"){
-     const selected=new URLSearchParams(location.search).get("page");
-     if(PREVIEW_PAGES.includes(selected))initial=selected;
-   }
- }catch(_){}
- showPage(initial);
-})();
+document.addEventListener("DOMContentLoaded",init);
