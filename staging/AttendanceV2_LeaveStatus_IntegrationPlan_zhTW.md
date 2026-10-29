@@ -38,3 +38,12 @@
 5. 測試以上全部通過，才討論**另一階段**：真正的 V2 請假送出、正式主管核准／駁回與通知。唯讀狀態查詢成功不等於寫入功能已準備上線。
 
 注意：`NOT_FOUND_YET` 或逾時**不是已確認失敗**；不要建立新 requestId 或讓員工盲目重新送單。現階段的 query helper 僅支援 `TEST001` + 固定假單，不具備一般員工多筆請假查詢能力。
+
+## 2026-10-29 16:12 後續整合檢查（尚未部署）
+
+1. 已讀取 GitHub 上既有 TEST001 後端參考版本 `line-punch/line-punch` 的 `staging/AttendanceV2_SandboxDataService.gs`（分支 `feature/v2-gps-boundary-regression-20261022`，SHA `784b1ad143f38f9622f8b6a086d7b8a00b3d9247`）。它保留五個操作：`whoami`、`bind`、`clock`、`clockStatus`、`todayAttendance`。這是**參考原始碼**，不保證與 Google Apps Script 編輯器目前的草稿或實際部署版本相同。
+2. 新增 `staging/AttendanceV2_LeaveStatus_RouterAdapter_CANDIDATE.gs`：只對 `leaveStatus` 導向新候選查詢，其餘操作委派給原 `v2dDispatch_`；沒有新增 `doPost/doGet`。此模組已跑 **13／13 項模擬測試通過**，含原五項操作未改動、舊版未授權拒絕、異常請求拒絕等。
+3. 另從**目前已通過 GPS 手機測試的 `attendance-v2-test/main/index.html`** 分出 `feature/v2-leave-status-ui-disabled-20261029`。只在該分支增加一個 TEST001 假單查詢區，並設 `enableLeaveStatus:false`（隱藏且不送請求）；**沒有修改或發布 main**。
+4. `staging/AttendanceV2_LeaveStatus_UIFlag.test.js`：前端 **13／13 離線測試通過**，且 `postForm`、上/下班打卡、原 requestId 查詢與重送函式均與目前 main 相同。這不是 LINE 端手機實測。
+
+**重要順序**：需先取得原 Google Apps Script 編輯器實際版的確認與安全備份，才可以考慮在 TEST001 專案加入候選唯讀路由；後端測過並單獨部署後，才考慮打開新測試 UI flag。不可把候選檔直接貼到正式「打卡系統」，不可因為 GitHub 測試通過就認定現在 LINE 可以查假單。
