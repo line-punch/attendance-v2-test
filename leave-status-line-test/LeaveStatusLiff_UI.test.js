@@ -58,10 +58,10 @@ function setup({enabled=false,logged=true,token="mockheader.mockpayload.mocksign
    removeEventListener:(event,fn)=>{if(log.events[event]===fn)delete log.events[event]}
  };
  const URLShim=function(str){
-    const parts=String(str).match(/^(https?):\/\/([^/]+)(\/[^?#]*)(\?[^#]*)?(#.*)?$/);
+    const parts=String(str).match(/^(https?):\/\/([^/]+)(\/[^?#]*)?(\?[^#]*)?(#.*)?$/);
     if(!parts)throw Error("Invalid url");
     return {href:str,protocol:parts[1]+":",hostname:parts[2],
-     pathname:parts[3],username:"",password:"",search:parts[4]||"",hash:parts[5]||""};
+     pathname:parts[3]||"/",username:"",password:"",search:parts[4]||"",hash:parts[5]||""};
  };
  let body="const SETTINGS=Object.freeze("+raw.split("const SETTINGS=Object.freeze(")[1];
  // Replace the isolated OFF flag only inside this offline test runtime.
