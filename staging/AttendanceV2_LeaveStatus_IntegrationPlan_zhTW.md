@@ -47,3 +47,17 @@
 4. `staging/AttendanceV2_LeaveStatus_UIFlag.test.js`：前端 **13／13 離線測試通過**，且 `postForm`、上/下班打卡、原 requestId 查詢與重送函式均與目前 main 相同。這不是 LINE 端手機實測。
 
 **重要順序**：需先取得原 Google Apps Script 編輯器實際版的確認與安全備份，才可以考慮在 TEST001 專案加入候選唯讀路由；後端測過並單獨部署後，才考慮打開新測試 UI flag。不可把候選檔直接貼到正式「打卡系統」，不可因為 GitHub 測試通過就認定現在 LINE 可以查假單。
+
+## 2026-10-29：後端預設關閉與實際編輯器唯讀檢查
+
+已更新 `staging/AttendanceV2_LeaveStatus_RouterAdapter_CANDIDATE.gs`：新增 Script Properties 安全門檻 `ATTENDANCE_V2_LEAVE_QUERY_TEST=enabled`。**沒有這個屬性或其值非 enabled，候選 `leaveStatus` 路由就拒絕處理**，但既有 `whoami`、`bind`、`clock`、`clockStatus`、`todayAttendance` 直接交回原 `v2dDispatch_`。無法單憑複製候選程式開放新操作。
+
+已更新候選路由測試，**14／14 PASS**，涵蓋開關缺省關閉、明確開啟後允許候選、新功能不影響舊操作等。**沒有在任何真實 Apps Script 專案設定新屬性**。
+
+已新增 `staging/AttendanceV2_EditorRoutingPreflight_TEST_ONLY.gs`，只提供由測試專案擁有人在編輯器執行的 `v2hrInspectTestRouting_TEST_ONLY`。它先呼叫已驗證的 `v2hrGuardTestSheet_()`，檢查 `v2dDispatch_`、`doPost`、LINE claims、回覆和已公開的五項路由仍存在，且尚未在既有分派中出現 `leaveStatus`；另外檢查新的假單查詢屬性尚未開啟。僅輸出安全摘要，不記錄程式原始碼、Token、Sheet ID 或網址，**不修改任何資料**。
+
+它的 `deployedRevisionVerified:false` 是刻意保留：**無論編輯器檢查結果多好，都不能推論 `/exec` 的已部署版本相同**。讀取部署設定與在手機查詢前，仍必須確認原獨立測試 Web App 的版本和發布方式。
+
+對應模擬測試 `AttendanceV2_EditorRoutingPreflight_TEST_ONLY.test.js` **14／14 PASS**。本輪兩組安全測試共 **28／28 PASS**，但尚未在使用者的 GAS 編輯器實際執行預檢。
+
+**下一個安全步驟**：如使用者願意，在原 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` 新增上面唯讀預檢 `.gs` 檔，**只執行** `v2hrInspectTestRouting_TEST_ONLY`，回傳 `ok:true`、`editorSourceChecked:true`、`deployedRevisionVerified:false`、`existingOperations` 五個操作、`leaveStatusFeatureEnabled:false`。不要改 `doPost`、不設定 `ATTENDANCE_V2_LEAVE_QUERY_TEST`、不要部署或修改正式 LINE 打卡。
