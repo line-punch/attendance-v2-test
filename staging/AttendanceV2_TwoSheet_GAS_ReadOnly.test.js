@@ -120,9 +120,13 @@ const tests=[
  }],
  ["annual J:N settings still read with many A:H holiday rows",()=>{
    const c=book.getSheetByName("公司工作日曆");
-   for(let i=3;i<=36;i++)c.getRange(i,1,1,8).setValues([
-     ["2026/12/"+String(i-2).padStart(2,"0"),"TEST_CO","","休假","MOCK","MOCK","","MOCK-HR|2026-10-29"]
-   ]);
+   for(let i=3;i<=36;i++){
+     const day=new Date(Date.UTC(2026,0,i));
+     const date=day.toISOString().slice(0,10);
+     c.getRange(i,1,1,8).setValues([
+       [date,"TEST_CO","","休假","MOCK","MOCK","","MOCK-HR|2026-10-29"]
+     ]);
+   }
    const x=app.v2hrReadVerifiedTestSnapshot_("MOCK-LINE");
    assert.deepEqual(x.annualYears,["2026"]);
    assert.equal(x.holidayOverrideCount,35);
