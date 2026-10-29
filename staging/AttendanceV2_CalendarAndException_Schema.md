@@ -143,3 +143,12 @@
 **尚未完成**：同一單號第二次執行的防重複實機測試（預期 `alreadySubmitted:true`、`writeCount:0`），以及狀態函式 `v2hrReadSyntheticLeaveStatus_TEST_ONLY` 的獨立唯讀核對。請勿重跑虛構日曆資料安裝函式，請勿刪除測試分頁。
 
 此結果不代表 LINE 員工前端真正送出假單、主管通知、正式員工權限及 Excel 薪資整合已完成。正式打卡系統與既有 GPS 測試首頁仍維持隔離。
+
+## 2026-10-29 14:57：臨時假單重複送單實機防呆成功
+
+使用者提供原 DATA_TEST_ONLY Apps Script 實際執行記錄：14:57:27 開始、14:57:29 與 14:57:30 的六項唯讀規則檢查通過；14:57:31 假單寫入測試回傳 `ok:true,synthetic:true,alreadySubmitted:true,requestId:LEAVEV2_TEST_20261110_0001,writeCount:0`，14:57:32 結束。由此確認相同單號第二次執行被辨識並未再寫入；實機獨立唯讀「查詢既有假單」仍待執行。
+
+為了避免選擇原本 `v2hrReadSyntheticLeaveStatus_TEST_ONLY` 只有回傳物件而不產生 Logger 訊息，已新增極小型純讀取包裝：
+`staging/AttendanceV2_LeaveStatusAudit_TEST_ONLY.gs`；編輯器手動執行 `v2hrAuditSyntheticLeaveStatus_TEST_ONLY`。它會再次確認原 TEST001 環境，只讀取臨時測試分頁，核對固定單號、只有一筆資料、12 欄完整、測試待審核狀態；以 Logger 輸出 `ok,true/readOnly,true/present,true/applicationCount,1`，完全不寫入。配套 `staging/AttendanceV2_LeaveStatusAudit_TEST_ONLY.test.js` **10／10 純模擬測試通過**。此檔尚未由使用者貼到 Apps Script 或實際執行。
+
+本階段不修改正式打卡、原始請假、主管 LINE 通知、Google Apps Script 部署或薪資 Excel。仍需避免直接將臨時固定測試單號的程式接入公開 Web App；正式送單前須另行建置權限、冪等送單與核准通知。
