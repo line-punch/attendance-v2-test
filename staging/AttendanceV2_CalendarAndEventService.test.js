@@ -23,7 +23,7 @@ const review=(employee=yc,eventId="TEST-E1",applies=true,protectedMinutes=480,pa
   reviewedBy:"TEST-HR",reviewedAt:"2026-10-28T18:00:00+08:00"});
 function ctx(employee=yc){
   return {employee,monthApprovals:[approval("2026-10",employee),approval("2026-11",employee)],
-    calendar:[],events:[],employeeReviews:[],today:"2026-10-29",scheduledMinutesPerDay:{}};
+    calendar:[],events:[],employeeReviews:[],today:"2026-10-29",scheduledMinutesPerDay:{"2026-11-02":480}};
 }
 function leave(a="2026-10-30",b="2026-11-02",mode="DAY"){
   return {startDate:a,endDate:b,mode,leaveType:"事假",reason:"測試"};
@@ -108,6 +108,13 @@ const cases=[
   ["unapproved event blocks even if month calendar approved",()=>{
     const x=ctx(),e=event("2026-11-02");e.status="DRAFT";x.events=[e];
     assert.equal(svc.eventDecision(yc,"2026-11-02",x.events,x.employeeReviews,480).code,"EVENT_NOT_VERIFIED");
+  }],
+  ["future leave overlapping disaster requires known work schedule",()=>{
+    const x=ctx();delete x.scheduledMinutesPerDay["2026-11-02"];
+    x.events=[event("2026-11-02")];x.employeeReviews=[review()];
+    const y=svc.validateLeave(leave("2026-11-02","2026-11-02"),x);
+    assert.equal(y.code,"CALENDAR_OR_EVENT_REVIEW_REQUIRED");
+    assert.equal(y.unverified[0].code,"SCHEDULE_UNVERIFIED");
   }],
   ["HR explicitly excludes employee from event",()=>{
     const x=ctx();x.events=[event("2026-11-02")];x.employeeReviews=[review(yc,"TEST-E1",false)];
