@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TEST001｜假單查詢回覆診斷</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{font-family:system-ui,"Microsoft JhengHei",sans-serif;color:#233a4e;background:#f5f7fa}
+body{margin:0;padding:18px 12px}
+main{max-width:550px;margin:auto;background:#fff;padding:24px 20px;border-radius:16px;box-shadow:0 4px 22px #0001}
+h1{font-size:1.4rem;margin:0 0 12px}h2{font-size:1.1rem}
+p{line-height:1.7}.note{background:#edf2f6;padding:14px;border-radius:10px;line-height:1.65}
+label{display:block;font-weight:650;margin:14px 0 6px}
+input{box-sizing:border-box;width:100%;font:inherit;padding:12px;border:1px solid #acbbcd;border-radius:9px}
+button{font:inherit;background:#236b57;color:#fff;font-weight:700;border:0;border-radius:9px;padding:13px;width:100%;margin:12px 0 0}
+button:disabled{background:#92a7a0}
+#state,#queryStatus{white-space:pre-wrap;min-height:40px;margin:10px 0;background:#eef2f6;border-radius:9px;padding:14px;line-height:1.6}
+#queryPane[hidden]{display:none}
+footer{color:#687c8e;font-size:.85rem;line-height:1.6;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>TEST001｜假單查詢回覆診斷</h1>
+<p class="note">此頁專門排查<strong>Apps Script 已執行，但 LINE 手機未顯示查詢結果</strong>的情況。僅查詢原 TEST001 虛構單號，<strong>不會送出新假單、打卡、通知主管或修改薪資。</strong></p>
+<button id="login" type="button" disabled>初始化 LINE 中…</button>
+<div id="state" role="status" aria-live="polite">尚未驗證 LINE。</div>
+<section id="queryPane" hidden>
+  <label for="api">新獨立「唯讀假單查詢」服務 /exec 網址</label>
+  <input id="api" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+  <p class="note">請僅使用<strong>新獨立唯讀</strong> Web App「所有人」部署 /exec 網址，不要使用 GPS 打卡網址。網址與 LINE Token 都不會儲存到瀏覽器。這個診斷頁接受 Google HTMLService 多層 iframe 的可信回覆，但仍會驗證 Google 來源、40 位隨機請求編號及固定回覆格式。</p>
+  <label style="font-weight:normal"><input id="approved" type="checkbox" style="width:auto;vertical-align:middle;margin-right:8px">我已確認測試後端僅供 TEST001 唯讀查詢，且暫時開啟查詢功能</label>
+  <button id="query" type="button" disabled>查詢原模擬假單</button>
+  <div id="queryStatus" role="status" aria-live="polite">目前尚未開放，沒有發送任何查詢。</div>
+</section>
+<footer>TEST001 隔離實驗：此查詢只接受同一模擬單號，不輸入員工 ID、公司名稱或 Google Sheet ID。對照原打卡系統請使用既有 GPS 測試首頁。</footer>
+</main>
+<script>
+"use strict";
+const SETTINGS=Object.freeze({
+  liffId:"2012136707-2dDU0aSJ",
+  testOnly:true,
+  enableStatusQuery:true, // ONLY this separate on-demand test page; server property is OFF until owner enables.
+  requestId:"LEAVEV2_TEST_20261110_0001",
+  expectedBridge:"YC_V2_STAGING_FORM_V1"
+});
+const $=id=>document.getElementById(id);
+let initializing=false,lineReady=false,requestBusy=false;
+function message(text){$("state").textContent=text;}
+function urlCheck(input){
+  let u;
+  try{u=new URL(String(input||"").trim());}
+  catch(_){throw Error("請貼上新獨立 Web App 的完整 /exec 網址");}
+  if(u.protocol!=="https:"||u.hostname!=="script.google.com"||
+     !/^\/macros\/s\/[A-Za-z0-9_-]+\/exec\/?$/.test(u.pathname)||
+     u.username||u.password||u.search||u.hash)
+    throw Error("網址格式不符；必須是新獨立 Apps Script 部署 /exec 網址");
+  return u.href;
+}
+function allowedOrigin(source){
+  try{const u=new URL(source);
+    return u.protocol==="https:" &&
+      (u.hostname==="script.google.com"||
+       u.hostname==="script.googleusercontent.com"||
+       u.hostname.endsWith(".googleusercontent.com"));
+  }catch(_){return false;}
+}
+function nonce(){
+  if(!window.crypto||!window.crypto.getRandomValues)
+    throw Error("無法產生安全請求編號");
+  return Array.from(window.crypto.getRandomValues(new Uint8Array(20)),
+    n=>n.toString(16).padStart(2,"0")).join("");
+}
+function postRequest(url,payload){
+  return new Promise((resolve,reject)=>{
+    let n;
+    try{n=nonce();}catch(error){reject(error);return;}
+    const iframe=document.createElement("iframe");
+    iframe.name="leave001_"+n;iframe.style.display="none";
+    iframe.setAttribute("aria-hidden","true");
+    const form=document.createElement("form");
+    form.method="POST";form.target=iframe.name;form.action=url;
+    form.acceptCharset="UTF-8";form.style.display="none";
+    const values={nonce:n,operation:"leaveStatus",payload:JSON.stringify(payload)};
+    for(const [key,value] of Object.entries(values)){
+      const input=document.createElement("input");
+      input.name=key;input.type="hidden";input.value=value;
+      form.appendChild(input);
+    }
+    let done=false,timeout;
+    function finish(error,result){
+      if(done)return;
+      done=true;clearTimeout(timeout);
+      window.removeEventListener("message",receive);
+      form.remove();iframe.remove();
+      if(error)reject(error);else resolve(result);
+    }
+    function receive(ev){
+      // Google Apps Script HtmlService can postMessage from a nested
+      // iframe window whose source is not the direct target iframe. The
+      // Google HTTPS origin + fresh unguessable nonce + bridge identify
+      // the response; strict ev.source equality incorrectly drops it.
+      if(!allowedOrigin(ev.origin)||
+         !ev.data||typeof ev.data!=="object")return;
+      if(ev.data.bridge!==SETTINGS.expectedBridge||ev.data.nonce!==n)return;
+      if(ev.data.ok===true)finish(null,ev.data.result);
+      else{
+        const error=Error("新唯讀服務未確認這次查詢");
+        error.code=String(ev.data.code||"UNKNOWN");
+        finish(error);
+      }
+    }
+    window.addEventListener("message",receive);
+    document.body.appendChild(iframe);document.body.appendChild(form);
+    timeout=setTimeout(()=>{const error=Error("45 秒內未收到符合 Google 來源及請求編號的回覆");error.code="REPLY_TIMEOUT";finish(error);},45000);
+    try{form.submit()}catch(error){finish(error);}
+  });
+}
+function refreshControls(){
+  $("queryPane").hidden=!lineReady;
+  $("query").disabled=!lineReady||!SETTINGS.enableStatusQuery||requestBusy||!$("approved").checked;
+  if(lineReady&&!SETTINGS.enableStatusQuery)
+    $("queryStatus").textContent="新假單查詢仍在安全測試中，暫時未開放。";
+}
+async function initializeLine(){
+  if(initializing)return;
+  initializing=true;$("login").disabled=true;
+  try{
+    if(typeof liff==="undefined")throw Error("未載入 LINE LIFF SDK");
+    message("正在確認 TEST001 測試 LINE 登入…");
+    await liff.init({liffId:SETTINGS.liffId});
+    if(liff.isLoggedIn()){
+      const token=liff.getIDToken();
+      if(!token)throw Error("無法取得 LINE 測試 ID Token");
+      lineReady=true;
+      message("✅ LINE 已登入。真正的 TEST001 員工綁定仍需由伺服器在查詢時驗證。");
+      $("login").textContent="已登入測試 LINE";
+    }else{
+      lineReady=false;
+      message("尚未登入 LINE，請按下方按鈕進行測試登入。");
+      $("login").textContent="登入 LINE 測試帳號";
+    }
+  }catch(error){
+    lineReady=false;
+    message("⚠️ LINE 測試登入尚未確認："+String(error&&error.message||error));
+    $("login").textContent="重新驗證 LINE";
+  }finally{
+    initializing=false;$("login").disabled=false;refreshControls();
+  }
+}
+$("login").addEventListener("click",async()=>{
+  if(initializing)return;
+  if(typeof liff==="undefined"){message("LINE SDK 尚未載入");return;}
+  try{
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
+    await initializeLine();
+  }catch(e){message("LINE 登入未完成："+String(e&&e.message||e));}
+});
+$("approved").addEventListener("change",refreshControls);
+$("query").addEventListener("click",async()=>{
+  if(requestBusy)return;
+  if(!SETTINGS.testOnly||!SETTINGS.enableStatusQuery){
+    $("queryStatus").textContent="測試功能尚未開放，不會發出查詢。";return;
+  }
+  if(!$("approved").checked){
+    $("queryStatus").textContent="請先核對測試設定並勾選確認，不會送出請求。";return;
+  }
+  if(!lineReady||!liff.isLoggedIn()){
+    $("queryStatus").textContent="請先完成 LINE 測試登入。";return;
+  }
+  let endpoint;
+  try{endpoint=urlCheck($("api").value);}
+  catch(e){$("queryStatus").textContent="網址檢查未通過："+e.message;return;}
+  const idToken=liff.getIDToken();
+  if(!idToken){
+    $("queryStatus").textContent="未取得 LINE ID Token，請重新登入。";return;
+  }
+  requestBusy=true;refreshControls();
+  $("query").textContent="查詢中…";
+  $("queryStatus").textContent="正在安全查詢原模擬假單，請勿重複點擊。";
+  try{
+    // No employeeId, LINE userId, company, GPS, Sheet ID or real leave details.
+    const r=await postRequest(endpoint,{idToken,requestId:SETTINGS.requestId});
+    if(!r||r.ok!==true||r.synthetic!==true||r.readOnly!==true||
+       r.requestId!==SETTINGS.requestId){
+      $("queryStatus").textContent="⚠️ 回覆資料無法確認；不要重新送出假單，請保留原單號。";
+    }else if(r.found===true&&r.status==="PENDING_REVIEW_TEST"){
+      $("queryStatus").textContent="✅ 查到 TEST001 原模擬假單一筆，狀態：待審核（測試）。";
+    }else if(r.found===false&&r.status==="NOT_FOUND_YET"){
+      $("queryStatus").textContent="⚠️ 暫時沒有查到原假單；不代表已確認送單失敗。";
+    }else{
+      $("queryStatus").textContent="⚠️ 假單狀態未確認，請保留原單號再查詢。";
+    }
+  }catch(error){
+    const code=error&&error.code||"";
+    if(code==="AUTH")
+      $("queryStatus").textContent="⚠️ 後端已回覆 AUTH：LINE 測試身分未通過。沒有回傳假單。";
+    else if(code==="UNKNOWN")
+      $("queryStatus").textContent="⚠️ 後端已回覆 UNKNOWN：查詢未確認（可能是權限、設定或資料檢查問題）。沒有回傳假單；請勿重新送單。";
+    else if(code==="REPLY_TIMEOUT")
+      $("queryStatus").textContent="⚠️ 後端回覆沒有成功傳到此 LINE 頁面（45 秒逾時）；無法判定後端查詢是否成功。";
+    else
+      $("queryStatus").textContent="⚠️ 查詢中斷或異常；未確認結果，請保留原單號。";
+  }finally{
+    requestBusy=false;refreshControls();
+    $("query").textContent="查詢原模擬假單";
+  }
+});
+// Initialize on page entry, including after the official LIFF redirect.
+initializeLine();
+</script>
+</body>
+</html>
