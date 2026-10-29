@@ -10,24 +10,25 @@ const start=script.indexOf("async function queryTestLeaveStatus(){");
 const stop=script.indexOf("async function refreshSandbox(){");
 assert(start>=0&&stop>start,"UI query function missing");
 const queryCode=script.slice(start,stop);
-function instance({enabled=false,verified=false,result=null,error=null,delay=null}={}){
+function instance({enabled=false,verified=false,result=null,error=null,delay=null,apiReady=true}={}){
  const elements={leaveStatusQueryBtn:{disabled:false,textContent:"查詢原模擬假單"},
   leaveStatusResult:{textContent:"尚未查詢"},leaveStatusPane:{hidden:false}};
  const document={getElementById:id=>{if(!elements[id])throw Error("missing mock "+id);return elements[id];}};
  const calls=[];
  const make=new Function("document","query","enabled","verified",
   'const $=id=>document.getElementById(id);'+
-  'const CONFIG={enableLeaveStatus:enabled};'+
+  'const CONFIG={enableLeaveStatus:enabled,leaveStatusApi:apiReady?"https://script.google.com/macros/s/FAKE_READONLY/exec":"__NOT_CONFIGURED__"};'+
   'const LEAVE_TEST_REQUEST_ID="LEAVEV2_TEST_20261110_0001";'+
   'let leaveStatusBusy=false,leaveTestIdentityVerified=verified;'+
-  'const sandboxCall=query;'+queryCode+
+  'const idTokenForTest=()=>"MOCK_ID_TOKEN_NOT_REAL";'+
+  'const postForm=query;'+queryCode+
   'return {queryTestLeaveStatus,getBusy:()=>leaveStatusBusy};');
- const fn=make(document,async(operation,payload)=>{
-   calls.push({operation,payload});
+ const fn=make(document,async(operation,payload,endpoint)=>{
+   calls.push({operation,payload,endpoint});
    if(delay)await delay;
    if(error)throw error;
    return result;
- },enabled,verified);
+ },enabled,verified,apiReady);
  return {elements,calls,...fn};
 }
 const fixedId="LEAVEV2_TEST_20261110_0001";
@@ -53,6 +54,21 @@ const tests=[
    assert.equal(ui.calls.length,0);
    assert(ui.elements.leaveStatusResult.textContent.includes("尚未開放"));
  }],
+ ["independent service URL remains unconfigured in GitHub candidate",async()=>{
+   assert(script.includes('leaveStatusApi:"__NOT_CONFIGURED__"'));
+ }],
+ ["flag on, but no standalone API URL: no backend request",async()=>{
+   const ui=instance({enabled:true,verified:true,result:reply,apiReady:false});
+   await ui.queryTestLeaveStatus();
+   assert.equal(ui.calls.length,0);
+   assert(ui.elements.leaveStatusResult.textContent.includes("尚未配置"));
+ }],
+ ["leave query never uses original GPS data service",async()=>{
+   const ui=instance({enabled:true,verified:true,result:reply});
+   await ui.queryTestLeaveStatus();
+   assert.equal(ui.calls.length,1);
+   assert(!ui.calls[0].endpoint.includes("AKfycbwifAR8K"));
+ }],
  ["identity not verified prevents query even if enabled",async()=>{
    const ui=instance({enabled:true,verified:false,result:reply});
    await ui.queryTestLeaveStatus();
@@ -63,7 +79,7 @@ const tests=[
    const ui=instance({enabled:true,verified:true,result:reply});
    await ui.queryTestLeaveStatus();
    assert.equal(ui.calls.length,1);
-   assert.deepEqual(ui.calls[0],{operation:"leaveStatus",payload:{requestId:fixedId}});
+   assert.deepEqual(ui.calls[0],{operation:"leaveStatus",payload:{idToken:"MOCK_ID_TOKEN_NOT_REAL",requestId:fixedId},endpoint:"https://script.google.com/macros/s/FAKE_READONLY/exec"});
    assert(ui.elements.leaveStatusResult.textContent.includes("已確認"));
    assert.equal(ui.getBusy(),false);
    assert.equal(ui.elements.leaveStatusQueryBtn.disabled,false);
