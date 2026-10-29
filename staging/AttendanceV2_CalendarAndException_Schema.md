@@ -50,6 +50,8 @@
 - `staging/AttendanceV2_PayrollExceptionRules.js`：區分實際工作、受保護停班、公司照薪、半日待核對。
 - 測試：`AttendanceV2_CalendarAndEventService.test.js`、`AttendanceV2_TwoSheetAdapter.test.js`、`AttendanceV2_WorkdayAndPayroll.test.js`。
 
+**本輪隔離測試結果**：精簡版工作日曆與事件判斷 **38／38 通過**、兩張表欄位轉換 **10／10 通過**、既有天災計薪回歸 **15／15 通過**，合計 **63／63**。以上是純程式模擬測試，非實際 Google Sheets、Apps Script 或手機端驗證。
+
 本階段**純 JavaScript 規則與資料對應**，尚無正式或測試 GAS 網頁 API 讀寫。真正串接時需要：受驗證 LINE 身分、唯讀查詢／後端重驗請假、核對年度日曆、核准事件、操作紀錄、防重複送單與公司隱私保護。Apps Script `getValues()` 的 Date 值需要先按 `Asia/Taipei` 轉成日期字串再交給對應程式。
 
 ## 暫時不做
