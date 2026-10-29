@@ -72,3 +72,15 @@
 建議下一階段在**同一個新獨立查詢專案**建立另一筆測試 Web App 部署（不取代僅自己可存取的原部署）：執行身分「我」、存取權「所有人」，功能旗標先保持 `disabled`。僅用 Edge InPrivate 或未登入 Google 的瀏覽器開新 URL 確認 `doGet` 的相同固定說明文字，驗證對外傳遞能力；此時不應對外讀取假單。
 
 此步必須注意新舊部署同屬同一 Apps Script 專案，**Script Properties 是專案共用設定**，將來開啟時會影響所有使用這組程式設定的部署，不可誤以為每筆部署有獨立開關。若公開關閉測試通過，仍應先做錯誤 token／匿名請求 `doPost` 回覆驗證，再考慮短時間開啟僅允許已綁定 TEST001 的唯讀查詢。絕不可修改 DATA_TEST GPS 第 2 版或正式打卡專案。
+
+## 2026-10-29：無痕視窗公開 GET 通過，準備匿名 POST 拒絕測試
+
+使用者已回報：新獨立 Apps Script 專案以「我」身分執行、「所有人」可存取之第二筆 Web App 部署，使用 Edge InPrivate 無痕視窗打開 `/exec`，仍看到 `TEST001 模擬假單唯讀查詢服務；沒有網頁操作入口。`。因此匿名 **GET /exec** 冒煙測試成功；這**尚未**確認匿名 `POST`、LINE 令牌或試算表權限。
+
+為降低使用者操作成本，在 `attendance-v2-test/main` 新增獨立靜態路徑 `leave-status-smoke/index.html`（**沒有修改 main/index.html**）。預計 GitHub Pages 路徑：`https://line-punch.github.io/attendance-v2-test/leave-status-smoke/`。GitHub 原始檔案已成功建立，但 Pages 發布可用性需由使用者當前瀏覽器開啟確認。
+
+測試頁做法：使用者只在本機輸入**新唯讀服務**的 `/exec` URL（不輸入 Google Sheet ID、任何真實 LINE token，不傳給 ChatGPT）；點一次按鈕，送固定 `leaveStatus`、固定 `LEAVEV2_TEST_20261110_0001`，和字面上明確無效的假 JWT `TEST-INVALID.JWT-SYNTHETIC.NOT-A-REAL-LINE-TOKEN`。POST 在 GitHub Pages 的 iframe 中等待受信任 Google 網域、符合隨機 40 字元 nonce 的 `postMessage`。不儲存 URL、token 或真實資料。Web App 安全屬性 **`V2HR_READONLY_TEST_ENABLED` 繼續 disabled**。
+
+預期返回 `ok:false`、`code:UNKNOWN`、沒有假單內容；但只要沒有收到正確回覆，應回報「結果未確認」，不能猜測後端安全拒絕。若回傳 `AUTH` 或 `ok:true`，必須停止並查是否設錯 flag 或部署。此測試不能單獨證明屬性值，需搭配使用者的設定確認。
+
+GitHub 靜態頁在模擬 DOM 下完成 9 項基本檢查：未點不發請求、空網址阻擋、非 Google Script 網域阻擋、單次送出、40 位 nonce、虛構無效 Token、未含真實員工資料、拒絕回覆顯示及既有 GPS/正式首頁 blob SHA 未變。**未實際從此頁連到新 GAS 部署；需用使用者手機／電腦網頁進行真實測試。**
