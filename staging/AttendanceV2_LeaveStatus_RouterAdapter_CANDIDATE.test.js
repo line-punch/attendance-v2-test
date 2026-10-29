@@ -8,7 +8,7 @@
  */
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const src=fs.readFileSync(path.join(__dirname,"AttendanceV2_LeaveStatus_RouterAdapter_CANDIDATE.gs"),"utf8");
-let oldCalls=[],newCalls=[],tokenChecks=0;
+let oldCalls=[],newCalls=[],tokenChecks=0,leaveFeatureEnabled=false;
 const services={
   v2dTestSheet_:()=>({name:"YC_ATTENDANCE_V2_TEST_ONLY"}),
   v2dLineClaims_:token=>{tokenChecks++;if(token!=="SYNTHETIC_ID_TOKEN")throw Error("DENIED");return "MOCK_LINE"},
@@ -40,10 +40,11 @@ function v2dDispatch_(params) {
   if(operation==="clock")return {nonce,result:services.v2dClock_(ss,lineUserId,data,false)};
   return {nonce,result:services.v2dClock_(ss,lineUserId,data,true)};
 }
-const route=new Function("v2hrDispatchReadOnlyStatusCandidate_TEST_ONLY_",src+
+const route=new Function("v2hrDispatchReadOnlyStatusCandidate_TEST_ONLY_","PropertiesService",src+
   "\nreturn v2hrRouteTestOnly_;")(
     params=>{newCalls.push(params.operation);return {nonce:params.nonce,
-      result:{ok:true,found:true,synthetic:true,readOnly:true}};}
+      result:{ok:true,found:true,synthetic:true,readOnly:true}};},
+    {getScriptProperties:()=>({getProperty:key=>key==="ATTENDANCE_V2_LEAVE_QUERY_TEST"&&leaveFeatureEnabled?"enabled":null})}
   );
 const nonce="f".repeat(40);
 const msg=(operation,extra={})=>({nonce,operation,
@@ -59,12 +60,19 @@ const testCases=[
       assert.equal(got.result.op,op);
     }
   ]),
-  ["read-only leaveStatus routes only to new candidate",()=>{
+  ["leaveStatus is blocked by default even if code is already present",()=>{
+    const before=newCalls.length;
+    assert.throws(()=>route(msg("leaveStatus"),v2dDispatch_),/尚未開放/);
+    assert.equal(newCalls.length,before);
+  }],
+  ["leaveStatus routes only after owner explicitly enables sandbox flag",()=>{
+    leaveFeatureEnabled=true;
     const before=oldCalls.length;
     const x=route(msg("leaveStatus"),v2dDispatch_);
     assert.equal(x.result.found,true);
     assert.equal(x.result.readOnly,true);
     assert.equal(oldCalls.length,before);
+    leaveFeatureEnabled=false;
   }],
   ["unknown operation still rejected by original legacy whitelist",()=>{
     assert.throws(()=>route(msg("deleteAll"),v2dDispatch_),/Unknown original operation/);
