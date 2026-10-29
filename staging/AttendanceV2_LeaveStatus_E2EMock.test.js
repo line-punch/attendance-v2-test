@@ -10,7 +10,7 @@ const client=require("./AttendanceV2_LeaveStatus_ClientCandidate.js");
 const proposal=fs.readFileSync(path.join(__dirname,"AttendanceV2_LeaveStatus_SecureBridge_PROPOSAL.gs"),"utf8");
 const router=fs.readFileSync(path.join(__dirname,"AttendanceV2_LeaveStatus_DispatchCandidate_TEST_ONLY.gs"),"utf8");
 const id="LEAVEV2_TEST_20261110_0001",nonce="c".repeat(40);
-const bookId="TEST_ONLY_SPREADSHEET_ID",idToken="MOCK-ID-TOKEN-NEVER-VALID-FOR-LINE";
+const bookId="TEST_ONLY_SPREADSHEET_ID",idToken="mockjwt.syntheticclaims.not-a-real-signature";
 let currentLine="MOCK-LINE",bound=true,present=true,loseReply=false,calls=0,writes=0;
 const sheet={};
 const book={getId:()=>bookId,getName:()=>"YC_ATTENDANCE_V2_TEST_ONLY",
