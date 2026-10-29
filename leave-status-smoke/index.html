@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TEST001｜獨立假單服務關閉狀態檢查</title>
+<style>
+:root{font-family:system-ui,"Microsoft JhengHei",sans-serif;color:#18324b;background:#f3f6fa}
+body{margin:0;padding:24px 14px}
+main{max-width:650px;margin:auto;background:#fff;border:1px solid #dde5ef;border-radius:18px;padding:24px;box-shadow:0 4px 22px #12223210}
+h1{font-size:1.45rem;margin:0 0 12px}p,li{line-height:1.75}
+small{display:block;color:#657488;margin:8px 0}
+label{display:block;font-weight:650;margin:16px 0 7px}
+input{box-sizing:border-box;width:100%;font:inherit;border:1px solid #a8b5c7;border-radius:9px;padding:12px}
+button{font:inherit;font-weight:700;border:0;border-radius:9px;padding:13px 18px;background:#236b57;color:#fff;cursor:pointer;width:100%;margin-top:14px}
+button:disabled{background:#9baba9;cursor:wait}
+#result{white-space:pre-wrap;border-radius:9px;padding:14px;margin-top:17px;background:#eef2f6;min-height:55px;line-height:1.7}
+.note{background:#f5f7f8;border-left:3px solid #9aabbd;padding:10px 13px;margin-top:12px;font-size:.94rem}
+</style>
+</head>
+<body>
+<main>
+<h1>TEST001｜新假單服務安全檢查</h1>
+<p>此頁僅測試<strong>新建的獨立唯讀 Apps Script Web App</strong> 在關閉狀態下，是否拒絕匿名 POST 請求。這不是 LINE 登入或正式員工請假測試。</p>
+<div class="note">開始前，請確認新專案 <code>V2HR_READONLY_TEST_ENABLED</code> 仍為 <strong>disabled</strong>。請勿使用原本 GPS 打卡後端網址，也不要改動正式打卡系統。</div>
+<label for="endpoint">新獨立查詢服務的「所有人」部署 /exec 網址</label>
+<input id="endpoint" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
+<small>網址只供本頁送出這一次測試，不保存到瀏覽器、GitHub 或任何後端。無須提供給 ChatGPT。</small>
+<button type="button" id="run">送出一筆匿名安全測試</button>
+<div id="result" role="status" aria-live="polite">尚未測試。本頁不會自動發送任何請求。</div>
+<p class="note">這次只送虛構單號及<strong>明確無效</strong>的測試 Token，沒有任何真實 LINE 登入資料、員工資料或 GPS。若回覆逾時，只能判定「結果未確認」，請將錯誤文字回報，不要重複按。</p>
+</main>
+<script>
+"use strict";
+(function(){
+const $=id=>document.getElementById(id);
+const FIXED_REQUEST="LEAVEV2_TEST_20261110_0001";
+const FAKE_TOKEN="TEST-INVALID.JWT-SYNTHETIC.NOT-A-REAL-LINE-TOKEN";
+let busy=false;
+function serverURL(raw){
+  let u;
+  try{u=new URL(String(raw||"").trim());}catch(_){throw Error("請輸入新服務的完整 /exec 網址")}
+  if(u.protocol!=="https:"||u.hostname!=="script.google.com"||
+     !/^\/macros\/s\/[A-Za-z0-9_-]+\/exec\/?$/.test(u.pathname)||
+     u.username||u.password||u.search||u.hash)
+    throw Error("網址必須是 script.google.com 的新 Web App /exec，不可帶其他參數");
+  return u.href;
+}
+function allowedOrigin(origin){
+  try{
+    const u=new URL(origin);
+    return u.protocol==="https:" && (
+      u.hostname==="script.google.com" ||
+      u.hostname==="script.googleusercontent.com" ||
+      u.hostname.endsWith(".googleusercontent.com"));
+  }catch(_){return false}
+}
+function freshNonce(){
+  if(!window.crypto || typeof window.crypto.getRandomValues!=="function")
+    throw Error("目前瀏覽器不支援安全隨機請求編號");
+  return Array.from(window.crypto.getRandomValues(new Uint8Array(20)),
+    b=>b.toString(16).padStart(2,"0")).join("");
+}
+function performPOST(url){
+  return new Promise((resolve,reject)=>{
+    let nonce;
+    try{nonce=freshNonce();}catch(err){reject(err);return;}
+    const frame=document.createElement("iframe");
+    frame.name="test001_disabled_"+nonce;
+    frame.style.display="none";
+    frame.setAttribute("aria-hidden","true");
+    const form=document.createElement("form");
+    form.method="POST";form.action=url;form.target=frame.name;
+    form.style.display="none";form.acceptCharset="UTF-8";
+    const fields={
+      nonce,
+      operation:"leaveStatus",
+      payload:JSON.stringify({requestId:FIXED_REQUEST,idToken:FAKE_TOKEN})
+    };
+    for(const [name,value] of Object.entries(fields)){
+      const field=document.createElement("input");
+      field.type="hidden";field.name=name;field.value=value;
+      form.appendChild(field);
+    }
+    let ended=false,clock;
+    const cleanup=()=>{
+      if(ended)return false;
+      ended=true;clearTimeout(clock);
+      window.removeEventListener("message",onMessage);
+      form.remove();frame.remove();
+      return true;
+    };
+    function onMessage(event){
+      if(!allowedOrigin(event.origin)||
+         !event.data||typeof event.data!=="object")return;
+      const d=event.data;
+      if(d.bridge!=="YC_V2_STAGING_FORM_V1"||d.nonce!==nonce)return;
+      if(cleanup())resolve(d);
+    }
+    window.addEventListener("message",onMessage);
+    document.body.appendChild(frame);document.body.appendChild(form);
+    clock=setTimeout(()=>{
+      if(cleanup())reject(Error("45 秒內沒有收到符合來源與請求編號的回覆；結果未確認"));
+    },45000);
+    try{form.submit()}catch(err){if(cleanup())reject(err)}
+  });
+}
+$("run").addEventListener("click",async()=>{
+  if(busy)return;
+  let url;
+  try{url=serverURL($("endpoint").value);}
+  catch(e){$("result").textContent="網址檢查未通過："+e.message;return;}
+  busy=true;$("run").disabled=true;
+  $("run").textContent="正在檢查…";
+  $("result").textContent="正在送出一筆虛構、無效 Token 的匿名測試請求；不會建立假單。";
+  try{
+    const d=await performPOST(url);
+    if(d.ok===false&&d.code==="UNKNOWN"&&!("result" in d)){
+      $("result").textContent="✅ 已收到新 Web App 的拒絕回覆（UNKNOWN），沒有回傳假單內容。符合功能關閉時的預期表現。\n注意：此結果單獨不能證明 Script Properties 的實際值，請繼續保持 disabled。";
+    }else if(d.ok===false&&d.code==="AUTH"){
+      $("result").textContent="⚠️ 收到身分驗證拒絕（AUTH），不是功能關閉時預期的 UNKNOWN。請停止，不要改屬性或再送請求。";
+    }else{
+      $("result").textContent="⚠️ 收到非預期回覆，請停止進一步操作。\n回覆類型："+(d.ok===true?"非預期成功":"其他拒絕")+
+      "\n錯誤代碼："+String(d.code||"未提供")+"\n不要貼任何 Token、資料表 ID 或完整 Web App 網址。";
+    }
+  }catch(e){
+    $("result").textContent="⚠️ 未能確認服務回覆："+String(e&&e.message||e)+
+      "\n這不代表請求被允許，也不代表被拒絕；請不要盲目重試。";
+  }finally{
+    busy=false;$("run").disabled=false;
+    $("run").textContent="送出一筆匿名安全測試";
+  }
+});
+})();
+</script>
+</body>
+</html>
