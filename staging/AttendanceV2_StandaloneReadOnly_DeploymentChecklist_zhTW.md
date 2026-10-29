@@ -98,3 +98,17 @@ GitHub 靜態頁在模擬 DOM 下完成 9 項基本檢查：未點不發請求�
 已將**同一份仍停用**的靜態頁放進 GitHub `line-punch/attendance-v2-test/main/leave-status-line-test/index.html`，**只新增子資料夾**，沒有改 `main/index.html`。預計對應 `https://liff.line.me/2012136707-2dDU0aSJ/leave-status-line-test/`，實際 LIFF 子路徑是否成功仍待使用者手機開啟核對。GitHub Pages 網站發布可用性尚未由工具直接確認。
 
 下一階段用 TEST001 已允許的 LINE 測試帳號在手機**只驗證 LIFF 登入**。此時不得改 `V2HR_READONLY_TEST_ENABLED` 屬性，也不得開啟前端查詢旗標。成功只證明 LIFF 初始化／登入，不表示已授權查詢。
+
+## 2026-10-29 18:26｜手機 LIFF 登入實機 PASS；已備好獨立授權查詢入口
+
+使用者提供 iPhone LINE 內建瀏覽器的 `leave-status-line-test` 畫面截圖（約 18:26），標頭顯示 `TEST001｜LINE 假單狀態查詢`，主按鈕 `已登入測試 LINE`，狀態提示 `✅ LINE 已登入。真正的 TEST001 員工綁定仍需由伺服器在查詢時驗證。`。此實機證據代表新子路徑 LIFF **初始化／登入 PASS**，不代表已查過原假單；頁面查詢鈕灰色是預設 flag 禁用的預期。
+
+新建並放在同 repo `main/leave-status-authorized-check/index.html` 的**另一條獨立 LIFF 子路徑**：`https://liff.line.me/2012136707-2dDU0aSJ/leave-status-authorized-check/`。不覆蓋既有 `leave-status-line-test` 登入煙霧頁、TEST001 GPS `main/index.html`，也不碰正式打卡 `line-punch/line-punch`。
+
+此單次測試入口只在使用者明確勾選 `我已確認這是 TEST001 專用唯讀服務，且已由管理者開啟測試` 後開放查詢按鈕，且必須手動填入**新獨立服務** `/exec` URL。無 URL、無勾選、不在 LINE 登入狀態皆不發出 POST。POST 內容限定後端驗證需要的 LINE ID Token 與固定模擬 `requestId=LEAVEV2_TEST_20261110_0001`；採原 iframe `postMessage` 的受信任 Google origin、40 位隨機 nonce 及 iframe source 檢查，遇回覆不明不重新送單。無 localStorage/sessionStorage，不把 URL 或 token 放進公開程式。
+
+離線用假 LINE SDK、假 Google Web App 回覆驗證的 12／12 項 UI 狀態檢查 PASS：登入、勾選、網址限制、無自動 POST、無重複送出、固定範圍、成功/暫未查到/未知拒絕，舊登錄頁與 GPS 正式首頁 SHA 未變。GitHub 靜態頁已建立，但新子路徑是否可從 iPhone LINE 順利開啟還需實機確認。
+
+下一步如擁有人準備做真正唯讀查詢：在**新** `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 專案確認另外兩項屬性沒有錯誤後，把 `V2HR_READONLY_TEST_ENABLED` 暫時改成 `enabled`；注意**此 Script Property 是專案共用**，任何同專案部署都會受影響。新獨立服務的 Web App 存取目前已用無痕 GET 和匿名 POST 關閉測試通過。然後用 TEST001 已綁定 LINE 帳號開啟新的授權查詢子路徑，貼**新服務所有人 /exec URL**，勾選確認後按一次查詢；預期回覆 `PENDING_REVIEW_TEST`。無論成功與否，當次驗證結束即將 flag 改回 `disabled`，不更動原 GPS 後端、正式請假或薪資。不得把真實 Token 或部署網址貼回對話。
+
+目前為止尚未啟用新 Script Property、未從 LINE 真的呼叫已授權 `doPost`、未在公開 Web App 端驗證綁定身分查詢成功。
