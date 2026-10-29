@@ -7,7 +7,7 @@ const fs=require("node:fs"),path=require("node:path");
 const source=fs.readFileSync(path.join(__dirname,"AttendanceV2_LeaveStatus_SecureBridge_PROPOSAL.gs"),"utf8");
 const ID="LEAVEV2_TEST_20261110_0001";
 const sheet={exists:true,row:true};
-const ss={getSheetByName:()=>sheet};
+const ss={getId:()=>"MOCK_TEST_SPREADSHEET",getName:()=>"YC_ATTENDANCE_V2_TEST_ONLY",getSheetByName:()=>sheet};
 let testGuard=true,validSession=true,rowsRead=0;
 const fn=new Function("v2hrGuardTestSheet_","v2dEmployee_",
   "V2HR_LEAVE_TEMP_REQUEST","V2HR_LEAVE_TEMP_TITLE","v2hrLeaveTempCheckSheet_",
@@ -45,8 +45,13 @@ const calls=[
  ["disabled sandbox guard rejects request",()=>{
    testGuard=false;assert.throws(()=>fn(ss,"MOCK-LINE",{requestId:ID}),/test guard disabled/);testGuard=true;
  }],
+ ["same Sheet ID via separate Apps Script wrapper is accepted",()=>{
+   const alias={getId:()=>ss.getId(),getName:()=>ss.getName(),getSheetByName:()=>sheet};
+   const x=fn(alias,"MOCK-LINE",{requestId:ID});
+   assert.equal(x.found,true);
+ }],
  ["foreign spreadsheet object is rejected",()=>{
-   assert.throws(()=>fn({getSheetByName:()=>sheet},"MOCK-LINE",{requestId:ID}),/資料表權限/);
+   assert.throws(()=>fn({getId:()=>"OTHER_DOC",getName:()=>"YC_ATTENDANCE_V2_TEST_ONLY",getSheetByName:()=>sheet},"MOCK-LINE",{requestId:ID}),/資料表權限/);
  }],
  ["not-yet-found result does not claim failed write",()=>{
    sheet.row=false;const x=fn(ss,"MOCK-LINE",{requestId:ID});
