@@ -53,6 +53,12 @@
       <div class="box" id="todayStatus" role="status">尚未查詢今日紀錄</div>
       <button id="todayRefreshBtn" type="button" class="secondary">重新查詢今日打卡紀錄</button>
     </section>
+    <section id="leaveStatusPane" class="section" hidden>
+      <h2>模擬假單狀態查詢（TEST001）</h2>
+      <p class="hint">僅查固定虛構單號，不新增假單、不通知主管。若結果未確認，保留原單號稍後再查，不要重複送單。</p>
+      <button id="leaveStatusQueryBtn" type="button" class="secondary">查詢原模擬假單</button>
+      <div class="box" id="leaveStatusResult" role="status" aria-live="polite">請先驗證測試身分。</div>
+    </section>
     <button id="refreshTestBtn" type="button" class="secondary">重新確認我的測試員工身分</button>
   </section>
 </main>
@@ -65,6 +71,7 @@ const CONFIG=Object.freeze({
   enableBinding:true, // iPhone whoami verified; only TEST001 with one-time invitation
   enableClock:true, // TEST001 isolated iPhone GPS clock tests
   enableTodayQuery:true, // Standalone DATA TEST new version deployed; self-only read-only query
+  enableLeaveStatus:false, // OFF until separate TEST001 backend revision passes real checks
   dataApi:"https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec",
   api:"https://script.google.com/macros/s/AKfycbx2s-MtBVoHT2061E8XHNk92F9PhCbI0HtyKzQ7c5l5rasc__XZ84BL-A2HyxIyc6_OEw/exec",
   allowedResponseOrigins:["https://script.google.com"],
@@ -185,6 +192,48 @@ async function sandboxCall(operation,payload){
     throw Error("隔離資料服務尚未啟用");
   return postForm(operation,{idToken:idTokenForTest(),...payload},CONFIG.dataApi);
 }
+let leaveTestIdentityVerified=false;
+let leaveStatusBusy=false;
+const LEAVE_TEST_REQUEST_ID="LEAVEV2_TEST_20261110_0001";
+async function queryTestLeaveStatus(){
+  const box=$("leaveStatusResult"),control=$("leaveStatusQueryBtn");
+  if(leaveStatusBusy)return;
+  if(!CONFIG.enableLeaveStatus){
+    box.textContent="此查詢功能仍在隔離開發中，尚未開放。";
+    return;
+  }
+  if(!leaveTestIdentityVerified){
+    box.textContent="請先完成 TEST001 的 LINE 測試身分確認。";
+    return;
+  }
+  leaveStatusBusy=true;control.disabled=true;
+  control.textContent="查詢中…";
+  box.textContent="正在查詢原模擬假單編號…";
+  try{
+    const r=await sandboxCall("leaveStatus",{requestId:LEAVE_TEST_REQUEST_ID});
+    if(!r||r.ok!==true||r.synthetic!==true||r.readOnly!==true||
+       r.requestId!==LEAVE_TEST_REQUEST_ID){
+      box.textContent="⚠️ 伺服器回覆未確認。請保留原單號稍後再查，勿重新送單。";
+    }else if(r.found===true&&r.status==="PENDING_REVIEW_TEST"){
+      box.textContent="✅ 已確認原模擬假單存在：待審核（測試）。";
+    }else if(r.found===false&&r.status==="NOT_FOUND_YET"){
+      box.textContent="⚠️ 暫時未查到原單，並不等於送單失敗；請保留原單號稍後重查。";
+    }else{
+      box.textContent="⚠️ 查詢狀態尚未確認，請勿建立新單號或重複送單。";
+    }
+  }catch(e){
+    if(e&&(e.code==="AUTH"||e.code==="NOT_BOUND")){
+      leaveTestIdentityVerified=false;
+      $("leaveStatusPane").hidden=true;
+      box.textContent="測試身分已失效，請重新確認 LINE 登入。";
+    }else{
+      box.textContent="⚠️ 連線或回覆未完成，原假單結果不明；請用相同編號稍後再查。";
+    }
+  }finally{
+    leaveStatusBusy=false;control.disabled=false;
+    control.textContent="查詢原模擬假單";
+  }
+}
 async function refreshSandbox(){
   const state=$("bindState");
   state.textContent="正在讀取隔離模擬員工身分…";
@@ -195,6 +244,8 @@ async function refreshSandbox(){
       $("bindPane").hidden=true;
       $("clockPane").hidden=!CONFIG.enableClock;
       $("todayPane").hidden=!CONFIG.enableTodayQuery;
+      leaveTestIdentityVerified=!!(r.employee&&r.employee.employeeId==="TEST001");
+      $("leaveStatusPane").hidden=!(CONFIG.enableLeaveStatus&&leaveTestIdentityVerified);
       state.textContent="✅ 已綁定："+r.employee.name+"（"+r.employee.employeeId+"）"+
         (CONFIG.enableClock?"\n僅供 TEST001 隔離打卡測試，不影響正式紀錄。":"\n目前 GPS 打卡仍未開放。");
       $("clockStatus").textContent=pendingClock()
@@ -204,6 +255,8 @@ async function refreshSandbox(){
       $("bindPane").hidden=!CONFIG.enableBinding;
       $("clockPane").hidden=true;
       $("todayPane").hidden=true;
+      leaveTestIdentityVerified=false;
+      $("leaveStatusPane").hidden=true;
       state.textContent=CONFIG.enableBinding
         ?"✅ 隔離資料服務連線成功。\nLINE 已驗證；TEST001 尚未綁定。\n請輸入管理者核發的 32 位一次性邀請碼。"
         :"✅ 隔離資料服務連線成功。\nLINE 已驗證；TEST001 尚未綁定。\n目前僅檢查連線，不開放綁定或打卡。";
@@ -396,6 +449,7 @@ $("clockIn").addEventListener("click",()=>testClock("上班"));
 $("clockOut").addEventListener("click",()=>testClock("下班"));
 $("clockStatusBtn").addEventListener("click",checkPendingClock);
 $("retryClockBtn").addEventListener("click",retryPendingClock);
+$("leaveStatusQueryBtn").addEventListener("click",queryTestLeaveStatus);
 // On returning from LINE OAuth, the whole page reloads. Resume the successful
 // login check automatically; never initiate a login redirect without a click.
 verifyLine(true);
