@@ -9,10 +9,7 @@
   function date(v){return str(v).replaceAll("/","-");}
   function status(v){return str(v)==="已確認"?"CONFIRMED":"PENDING";}
   function toScope(v){
-    return {"全公司":"ALL","指定打卡地點":"WORKPLACE","指定員工":"EMPLOYEES"}[str(v)]||"UNKNOWN";
-  }
-  function uniqueIds(v){
-    return [...new Set(str(v).split(/[;；,，、\s]+/).map(x=>x.trim()).filter(Boolean))];
+    return {"全公司":"ALL","指定打卡地點":"WORKPLACE"}[str(v)]||"UNKNOWN";
   }
   // 「公司工作日曆」A:H - only date exceptions need rows.
   function calendarRows(rows, fallbackCompany){
@@ -35,14 +32,14 @@
     }));
   }
   // 「特殊出勤事件」A:M
-  // A event ID, B date, C type, D scope, E target (site or employee IDs),
+  // A event ID, B date, C type, D scope, E optional workplace code,
   // F FULL/PARTIAL, G paid/review, H evidence, I confirmation, J confirmer,
   // K confirmed at, L partial approved minutes, M note.
   function eventRows(rows,activeCompany){
     return (rows||[]).filter(r=>Array.isArray(r)&&str(r[0])).map(r=>{
       const scope=toScope(r[3]),target=str(r[4]),period=str(r[5]);
       return {eventId:str(r[0]),date:date(r[1]),company:activeCompany,type:str(r[2]),
-        scope,workplace:scope==="WORKPLACE"?target:"",employeeIds:scope==="EMPLOYEES"?uniqueIds(target):[],
+        scope,workplace:scope==="WORKPLACE"?target:"",
         period:period==="全日"?"FULL":period==="部分"?"PARTIAL":"UNKNOWN",
         payPolicy:str(r[6])==="照常給薪"?"PAID":str(r[6])==="另行核對"?"REVIEW":"UNKNOWN",
         reference:str(r[7]),status:status(r[8]),confirmedBy:str(r[9]),
