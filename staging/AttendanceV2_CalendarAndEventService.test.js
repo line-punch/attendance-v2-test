@@ -118,6 +118,10 @@ const tests=[
      {date:"2026-11-02",scheduledWorkMinutes:480,actualWorkedMinutes:0},c,pay
    ).code,"EVENT_SCOPE_UNVERIFIED");
  }],
+ ["misconfigured company-wide stop with obsolete personal IDs is rejected",()=>{
+   const c=ctx();c.events=[event("2026-11-02",{scope:"ALL",employeeIds:["TEST002"]})];
+   assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_SCOPE_CONFLICT");
+ }],
  ["site-only event limited to that workplace",()=>{
    const c=ctx();c.events=[event("2026-11-02",{scope:"WORKPLACE",workplace:"W1"})];
    assert(service.eventFor("2026-11-02",c,480).event);
