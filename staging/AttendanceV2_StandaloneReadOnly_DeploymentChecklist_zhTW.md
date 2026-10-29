@@ -143,3 +143,13 @@ Google 官方 HTMLService IFRAME 說明：https://developers.google.com/apps-scr
 `leave-status-diagnostic/LeaveStatusReplyDiagnostic.test.js` **14／14 項離線驗證通過**，含多層 iframe `source` 不同但可信 origin+nonce 可接收，惡意 origin 忽略、逾時、單次送出、防連點、回覆錯誤區分、未登入/未勾選禁止請求。原 LINE 登入頁、舊授權頁、GPS 主頁、正式打卡系統與 Apps Script 部署均未改動。
 
 使用者需保持新獨立專案 `V2HR_READONLY_TEST_ENABLED=disabled`，若之後要再做一次診斷，**僅短暫**將其改為 `enabled` 並從新診斷頁按一次「查詢原模擬假單」，完成即改回 disabled；不得貼完整 Web App URL、LINE token、Sheet ID 或員工個資到聊天。回報只需結果區的短文字。
+
+## 2026-10-29 18:51｜手機截圖顯示舊版授權頁，診斷版尚未真正測到
+
+使用者於 18:51 上傳 LINE 手機畫面，畫面仍出現**舊授權頁**的文案 `先核對新獨立 Apps Script 的三項安全設定`、`我已確認這是 TEST001 專用唯讀服務，且已由管理者開啟測試`、`⚠️ 查詢連線或回覆未完成；結果不明...`。這些確實存在於 `main/leave-status-authorized-check/index.html`（SHA `fed0242e75b3b1315c99c8e629d727abfa6b5ec0`），**並不存在**於新 `main/leave-status-diagnostic/index.html`（SHA `6f7c043150357ef1caffaef90741a9c3291265dd`），新頁預期標題 `TEST001｜假單查詢回覆診斷` 並區分 AUTH、UNKNOWN、45 秒逾時。因此此次手機實際操作無法視為新診斷頁通過或失敗。
+
+使用者已明確確認完成後把新專案 `V2HR_READONLY_TEST_ENABLED` 改回 `disabled`；先保持此狀態，**不要再送任何 POST 或重新部署**。
+
+先從手機 LINE 關閉舊視窗，使用完整 LIFF 新深層連結 `https://liff.line.me/2012136707-2dDU0aSJ/leave-status-diagnostic/?v=20261029diag2` 開新頁，只核對**頂部標題是否為 `TEST001｜假單查詢回覆診斷`**，不按查詢、不改屬性。若依然出現舊版，調查 LINE LIFF WebView 快取／深層路由，不能再把舊頁結果當新診斷。
+
+LINE 官方文件支援 LIFF URL 的下層路徑及 query parameter；實際是否成功仍應以手機顯示的**頁面標題**驗證，而非僅看 LINE WebView 的短網址標籤。https://developers.line.biz/en/docs/liff/opening-liff-app/
