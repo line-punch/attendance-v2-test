@@ -60,3 +60,24 @@
 - 不增添員工端颱風假功能。
 - 不修改正式資料表欄位、正式 GitHub、GPS 50 公尺測試首頁或 Excel 薪資表。
 - NFC 424 DNA 兩張待到貨後另行測試。
+
+
+## 2026-10-29：獨立 DATA TEST Apps Script 讀取模組
+
+已在同一隔離分支新增：
+
+- `staging/AttendanceV2_TwoSheet_GAS_ReadOnly.gs`：僅供未來手動加入 **YC_ATTENDANCE_V2_DATA_TEST_ONLY** 的測試後端。先呼叫既有 `v2dTestSheet_()` 驗證獨立測試資料庫 ID、名稱、腳本屬性及模擬員工，再進行任何動作；另要求員工為 `TEST001`、公司為 `TEST_CO`。不得加入正式「打卡系統」Apps Script。
+- `staging/AttendanceV2_TwoSheet_GAS_ReadOnly.test.js`：以假試算表與假身分執行 **15／15 PASS**，包括無損建立空白分頁、已有分頁不覆蓋、錯誤資料表拒絕、非 TEST001 拒絕、唯讀不寫入、年度核對區 J:N 有效讀取、假日很多列不會干擾年度核對、殘缺資料拒絕等。
+
+設計規則：
+1. **只准明確的測試安全鎖**。缺少 `v2dTestSheet_()`、專屬測試 ID 或模擬公司 `TEST_CO` 時直接中止。
+2. 安裝函式 `v2hrInstallEmptyTestTabs()` 是**由測試專案擁有人在編輯器明確執行的選用初始化**；不透過外部 Web App 路由呼叫、不新增已存在的分頁、不清除資料，也不自動核准年度或停班事件。
+3. **只有唯讀快照**：`v2hrReadVerifiedTestSnapshot_(lineUserId)` 的 `lineUserId` 必須由現有 DATA TEST 後端先以 `v2dLineClaims_(idToken)` 驗證取得，不能相信瀏覽器自行填入。此函式目前**尚未加入 `v2dDispatch_` 白名單**，也不會傳送員工個資或 GPS。
+4. 已完成的純 JS 工作日曆、天災給薪規則仍是隔離邏輯；**尚未連上真正 Google Sheet 或假單寫入流程**。舊的測試「工作日曆」保留不動，新表名為「公司工作日曆」。
+5. 目前連接的 Google Drive 搜尋不到 `YC_ATTENDANCE_V2_TEST_ONLY`；不要用其他帳號建立替代同名試算表，也不要要求將正式資料分享給不相關帳號。實際部署需先確認能存取原隔離測試表的正確 Google 帳號與 Apps Script 編輯器。
+
+**截至目前的總測試**：精簡規則 66／66 PASS，加上 GAS 試算表模擬讀取與建立測試 15／15 PASS。測試項目屬不同層次，不能因此宣稱已經完成真正 Google Apps Script／Google Sheet 實機串接。
+
+### 下一個可操作里程碑（尚未執行）
+
+在**原本的 TEST001 隔離 DATA TEST Apps Script** 中核對目前部署與原程式後，再以安全新增模組方式加入讀取函式；由測試專案擁有人確認並手動執行 `v2hrInstallEmptyTestTabs`，只在原隔離 Sheet 新增兩張**空白**工作表；最後將已驗證 LINE 登入的唯讀查詢加入測試 API 白名單，進行真實 Google Sheet 讀回核對。這步不動正式打卡專案，也不改 GPS 寫入與請假通知。
