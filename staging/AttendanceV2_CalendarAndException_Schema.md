@@ -152,3 +152,19 @@
 `staging/AttendanceV2_LeaveStatusAudit_TEST_ONLY.gs`；編輯器手動執行 `v2hrAuditSyntheticLeaveStatus_TEST_ONLY`。它會再次確認原 TEST001 環境，只讀取臨時測試分頁，核對固定單號、只有一筆資料、12 欄完整、測試待審核狀態；以 Logger 輸出 `ok,true/readOnly,true/present,true/applicationCount,1`，完全不寫入。配套 `staging/AttendanceV2_LeaveStatusAudit_TEST_ONLY.test.js` **10／10 純模擬測試通過**。此檔尚未由使用者貼到 Apps Script 或實際執行。
 
 本階段不修改正式打卡、原始請假、主管 LINE 通知、Google Apps Script 部署或薪資 Excel。仍需避免直接將臨時固定測試單號的程式接入公開 Web App；正式送單前須另行建置權限、冪等送單與核准通知。
+
+## 2026-10-29 15:02：獨立假單狀態實機查詢成功
+
+使用者在原 TEST001 隔離 Apps Script 執行 `v2hrAuditSyntheticLeaveStatus_TEST_ONLY`，記錄顯示 15:02:24 開始、15:02:25 六項唯讀前置規則通過、15:02:26 回傳 `ok:true,synthetic:true,readOnly:true,present:true,requestId:LEAVEV2_TEST_20261110_0001,applicationCount:1,approvalStatus:待審核（測試）`，15:02:27 完畢。
+
+至此在真實 TEST001 隔離試算表上，固定虛構假單已完成 **首次寫入→重複單號不增加資料→獨立唯讀查回一筆假單**。這是 Apps Script 編輯器流程，不是員工 LINE 前端完整操作，也沒有串接真正主管審核或薪資匯入。
+
+## 下一階段隔離準備：TEST001 經驗證身分的狀態查詢
+
+在 GitHub 同一隔離分支增加：
+- `staging/AttendanceV2_LeaveStatus_SecureBridge_PROPOSAL.gs`：只提供受權限保護的唯讀 helper，**不是**對外 doPost/doGet，尚未部署。
+- 此 helper 必須由現有後端先用 LINE ID Token 驗證出 `lineUserId`；驗證獨立試算表與 TEST001 綁定身份、確定固定虛構 requestId，只讀測試假單分頁。前端傳 employeeId、公司、試算表 ID 或別的 requestId 皆拒絕。
+- `staging/AttendanceV2_LeaveStatus_SecureBridge_PROPOSAL.test.js`：12／12 項純模擬安全測試通過。查不到時回 `NOT_FOUND_YET` 而非「一定失敗」，防止 UI 誤導員工重複送單。
+- **尚未**改動已部署的 `v2dDispatch_` 操作白名單及 `attendance-v2-test/main/index.html`，亦未進行手機/LIFF 這項新查詢的實機測試。正式員工打卡與原 V2 GPS 測試不可受到影響。
+
+接下來先針對候選 read-only helper 做測試後端整合審查及前端低風險測試設計；未經確認，不直接開啟請假寫入端點或修改正式系統。
