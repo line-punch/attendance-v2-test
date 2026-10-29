@@ -40,7 +40,7 @@ function load(file,addition){
  return new Function(...names,s+addition)(...values);
 }
 const reader=load("AttendanceV2_TwoSheet_GAS_ReadOnly.gs",
- "\nreturn {v2hrGuardTestSheet_,v2hrCheckHeaders_,v2hrReadTestCalendarContext_,v2hrInstallEmptyTestTabs};");
+ "\nreturn {v2hrGuardTestSheet_,v2hrCheckHeaders_,v2hrReadTestCalendarContext_,v2hrInstallEmptyTestTabs,V2HR_CAL_HEADERS,V2HR_YEAR_HEADERS,V2HR_EVENT_HEADERS};");
 Object.assign(env,reader);
 const fixture=load("AttendanceV2_InstallSyntheticFixture_TEST_ONLY.gs",
  "\nreturn {v2hrInstallSyntheticFixture_TEST_ONLY};").v2hrInstallSyntheticFixture_TEST_ONLY;
