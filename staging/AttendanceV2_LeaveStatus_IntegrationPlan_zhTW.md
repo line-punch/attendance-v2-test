@@ -102,3 +102,18 @@
 6. 不要修改原 **第 2 版** 既有部署或目前 GitHub Pages `main`；若要實測，必須由擁有人建立並確認**獨立測試部署**，只在候選頁測試。取得新部署前不得宣稱 LINE 已能查詢假單。
 
 **下一步**：不再要求使用者貼版本、部署 ID 或權限截圖；先完成針對公開端點安全面的候選整合回歸，然後在 TEST001 的原 Apps Script 編輯器建立可回滾的測試版，再由擁有人決定是否另建部署。不要把目前 `V2請假寫入測試` 模組暴露為任何新 API。
+
+## 2026-10-29：公開 Web App 攻擊模擬與獨立唯讀服務候選版
+
+針對使用者確認原 DATA_TEST Web App **以我身分執行／所有人可存取**，本輪完成兩項關鍵改善：
+
+1. `AttendanceV2_LeaveStatus_DispatchCandidate_TEST_ONLY.gs` 先在**開啟試算表之前**阻擋不合法 nonce、operation、JSON 欄位、非 JWT 形狀的 token 及非固定 TEST001 假單號，才走 LINE 後端驗證與單號唯讀查詢。原候選相關回歸已重新通過 13+17+12+10+14 = **66／66**（全部程式模擬）。
+2. `staging/AttendanceV2_PublicWebApp_ThreatMock.test.js` 套用從另一個 GitHub 歷史參考檔案提取之原 `doPost`／`v2dPublicFailure_`／`v2dResponse_`，**20／20** 虛構攻擊模擬通過（身分、token、權限、惡意欄位、HTML nonce、原 GPS 路由）。**不是**現有第 2 版實際部署的驗證。
+
+**新安全架構選擇**：由於原 DATA_TEST 編輯器已加入數支擁有人操作的模擬資料寫入函式，建議不要將含管理測試函式的整份 GAS 專案直接對外建立新 Web App 版本。
+
+已建立 `staging/AttendanceV2_StandaloneLeaveStatus_READONLY_CANDIDATE.gs`：**只查既有固定虛構單號**的全新獨立 GAS Web App 候選。除了必要 `doPost`、`doGet`，所有 helper 名稱以 `_` 結尾；沒有任何寫入、打卡、主管核准、通知或測試資料產生函式。以新專案 Script Properties `V2HR_READONLY_TEST_ENABLED` 設為 enabled 才能呼叫，未設定即拒絕；另需 `V2HR_TEST_SHEET_ID`、`LINE_LOGIN_CHANNEL_ID=2012136707`。Google Sheet ID 僅在新專案的 server-side props，不可提交 GitHub。**25／25** 模擬安全測試通過。
+
+在 `feature/v2-leave-status-ui-disabled-20261029/index.html` 將新查詢改為直接透過原 `postForm` 送往**獨立** `leaveStatusApi`，不再誤送原 GPS `dataApi`；`enableLeaveStatus:false` 且 `leaveStatusApi:"__NOT_CONFIGURED__"`，因此尚未配置時不會呼叫任何新服務，**16／16** 前端模擬測試通過。這是分支內候選，**未修改 main 或發布**。
+
+實作與回復的完整清單見 `staging/AttendanceV2_StandaloneReadOnly_DeploymentChecklist_zhTW.md`。本輪沒有建立新 GAS 專案，沒有設定 Script Properties，沒有部署、修改第 2 版或真實試算表。後續要讓手機真正查詢，須先在正確 TEST001 帳號建立只含唯讀程式的獨立 GAS 專案、安全確認後單獨部署並以 LINE 測試帳號驗證，再逐步開啟新的測試頁。
