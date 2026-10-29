@@ -108,3 +108,13 @@
 - 模擬資料完整性（年度核對、假日及停班事件唯一性、來源 SYNTHETIC_TEST_ONLY 等）若不符即停止；不得將測試規則套用真實員工。
 
 已執行 `AttendanceV2_ProbeSyntheticRules_TEST_ONLY.test.js`：**11／11 PASS**，包含未授權、資料缺漏、無效確認、意外額外事件與無寫入呼叫檢查。尚未在 Google Apps Script 真實執行本規則檢查；實機結果要等使用者在獨立專案手動執行後核對。原有 GPS 與正式打卡不受影響。
+
+## 2026-10-29 14:36：實機唯讀規則測試成功
+
+使用者回報 Apps Script 執行紀錄：14:36:32 開始、14:36:33 輸出 {ok:true, synthetic:true, readOnly:true, checksPassed:6, leaveOnMockHoliday:BLOCKED, scheduledStormDay:WORKDAY_WITH_APPROVED_STOP, newLeaveOnStorm:HR_REVIEW_REQUIRED, mockActualWorkedMinutes:0, mockPaidStopMinutes:480, mockAbsenceMinutes:0, payrollStatus:DISASTER_NO_WORK}、14:36:34 執行完畢。這是獨立 TEST001 試算表的**實際唯讀規則測試**，不代表請假送單、主管通知或 Excel 計薪已整合。
+
+已新增未部署的 `staging/AttendanceV2_LeaveDryRun_TEST_ONLY.gs`：在原 TEST001 後端呼叫已安裝的唯讀資料讀取及規則函式，進行 12 個表單案例，加上未設定假別與偽造員工 ID 兩個防呆，共 14 個虛構請假預檢。使用單一編輯器函式 `v2hrRunLeaveDryRun_TEST_ONLY`，不新增 doPost、doGet，也不寫入「請假申請」。包括 2026-11-11 虛構休假阻擋、2026-11-12 虛構停班需人工核對、跨週末阻擋、指定時段跨日拒絕、時段倒置拒絕、2027 尚未核對的日曆拒絕。
+
+測試檔 `staging/AttendanceV2_LeaveDryRun_TEST_ONLY.test.js`：14／14 項 Node 等效隔離模擬測試通過，含身分欄位不得由前端傳入及完全無寫入操作。
+
+**待辦**：使用者手動將新檔貼到原 DATA_TEST_ONLY Apps Script 後，以 `v2hrRunLeaveDryRun_TEST_ONLY` 實際執行並回報 Logger。此步仍只有讀取及規則驗證，未實際寫入請假單、未建立新端點、未串接主管通知。
