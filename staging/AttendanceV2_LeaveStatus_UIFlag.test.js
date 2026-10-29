@@ -15,7 +15,7 @@ function instance({enabled=false,verified=false,result=null,error=null,delay=nul
   leaveStatusResult:{textContent:"尚未查詢"},leaveStatusPane:{hidden:false}};
  const document={getElementById:id=>{if(!elements[id])throw Error("missing mock "+id);return elements[id];}};
  const calls=[];
- const make=new Function("document","query","enabled","verified",
+ const make=new Function("document","query","enabled","verified","apiReady",
   'const $=id=>document.getElementById(id);'+
   'const CONFIG={enableLeaveStatus:enabled,leaveStatusApi:apiReady?"https://script.google.com/macros/s/FAKE_READONLY/exec":"__NOT_CONFIGURED__"};'+
   'const LEAVE_TEST_REQUEST_ID="LEAVEV2_TEST_20261110_0001";'+
