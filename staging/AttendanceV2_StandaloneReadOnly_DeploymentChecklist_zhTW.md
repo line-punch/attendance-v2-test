@@ -126,3 +126,20 @@ GitHub 靜態頁在模擬 DOM 下完成 9 項基本檢查：未點不發請求�
 判讀：若沒有 `doPost`，先查手機 POST 是否送達 Apps Script/是否被 iframe/Google 瀏覽器限制。若 `doPost` 完成，表示請求有進入新服務，但 `doPost` 可能把應用層失敗封裝成 HTML success；需再區分 `UNKNOWN` 拒絕、`AUTH`、已讀回而訊息遺失。若 `doPost` 失敗，依最小化錯誤訊息修正。禁止直接刪除或重建模擬假單。
 
 Google 官方 HTMLService IFRAME 說明：https://developers.google.com/apps-script/guides/html/restrictions 。
+
+## 2026-10-29 18:41｜實機 doPost 已達 GAS，但 LINE iframe 回覆尚不明
+
+使用者提供新的 **獨立** `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` Apps Script「執行項目」截圖，8 筆記錄（過去 7 天），重要項：
+- **版本 2 `doPost` 2026/10/29 18:36:09，持續 2.615 秒，狀態「已完成」**，與手機約 18:37 的 LINE 查詢未知結果相符。
+- 版本 2 `doPost` 18:11:26，0.564 秒，狀態「已完成」，對應較早匿名安全測試。
+- 多筆版本 2 `doGet` 已完成。這些是新唯讀服務，不是原本 GPS DATA_TEST 的第 2 版（兩個專案各自有版本 2）。
+
+由此確認**手機 POST 至少送到了新獨立 Web App 並執行完 doPost**；「已完成」只代表 GAS 對請求處理並回傳，不能證明 LINE token、TEST001 綁定、模擬假單讀取成功，也不能確認手機收到 HTMLService 的 postMessage。由於 GAS `doPost` 對錯誤會封裝成回覆，沒有用戶可安全讀取的詳細查詢結果。
+
+檢查既有 `main/leave-status-authorized-check/index.html` 後，`receive(ev)` 將可信來源限制到 Google HTTPS 後，還要求 `ev.source===iframe.contentWindow`；但 GAS `HtmlService` 有可能透過多層 iframe 的不同 window 送 `window.top.postMessage`。因此這個 `source` 條件可能讓合法回覆被忽略，**仍屬假設，不是已確認根因**。匿名 smoke 頁沒有檢查 `event.source`，先前曾收到 `UNKNOWN`。
+
+已**獨立新增、未覆蓋舊頁** `line-punch/attendance-v2-test/main/leave-status-diagnostic/index.html`，LIFF 子路徑為 `https://liff.line.me/2012136707-2dDU0aSJ/leave-status-diagnostic/`。只接受受信任 HTTPS Google origin、每次 40 位高熵 nonce、原 `YC_V2_STAGING_FORM_V1` bridge；不再要求 iframe source 恆等，並分開顯示後端 `AUTH`、`UNKNOWN`、`REPLY_TIMEOUT`。仍只有固定 TEST001 虛構單號的 `leaveStatus` 唯讀查詢，明確勾選確認才會 POST；網址不持久化、不寫入。
+
+`leave-status-diagnostic/LeaveStatusReplyDiagnostic.test.js` **14／14 項離線驗證通過**，含多層 iframe `source` 不同但可信 origin+nonce 可接收，惡意 origin 忽略、逾時、單次送出、防連點、回覆錯誤區分、未登入/未勾選禁止請求。原 LINE 登入頁、舊授權頁、GPS 主頁、正式打卡系統與 Apps Script 部署均未改動。
+
+使用者需保持新獨立專案 `V2HR_READONLY_TEST_ENABLED=disabled`，若之後要再做一次診斷，**僅短暫**將其改為 `enabled` 並從新診斷頁按一次「查詢原模擬假單」，完成即改回 disabled；不得貼完整 Web App URL、LINE token、Sheet ID 或員工個資到聊天。回報只需結果區的短文字。
