@@ -84,3 +84,17 @@
 預期返回 `ok:false`、`code:UNKNOWN`、沒有假單內容；但只要沒有收到正確回覆，應回報「結果未確認」，不能猜測後端安全拒絕。若回傳 `AUTH` 或 `ok:true`，必須停止並查是否設錯 flag 或部署。此測試不能單獨證明屬性值，需搭配使用者的設定確認。
 
 GitHub 靜態頁在模擬 DOM 下完成 9 項基本檢查：未點不發請求、空網址阻擋、非 Google Script 網域阻擋、單次送出、40 位 nonce、虛構無效 Token、未含真實員工資料、拒絕回覆顯示及既有 GPS/正式首頁 blob SHA 未變。**未實際從此頁連到新 GAS 部署；需用使用者手機／電腦網頁進行真實測試。**
+
+## 2026-10-29：匿名 POST 實機拒絕成功，新增獨立 LIFF 登入冒煙測試
+
+使用者 2026-10-29 提供 `leave-status-smoke/` 網頁截圖，顯示正確的**新獨立 TEST001** Web App `/exec` 已收到 `UNKNOWN` 拒絕，且沒有假單內容。這確認匿名 POST 收到已拒絕的 Google Web App 回覆；仍不能僅憑 `UNKNOWN` 證明屬性值，測試期間應保持 `V2HR_READONLY_TEST_ENABLED=disabled`。
+
+已研究 LINE 官方 LIFF 開啟方式（https://developers.line.biz/en/docs/liff/opening-liff-app/ 與 https://developers.line.biz/en/reference/liff/）：`liff.init()` 於原 Endpoint URL 或其**下層路徑**可用。保留原 LIFF ID `2012136707-2dDU0aSJ` 與原 GitHub Pages Endpoint。
+
+新增並隔離測試 `leave-status-line-test/index.html`，測試分支 `feature/v2-leave-status-liff-test-20261029`。頁面只於載入後執行 LIFF SDK 初始化；**`enableStatusQuery:false`**，因此查詢按鈕 disabled，沒有任何 POST；沒有新 Web App URL、Channel Secret、真實 LINE Token 或 Google Sheet ID 寫入原始碼。使用者於手機點開時只會測到「LINE 已登入」等安全提示，不會查詢原假單。
+
+`LeaveStatusLiff_UI.test.js` 離線 16／16 PASS：登入狀態、按鈕停用、防重複、只送固定模擬單號、後端回覆驗證與錯誤回饋。所有非同步 Google 回覆都用合成 token／合成 URL 模擬，沒有實際存取。
+
+已將**同一份仍停用**的靜態頁放進 GitHub `line-punch/attendance-v2-test/main/leave-status-line-test/index.html`，**只新增子資料夾**，沒有改 `main/index.html`。預計對應 `https://liff.line.me/2012136707-2dDU0aSJ/leave-status-line-test/`，實際 LIFF 子路徑是否成功仍待使用者手機開啟核對。GitHub Pages 網站發布可用性尚未由工具直接確認。
+
+下一階段用 TEST001 已允許的 LINE 測試帳號在手機**只驗證 LIFF 登入**。此時不得改 `V2HR_READONLY_TEST_ENABLED` 屬性，也不得開啟前端查詢旗標。成功只證明 LIFF 初始化／登入，不表示已授權查詢。
