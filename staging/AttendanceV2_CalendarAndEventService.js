@@ -70,9 +70,13 @@
       // No silent broadening of eligibility when scope or confirmation is missing.
       if(!["ALL","WORKPLACE","EMPLOYEES"].includes(e.scope))
         return resultError("EVENT_SCOPE_UNVERIFIED",{date});
+      if(!e.type)return resultError("EVENT_TYPE_UNVERIFIED",{date});
+      if(e.scope==="WORKPLACE"&&!e.workplace)
+        return resultError("EVENT_WORKPLACE_UNVERIFIED",{date});
       if(e.scope==="WORKPLACE"&&e.workplace!==emp.workplace)continue;
       if(e.scope==="EMPLOYEES"){
-        if(!Array.isArray(e.employeeIds))return resultError("EVENT_EMPLOYEES_UNVERIFIED",{date});
+        if(!Array.isArray(e.employeeIds)||!e.employeeIds.length)
+          return resultError("EVENT_EMPLOYEES_UNVERIFIED",{date});
         if(!e.employeeIds.includes(emp.employeeId))continue;
       }
       if(!confirmed(e)||!e.eventId||!e.reference||!["FULL","PARTIAL"].includes(e.period)||
