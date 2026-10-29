@@ -46,6 +46,12 @@ const tests=[
   assert.equal(Object.prototype.hasOwnProperty.call(ev[0],"employeeIds"),false);
   assert.equal(svc.eventFor("2026-11-03",{...ctx,events:ev},480).code,"EVENT_SCOPE_UNVERIFIED");
 }],
+["company-wide stop rejects legacy personal target instead of auto-covering everybody",()=>{
+  const ev=adapter.eventRows([["TEST-E","2026/11/03","颱風","全公司","TEST002","全日",
+    "照常給薪","TEST-EVIDENCE","已確認","TEST-HR","2026-10-29"]],employee.company);
+  assert.equal(ev[0].scope,"UNKNOWN");
+  assert.equal(svc.eventFor("2026-11-03",{...ctx,events:ev},480).code,"EVENT_SCOPE_UNVERIFIED");
+}],
 ["site-level exception remains supported without individual employee IDs",()=>{
   const ev=adapter.eventRows([["TEST-E","2026/11/03","颱風","指定打卡地點","W2","全日",
     "照常給薪","TEST-EVIDENCE","已確認","TEST-HR","2026-10-29"]],employee.company);
