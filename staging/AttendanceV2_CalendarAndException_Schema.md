@@ -118,3 +118,17 @@
 測試檔 `staging/AttendanceV2_LeaveDryRun_TEST_ONLY.test.js`：14／14 項 Node 等效隔離模擬測試通過，含身分欄位不得由前端傳入及完全無寫入操作。
 
 **待辦**：使用者手動將新檔貼到原 DATA_TEST_ONLY Apps Script 後，以 `v2hrRunLeaveDryRun_TEST_ONLY` 實際執行並回報 Logger。此步仍只有讀取及規則驗證，未實際寫入請假單、未建立新端點、未串接主管通知。
+
+## 2026-10-29 14:44：請假預檢實機通過，進入獨立暫存假單寫入測試
+
+使用者回報在原 TEST001 Apps Script 編輯器執行 `v2hrRunLeaveDryRun_TEST_ONLY`：14:44:21 開始、14:44:22 規則預檢 checksPassed=6、14:44:23 請假測試 leaveCasesPassed=14 且 ok=true / readOnly=true、14:44:23 完畢。假日阻擋、跨週末、虛構颱風日需人資確認、指定時段及錯誤日期等均有明確回傳。此階段尚未產生請假表資料。
+
+本輪已新增 `staging/AttendanceV2_LeaveWrite_TEMP_TEST_ONLY.gs`，僅供原 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` 專案手動執行：
+
+- 指定函式 `v2hrRunSyntheticLeaveWrite_TEST_ONLY`，固定虛構單號 `LEAVEV2_TEST_20261110_0001`、TEST001、2026-11-10 事假一日、原因「純測試：正常上班日事假」。
+- 對測試 Sheet 與現有日曆資料重新核對，通過後只在**臨時** `V2請假寫入測試` 分頁寫一筆 12 欄資料；正式的 `請假申請` / `打卡紀錄` 都不讀寫。
+- 使用 LockService 並在鎖內重驗。首筆寫入再讀回，回傳 `ok:true,synthetic:true,alreadySubmitted:false,writeCount:1`；同一單號再次執行回傳 `alreadySubmitted:true,writeCount:0`，不新增第二筆。
+- 同單號異內容、額外列欄或不一致標題都拒絕覆寫。若出現未確認結果，應用另支純讀取函式 `v2hrReadSyntheticLeaveStatus_TEST_ONLY` 查詢，不要清空表或強制重跑。
+- 此臨時分頁只是隔離技術驗證，不是正式系統增加的第三張人資管理表；不會自動清除。完成核對後再由管理者決定清理方式。
+
+模擬測試 `staging/AttendanceV2_LeaveWrite_TEMP_TEST_ONLY.test.js` **15／15 PASS**，尚未在真實 Apps Script 執行。請勿新增 doGet/doPost、修改部署或正式工作表。
