@@ -1,169 +1,146 @@
 "use strict";
 /**
- * LINE attendance V2: ISOLATED rules and normalization, not a deployed endpoint.
- * This code has NO Sheets, LINE, GPS, token, clock-write, or network calls.
+ * V2 SME simplified (TWO-SHEET) calendar and absence-exception rules.
+ * Pure JS, NOT a deployed Apps Script endpoint. No network/Sheets/LINE writes.
  *
- * TRUST BOUNDARY: employee, schedule, work calendars, exception & approval rows
- * MUST come from HR-authorized backend state, NEVER from untrusted LIFF form fields.
+ * 1. 公司工作日曆: annualChecks in a settings area + date override rows.
+ * 2. 特殊出勤事件: one event row, company-wide by default, rare employee scope.
  *
- * Workday configuration: Mon-Fri base; approved date overrides for holidays,
- * make-up Saturdays, company rest days, etc. Per-(company,workplace,month) signoff
- * is required before an actual request can be accepted (no guessed holidays).
- *
- * Disaster rules: A government announcement alone does not automatically make
- * every worker eligible. HR-approved employee applicability is mandatory.
+ * Inputs must be assembled by an authenticated server from trusted HR records,
+ * not from the employee browser. The server must repeat all checks before writes.
  */
-(function(root) {
-  const MS_DAY=86400000, OFF="OFF", WORK="WORK", APPROVED="APPROVED";
-  function isoDay(value) {
-    if(typeof value!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
-    const y=+value.slice(0,4),m=+value.slice(5,7),d=+value.slice(8,10);
+(function(root){
+  const DAY=86400000, APPROVED="CONFIRMED";
+  const resultError=(code,details={})=>({ok:false,code,...details});
+  function parseDate(s){
+    if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;
+    const y=+s.slice(0,4),m=+s.slice(5,7),d=+s.slice(8,10);
     if(y<1900||y>2100||m<1||m>12)return null;
-    const date=new Date(Date.UTC(y,m-1,d));
-    return date.getUTCFullYear()===y&&date.getUTCMonth()+1===m&&date.getUTCDate()===d?date:null;
+    const v=new Date(Date.UTC(y,m-1,d));
+    return v.getUTCFullYear()===y&&v.getUTCMonth()+1===m&&v.getUTCDate()===d?v:null;
   }
-  function fmt(date) {
-    return date.getUTCFullYear()+"-"+String(date.getUTCMonth()+1).padStart(2,"0")+"-"+String(date.getUTCDate()).padStart(2,"0");
+  function formatDate(d){
+    return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");
   }
-  function err(code,more={}) {return {ok:false,code,...more};}
+  function dateRange(start,end){
+    const a=parseDate(start),b=parseDate(end);
+    if(!a||!b)return resultError("BAD_DATE");
+    const count=Math.round((b.getTime()-a.getTime())/DAY)+1;
+    if(count<1)return resultError("END_BEFORE_START");
+    if(count>366)return resultError("RANGE_TOO_LONG");
+    return {ok:true,days:Array.from({length:count},(_,i)=>formatDate(new Date(a.getTime()+i*DAY)))};
+  }
   function validEmployee(e){
-    return e&&typeof e.employeeId==="string"&&e.employeeId.trim()
-      &&typeof e.company==="string"&&e.company.trim()
-      &&typeof e.workplace==="string"&&e.workplace.trim();
+    return !!(e&&typeof e.employeeId==="string"&&e.employeeId.trim()&&
+      typeof e.company==="string"&&e.company.trim());
   }
-  function dayList(start,end){
-    const s=isoDay(start),e=isoDay(end);
-    if(!s||!e)return err("BAD_DATE");
-    const n=Math.round((e-s)/MS_DAY)+1;
-    if(n<1)return err("END_BEFORE_START");
-    if(n>366)return err("RANGE_TOO_LONG");
-    return {ok:true,days:Array.from({length:n},(_,i)=>fmt(new Date(s.getTime()+i*MS_DAY)))};
+  function confirmed(row){
+    return row&&row.status===APPROVED&&!!row.confirmedBy&&!!row.confirmedAt;
   }
-  function approvedMonth(employee,month,monthApprovals){
-    // Scope is explicitly tied to a specific location. No other location
-    // can approve a month for this worker.
-    const found=(monthApprovals||[]).filter(x=>x.company===employee.company&&
-      x.workplace===employee.workplace&&x.month===month);
-    if(found.length!==1)return err(found.length?"MONTH_APPROVAL_CONFLICT":"MONTH_UNVERIFIED",{month});
-    if(found[0].status!==APPROVED||!found[0].approvedBy||!found[0].approvedAt)
-      return err("MONTH_UNVERIFIED",{month});
-    return {ok:true};
+  function calendarDay(date,ctx){
+    if(!parseDate(date))return resultError("BAD_DATE");
+    const emp=ctx&&ctx.employee;
+    if(!validEmployee(emp))return resultError("EMPLOYEE_SCOPE_MISSING");
+    // annualChecks is a setting/header section of 公司工作日曆,
+    // NOT a separate sheet and NOT a monthly HR approval.
+    const checks=(ctx.annualChecks||[]).filter(x=>x.year===date.slice(0,4)&&x.company===emp.company);
+    if(checks.length!==1)return resultError(checks.length?"YEAR_CHECK_CONFLICT":"YEAR_UNVERIFIED",{date});
+    if(!confirmed(checks[0]))return resultError("YEAR_UNVERIFIED",{date});
+    const changes=(ctx.calendarOverrides||[]).filter(x=>x.date===date&&x.company===emp.company&&
+      (!x.workplace||x.workplace===emp.workplace));
+    if(changes.some(x=>!confirmed(x)))return resultError("DAY_OVERRIDE_UNCONFIRMED",{date});
+    if(changes.some(x=>!["WORK","OFF"].includes(x.dayType)))return resultError("DAY_OVERRIDE_INVALID",{date});
+    const exact=changes.filter(x=>x.workplace&&x.workplace===emp.workplace);
+    const generic=changes.filter(x=>!x.workplace);
+    const selected=exact.length?exact:generic;
+    if(selected.length>1)return resultError("DAY_OVERRIDE_CONFLICT",{date});
+    const weekday=parseDate(date).getUTCDay();
+    const work=weekday>=1&&weekday<=5;
+    return {ok:true,date,isWorkday:selected.length?selected[0].dayType==="WORK":work,
+      reason:selected.length?(selected[0].reason||"公司已核對的日曆異動"):work?"一般上班日":weekday===6?"星期六":"星期日",
+      source:selected.length?"APPROVED_OVERRIDE":"WEEKLY_BASE"};
   }
-  function workday(employee,day,calendar,monthApprovals) {
-    if(!validEmployee(employee))return err("EMPLOYEE_SCOPE_MISSING");
-    const d=isoDay(day);
-    if(!d)return err("BAD_DATE",{date:day});
-    const approval=approvedMonth(employee,day.slice(0,7),monthApprovals);
-    if(!approval.ok)return {...approval,date:day};
-    const candidates=(calendar||[]).filter(x=>x.date===day&&x.company===employee.company&&
-      (x.workplace===employee.workplace||x.workplace==="*"));
-    if(candidates.some(x=>x.status!==APPROVED||!x.approvedBy||!x.approvedAt))
-      return err("DAY_OVERRIDE_UNAPPROVED",{date:day});
-    if(candidates.some(x=>x.dayType!==WORK&&x.dayType!==OFF))
-      return err("DAY_OVERRIDE_INVALID",{date:day});
-    const precise=candidates.filter(x=>x.workplace===employee.workplace);
-    const selected=precise.length?precise:candidates.filter(x=>x.workplace==="*");
-    // Fail closed if two override rows exist at the same specificity, even if
-    // their values happen to agree: these are duplicate HR decisions.
-    if(selected.length>1)return err("DAY_OVERRIDE_CONFLICT",{date:day});
-    const weekday=d.getUTCDay(),defaultWork=weekday>=1&&weekday<=5;
-    const o=selected[0]||null;
-    return {ok:true,date:day,workday:o?o.dayType===WORK:defaultWork,
-      reason:o?(o.reason||"核定調整"):defaultWork?"一般上班日":weekday===6?"星期六":"星期日",
-      source:o?"APPROVED_OVERRIDE":"BASE_WEEK"};
-  }
-  function eventDecision(employee,date,events,employeeReviews,scheduledMinutes){
-    if(!validEmployee(employee))return err("EMPLOYEE_SCOPE_MISSING");
-    const relevant=(events||[]).filter(x=>x.date===date&&x.company===employee.company&&
-      (x.workplace===employee.workplace||x.workplace==="*"));
-    if(relevant.some(x=>x.status!==APPROVED||!x.reviewedBy||!x.reviewedAt||!x.reference))
-      return err("EVENT_NOT_VERIFIED",{date});
-    const selected=[];
-    for(const event of relevant){
-      if(!event.eventId)return err("EVENT_INVALID",{date});
-      const reviews=(employeeReviews||[]).filter(x=>x.eventId===event.eventId&&x.employeeId===employee.employeeId);
-      if(reviews.length!==1)return err(reviews.length?"PERSON_EVENT_REVIEW_CONFLICT":"PERSON_EVENT_REVIEW_PENDING",{date,eventId:event.eventId});
-      const review=reviews[0];
-      if(review.status!==APPROVED||!review.reviewedBy||!review.reviewedAt)
-        return err("PERSON_EVENT_REVIEW_PENDING",{date,eventId:event.eventId});
-      if(review.applies===false)continue;
-      if(review.applies!==true)return err("PERSON_EVENT_REVIEW_PENDING",{date,eventId:event.eventId});
-      if(!Number.isInteger(review.protectedMinutes)||review.protectedMinutes<0||review.protectedMinutes>scheduledMinutes)
-        return err("PERSON_EVENT_MINUTES_INVALID",{date,eventId:event.eventId});
-      selected.push({eventId:event.eventId,protectedMinutes:review.protectedMinutes,
-        paid:review.paid===true});
-    }
-    if(selected.length>1)return err("MULTIPLE_APPLICABLE_EVENTS_REVIEW",{date});
-    return {ok:true,event:selected[0]||null};
-  }
-  function validateLeave(request,context){
-    // Caller is the server after LINE auth and employee mapping. The UI
-    // may pass only dates, type and reason; never trust client 'employee'.
-    const employee=context&&context.employee;
-    if(!validEmployee(employee))return err("EMPLOYEE_SCOPE_MISSING");
-    const range=dayList(request&&request.startDate,request&&request.endDate);
-    if(!range.ok)return range;
-    if(request.mode==="HOURS"&&range.days.length!==1)return err("HOURS_MULTI_DAY");
-    if(!["DAY","HOURS"].includes(request.mode))return err("LEAVE_MODE_INVALID");
-    if(request.mode==="HOURS"){
-      const a=request.startTime,b=request.endTime;
-      if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(a||"")||!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(b||"")||a>=b)
-        return err("LEAVE_HOURS_INVALID");
-    }
-    if(context.today && request.startDate<context.today)return err("PAST_DATE");
-    const blocked=[],unverified=[];
-    for(const date of range.days){
-      const day=workday(employee,date,context.calendar,context.monthApprovals);
-      if(!day.ok){unverified.push({date,code:day.code});continue;}
-      if(!day.workday){blocked.push({date,reason:day.reason});continue;}
-      const relevantEvents=(context.events||[]).filter(x=>x.date===date&&x.company===employee.company&&
-        (x.workplace===employee.workplace||x.workplace==="*"));
-      const plannedMinutes=context.scheduledMinutesPerDay&&context.scheduledMinutesPerDay[date];
-      if(relevantEvents.length&&(!Number.isInteger(plannedMinutes)||plannedMinutes<=0)){
-        unverified.push({date,code:"SCHEDULE_UNVERIFIED"});
-        continue;
+  function eventFor(date,ctx,scheduledMinutes){
+    if(!parseDate(date))return resultError("BAD_DATE");
+    const emp=ctx&&ctx.employee;
+    if(!validEmployee(emp))return resultError("EMPLOYEE_SCOPE_MISSING");
+    const candidates=(ctx.events||[]).filter(x=>x.date===date&&x.company===emp.company);
+    const applicable=[];
+    for(const e of candidates){
+      // No silent broadening of eligibility when scope or confirmation is missing.
+      if(!["ALL","WORKPLACE","EMPLOYEES"].includes(e.scope))
+        return resultError("EVENT_SCOPE_UNVERIFIED",{date});
+      if(e.scope==="WORKPLACE"&&e.workplace!==emp.workplace)continue;
+      if(e.scope==="EMPLOYEES"){
+        if(!Array.isArray(e.employeeIds))return resultError("EVENT_EMPLOYEES_UNVERIFIED",{date});
+        if(!e.employeeIds.includes(emp.employeeId))continue;
       }
-      const events=eventDecision(employee,date,context.events,context.employeeReviews,
-        relevantEvents.length?plannedMinutes:0);
-      // If an eligible event is known, a previously approved leave may need
-      // manual reconciliation; NEVER auto-cancel. New requests should not
-      // automatically be accepted without an HR review of the overlap.
-      if(!events.ok){unverified.push({date,code:events.code});continue;}
-      if(events.event&&events.event.protectedMinutes>0)
-        unverified.push({date,code:"EVENT_OVERLAP_NEEDS_HR_REVIEW"});
+      if(!confirmed(e)||!e.eventId||!e.reference||!["FULL","PARTIAL"].includes(e.period)||
+        !["PAID","REVIEW"].includes(e.payPolicy))return resultError("EVENT_UNCONFIRMED",{date});
+      applicable.push(e);
     }
-    if(unverified.length)return err("CALENDAR_OR_EVENT_REVIEW_REQUIRED",{blocked,unverified});
-    if(blocked.length)return err("NON_WORKDAY_IN_RANGE",{blocked});
-    return {ok:true,code:"OK",days:range.days,workdayCount:range.days.length,
-      note:"Acceptable by calendar rules only; identity, leave quota and duplicate-application checks remain server requirements."};
+    if(applicable.length>1)return resultError("EVENT_OVERLAP_REVIEW",{date});
+    if(!applicable.length)return {ok:true,event:null};
+    const e=applicable[0];
+    if(!Number.isInteger(scheduledMinutes)||scheduledMinutes<=0)
+      return resultError("SCHEDULE_UNVERIFIED",{date});
+    const protectedMinutes=e.period==="FULL"?scheduledMinutes:e.protectedMinutes;
+    if(!Number.isInteger(protectedMinutes)||protectedMinutes<=0||protectedMinutes>scheduledMinutes)
+      return resultError("STOP_MINUTES_UNVERIFIED",{date});
+    return {ok:true,event:{eventId:e.eventId,protectedMinutes,
+      payPolicy:e.payPolicy,period:e.period,reference:e.reference}};
   }
-  function resolveAttendance(input,context,payrollRules) {
-    const employee=context&&context.employee;
-    const day=workday(employee,input.date,context.calendar,context.monthApprovals);
-    if(!day.ok)return {...day,needsHRReview:true};
-    if(!day.workday)return {ok:true,code:"NON_WORKDAY",date:input.date,
-      noClockIsAbsence:false,actualWorkedMinutes:input.actualWorkedMinutes??null,
-      needsHRReview:Number(input.actualWorkedMinutes||0)>0};
-    const scheduled=input.scheduledWorkMinutes;
-    if(!Number.isInteger(scheduled)||scheduled<=0)return err("SCHEDULE_UNVERIFIED",{needsHRReview:true});
-    const ev=eventDecision(employee,input.date,context.events,context.employeeReviews,scheduled);
+  function validateLeave(request,ctx){
+    if(!ctx||!validEmployee(ctx.employee))return resultError("EMPLOYEE_SCOPE_MISSING");
+    const dates=dateRange(request&&request.startDate,request&&request.endDate);
+    if(!dates.ok)return dates;
+    if(ctx.today&&request.startDate<ctx.today)return resultError("PAST_DATE");
+    if(!["DAY","HOURS"].includes(request.mode))return resultError("LEAVE_MODE_INVALID");
+    if(request.mode==="HOURS"){
+      if(dates.days.length!==1)return resultError("HOURS_MULTI_DAY");
+      const pattern=/^(?:[01]\d|2[0-3]):[0-5]\d$/;
+      if(!pattern.test(request.startTime||"")||!pattern.test(request.endTime||"")||
+        request.startTime>=request.endTime)return resultError("LEAVE_HOURS_INVALID");
+    }
+    const off=[],review=[];
+    for(const date of dates.days){
+      const day=calendarDay(date,ctx);
+      if(!day.ok){review.push({date,code:day.code});continue;}
+      if(!day.isWorkday){off.push({date,reason:day.reason});continue;}
+      // If there is a known suspension, let HR resolve an overlapping leave.
+      // Do not auto-cancel approved leave or automatically grant new leave.
+      const sameDay=(ctx.events||[]).some(e=>e.date===date&&e.company===ctx.employee.company);
+      if(sameDay){
+        const ev=eventFor(date,ctx,(ctx.scheduledMinutesByDate||{})[date]);
+        if(!ev.ok)review.push({date,code:ev.code});
+        else if(ev.event)review.push({date,code:"STOP_EVENT_NEEDS_HR_REVIEW"});
+      }
+    }
+    if(review.length)return resultError("CALENDAR_OR_EVENT_REVIEW_REQUIRED",{off,review});
+    if(off.length)return resultError("NON_WORKDAY_IN_RANGE",{off});
+    return {ok:true,code:"DATE_RULES_PASSED",days:dates.days,
+      note:"Still requires authenticated employee, leave quota, conflicts and write-time recheck."};
+  }
+  function evaluateAttendance(input,ctx,payrollRules){
+    const day=calendarDay(input&&input.date,ctx);
+    if(!day.ok)return {...day,needsHRReview:true,noClockIsAbsence:false};
+    if(!day.isWorkday)return {ok:true,code:"NON_WORKDAY",actualWorkedMinutes:input.actualWorkedMinutes??null,
+      noClockIsAbsence:false,needsHRReview:Number(input.actualWorkedMinutes||0)>0};
+    const minutes=input.scheduledWorkMinutes;
+    if(!Number.isInteger(minutes)||minutes<=0)return resultError("SCHEDULE_UNVERIFIED",{needsHRReview:true});
+    const ev=eventFor(input.date,ctx,minutes);
     if(!ev.ok)return {...ev,needsHRReview:true,noClockIsAbsence:false};
-    // If an event applies, work minutes need independent verification.
-    // No fabricated 8h actual work, and no automatic punch creation.
-    if(ev.event && (!Number.isInteger(input.actualWorkedMinutes)||input.actualWorkedMinutes<0))
-      return err("WORK_MINUTES_UNVERIFIED",{needsHRReview:true,noClockIsAbsence:false});
-    if(typeof payrollRules!=="function")return err("PAYROLL_RULES_MISSING",{needsHRReview:true});
-    const p=payrollRules({scheduledWorkMinutes:scheduled,
-      actualWorkedMinutes:input.actualWorkedMinutes??null,
-      stopEvent:ev.event?{eventId:ev.event.eventId,hrConfirmed:true,
-        appliesToEmployee:true,protectedMinutes:ev.event.protectedMinutes}:null,
-      companyPaysStopMinutes:ev.event?ev.event.paid:false,
+    if(ev.event&&(!Number.isInteger(input.actualWorkedMinutes)||input.actualWorkedMinutes<0))
+      return resultError("ACTUAL_WORK_MINUTES_UNVERIFIED",{needsHRReview:true,noClockIsAbsence:false});
+    if(typeof payrollRules!=="function")return resultError("PAYROLL_RULES_MISSING");
+    const p=payrollRules({scheduledWorkMinutes:minutes,actualWorkedMinutes:input.actualWorkedMinutes??null,
+      stopEvent:ev.event?{eventId:ev.event.eventId,hrConfirmed:true,appliesToEmployee:true,
+        protectedMinutes:ev.event.protectedMinutes}:null,
+      companyPaysStopMinutes:ev.event?ev.event.payPolicy==="PAID":false,
       approvedLeaveOverlaps:input.approvedLeaveOverlaps===true});
-    return {ok:true,code:p.status,date:input.date,noClockIsAbsence:false,
-      attendance:p,needsHRReview:p.requiresHumanReview,
-      note:"Payroll candidate, never auto-post salary or overwrite original punches."};
+    return {ok:true,code:p.status,noClockIsAbsence:false,attendance:p,needsHRReview:p.requiresHumanReview,
+      note:"This is a reviewable payroll candidate; never write salary or fabricate original punches."};
   }
-  const api=Object.freeze({isoDay,dayList,workday,eventDecision,validateLeave,resolveAttendance});
-  if(typeof module==="object"&&module.exports)module.exports=api;
-  else root.AttendanceV2CalendarService=api;
+  const api=Object.freeze({parseDate,dateRange,calendarDay,eventFor,validateLeave,evaluateAttendance});
+  if(typeof module==="object"&&module.exports)module.exports=api; else root.AttendanceV2CalendarService=api;
 })(typeof window!=="undefined"?window:this);
