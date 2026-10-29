@@ -46,3 +46,11 @@
 ## 留待後續
 
 目前只完成唯讀固定測試假單的技術方案；一般員工多筆假單、跨月查詢、主管核准／駁回、LINE 通知、薪資整合、NFC 與正式年度日曆實際導入均未在本服務完成。務必以隔離方式逐階段開放，不要把模擬測試 PASS 當成正式上線證據。
+
+## 2026-10-29：使用者已建立獨立空白 Apps Script 專案
+
+使用者已回覆：**新專案已建立**（約定名稱 `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST`）。目前僅確認使用者建立了新空白專案，**尚未收到程式已貼妥、Script Properties 已設定或執行／部署的證據**。
+
+下一步安裝步驟：在新專案的預設 `程式碼.gs` 以本分支 `staging/AttendanceV2_StandaloneLeaveStatus_READONLY_CANDIDATE.gs` 全覆蓋，儲存。僅在該新專案的「專案設定 → 指令碼屬性」設定 `V2HR_READONLY_TEST_ENABLED=disabled`、`LINE_LOGIN_CHANNEL_ID=2012136707`、`V2HR_TEST_SHEET_ID=既有 YC_ATTENDANCE_V2_TEST_ONLY 試算表網址 /d/ 與 /edit 之間的 ID`。不要把真實 Sheet ID 貼到聊天或 GitHub；不可取 Apps Script 專案 ID 或 Web App 部署 ID 代替。不要部署也不要執行 doPost/doGet。
+
+獨立新專案尚未有真實手機測試，待使用者確認程式及三個指令碼屬性已儲存且功能旗標為 `disabled` 後，再討論唯讀安裝確認及權限授予。原 DATA_TEST 第 2 版及正式 LINE 打卡都不變。
