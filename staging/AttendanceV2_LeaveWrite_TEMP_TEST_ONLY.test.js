@@ -98,7 +98,7 @@ const tests=[
    sheet().getRange(1,1).setValues([["申請單號"]]);
  }],
  ["unavailable lock does not submit",()=>{
-   tryLockAllowed=false;assert.throws(()=>api.run(),/鎖定失敗/);
+   tryLockAllowed=false;assert.throws(()=>api.run(),/忙碌/);
    tryLockAllowed=true;
  }],
  ["test environment guard refuses before write",()=>{
