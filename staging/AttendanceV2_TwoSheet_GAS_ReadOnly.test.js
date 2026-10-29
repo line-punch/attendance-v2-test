@@ -118,6 +118,21 @@ const tests=[
    assert.equal(x.events[0].payPolicy,"PAID");
    assert(!("employeeIds" in x.events[0]));
  }],
+ ["annual J:N settings still read with many A:H holiday rows",()=>{
+   const c=book.getSheetByName("公司工作日曆");
+   for(let i=3;i<=36;i++)c.getRange(i,1,1,8).setValues([
+     ["2026/12/"+String(i-2).padStart(2,"0"),"TEST_CO","","休假","MOCK","MOCK","","MOCK-HR|2026-10-29"]
+   ]);
+   const x=app.v2hrReadVerifiedTestSnapshot_("MOCK-LINE");
+   assert.deepEqual(x.annualYears,["2026"]);
+   assert.equal(x.holidayOverrideCount,35);
+ }],
+ ["partially populated annual row fails closed",()=>{
+   const c=book.getSheetByName("公司工作日曆");
+   c.getRange(3,11).setValues([["TEST_CO"]]);
+   assert.throws(()=>app.v2hrReadVerifiedTestSnapshot_("MOCK-LINE"),/缺少主鍵/);
+   c.getRange(3,11).setValues([[""]]);
+ }],
  ["old personal target in company event not accepted",()=>{
    const e=book.getSheetByName("特殊出勤事件");
    e.getRange(2,5).setValues([["TEST002"]]);
