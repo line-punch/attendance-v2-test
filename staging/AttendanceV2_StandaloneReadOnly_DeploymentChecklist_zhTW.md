@@ -153,3 +153,17 @@ Google 官方 HTMLService IFRAME 說明：https://developers.google.com/apps-scr
 先從手機 LINE 關閉舊視窗，使用完整 LIFF 新深層連結 `https://liff.line.me/2012136707-2dDU0aSJ/leave-status-diagnostic/?v=20261029diag2` 開新頁，只核對**頂部標題是否為 `TEST001｜假單查詢回覆診斷`**，不按查詢、不改屬性。若依然出現舊版，調查 LINE LIFF WebView 快取／深層路由，不能再把舊頁結果當新診斷。
 
 LINE 官方文件支援 LIFF URL 的下層路徑及 query parameter；實際是否成功仍應以手機顯示的**頁面標題**驗證，而非僅看 LINE WebView 的短網址標籤。https://developers.line.biz/en/docs/liff/opening-liff-app/
+
+## 2026-10-29 18:54：新版診斷頁確認收到後端 UNKNOWN
+
+使用者先後上傳兩張 18:54 iPhone LINE 截圖，實際標題為 `TEST001｜假單查詢回覆診斷`（本次確定不是舊授權頁），查詢結果顯示：`⚠️ 後端已回覆 UNKNOWN：查詢未確認（可能是權限、設定或資料檢查問題）。沒有回傳假單；請勿重新送單。`。使用者確認已將新獨立 GAS 的 `V2HR_READONLY_TEST_ENABLED` 改回 `disabled` 並儲存。
+
+**可證明**：新 LIFF 子路徑已正常載入、LINE 在客戶端已登入；新獨立 GAS `doPost` 的跨網站 HTMLService 回覆已可被手機接收並解析（bridge、origin、nonce 均通過），明確回覆 `UNKNOWN`。因此這一輪主要排查點從跨網站回覆移轉至後端拒絕原因；**不能證明** LINE token 綁定 TEST001、成功讀到模擬假單或已完成後端正式授權。
+
+程式碼中的 `v2hrOnlyPublicError_` 將部分內部設定/權限/資料不符統一為 `UNKNOWN`（安全起見不對外曝露細節）。可能類別包括旗標未開啟、試算表 ID／權限／名稱不符、TEST001 員工公司或 LINE 綁定不符、臨時假單表格／資料不符。以上均是待核對可能性，不可直接斷定。
+
+為避免更多手機 POST 與在公開端點揭露敏感資訊，新增**只由專案擁有人在 Apps Script 編輯器手動執行**的 `staging/AttendanceV2_StandaloneOwnerDiagnostics_READONLY_TEST.gs`。函式 `v2hrAuditStandaloneOwner_TEST_ONLY` 以 `V2HR_READONLY_TEST_ENABLED=disabled` 做前提，只檢查新獨立專案的三個 Script Properties、TEST001 隔離試算表的可存取性／名稱、單一測試員工資料／LINE 綁定格式、固定虛構假單表頭與 12 欄資料。只 Logger.log 布林值、錯誤代碼及不一致欄位字母，**不輸出 ID、Token、個資或實際試算表欄位值**，不寫入、不新增任何 doPost/doGet，也不部署。
+
+對應 `AttendanceV2_StandaloneOwnerDiagnostics_READONLY_TEST.test.js` **14／14 離線模擬 PASS**。此診斷只核對編輯器草稿與測試 Sheet，**不能核對已部署 Web App 版本**，也無法以沒有 LINE token 的方式證明目前手機 LINE 身分與試算表的綁定 ID 一致。
+
+下一步使用者只要將 `.gs` 檔貼到**新**專案 `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 的新 Script 檔，保持安全旗標 `disabled`，選 `v2hrAuditStandaloneOwner_TEST_ONLY` 執行一次，把 JSON Logger 結果貼回。不得修改原 TEST001 GPS DATA_TEST_ONLY 專案、正式打卡、或新部署；如果診斷顯示 `ok:true` 但手機曾回 `UNKNOWN`，後續再隔離辨識部署版／LINE 身分差異。
