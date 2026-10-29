@@ -121,11 +121,11 @@ const tests=[
    release();await first;
    assert.equal(ui.getBusy(),false);
  }],
- ["candidate UI sends no employeeId/company/GPS/token field",async()=>{
+ ["candidate UI sends only bearer ID Token and fixed mock requestId",async()=>{
    const ui=instance({enabled:true,verified:true,result:reply});
    await ui.queryTestLeaveStatus();
    const keys=Object.keys(ui.calls[0].payload);
-   assert.deepEqual(keys,["requestId"]);
+   assert.deepEqual(keys,["idToken","requestId"]);
  }]
 ];
 (async()=>{
