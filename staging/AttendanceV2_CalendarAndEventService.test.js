@@ -110,10 +110,13 @@ const tests=[
    const r=service.evaluateAttendance({date:"2026-11-02",scheduledWorkMinutes:480,actualWorkedMinutes:null},c,pay);
    assert.equal(r.code,"MISSING_PUNCH_REVIEW");
  }],
- ["rare selected-employee exception is optional",()=>{
+ ["employee-specific stop scope is unsupported and cannot auto-reclassify attendance",()=>{
    const c=ctx();c.events=[event("2026-11-02",{scope:"EMPLOYEES",employeeIds:["TEST002"]})];
-   assert.equal(service.eventFor("2026-11-02",c,480).event,null);
-   c.employee=B;assert.equal(service.eventFor("2026-11-02",c,480).event.protectedMinutes,480);
+   assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_SCOPE_UNVERIFIED");
+   c.employee=B;
+   assert.equal(service.evaluateAttendance(
+     {date:"2026-11-02",scheduledWorkMinutes:480,actualWorkedMinutes:0},c,pay
+   ).code,"EVENT_SCOPE_UNVERIFIED");
  }],
  ["site-only event limited to that workplace",()=>{
    const c=ctx();c.events=[event("2026-11-02",{scope:"WORKPLACE",workplace:"W1"})];
@@ -128,9 +131,12 @@ const tests=[
    const c=ctx();c.events=[event("2026-11-02",{scope:"WORKPLACE",workplace:""})];
    assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_WORKPLACE_UNVERIFIED");
  }],
- ["selected employee event without employee IDs fails closed",()=>{
-   const c=ctx();c.events=[event("2026-11-02",{scope:"EMPLOYEES",employeeIds:[]})];
-   assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_EMPLOYEES_UNVERIFIED");
+ ["individual exception is handled by HR without creating personal stop rows",()=>{
+   const c=ctx(); // no confirmed company-wide event for this date
+   const result=service.evaluateAttendance(
+     {date:"2026-11-02",scheduledWorkMinutes:480,actualWorkedMinutes:null},c,pay);
+   assert.equal(result.code,"MISSING_PUNCH_REVIEW");
+   assert.equal(result.noClockIsAbsence,false);
  }],
  ["event without a type fails closed",()=>{
    const c=ctx();c.events=[event("2026-11-02",{type:""})];
