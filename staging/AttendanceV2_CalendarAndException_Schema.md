@@ -132,3 +132,14 @@
 - 此臨時分頁只是隔離技術驗證，不是正式系統增加的第三張人資管理表；不會自動清除。完成核對後再由管理者決定清理方式。
 
 模擬測試 `staging/AttendanceV2_LeaveWrite_TEMP_TEST_ONLY.test.js` **15／15 PASS**，尚未在真實 Apps Script 執行。請勿新增 doGet/doPost、修改部署或正式工作表。
+
+## 2026-10-29 14:54：TEST001 臨時假單實際寫入及讀回成功
+
+使用者回報獨立 Apps Script 專案執行 `v2hrRunSyntheticLeaveWrite_TEST_ONLY`，執行記錄如下：
+- 14:54:19 開始，14:54:20 及 14:54:21 完成兩次合規模擬資料的唯讀預檢（均 `ok:true`、`checksPassed:6`）。
+- 14:54:24 回傳 `ok:true`、`synthetic:true`、`alreadySubmitted:false`、`requestId:"LEAVEV2_TEST_20261110_0001"`、`writeCount:1`、`status:"待審核（測試）"`。
+- 14:54:24 執行完畢。根據程式的固定資料寫入與讀回流程，可確認臨時測試分頁 `V2請假寫入測試` 的第一筆虛構假單建立成功；未操作正式的 `請假申請`。
+
+**尚未完成**：同一單號第二次執行的防重複實機測試（預期 `alreadySubmitted:true`、`writeCount:0`），以及狀態函式 `v2hrReadSyntheticLeaveStatus_TEST_ONLY` 的獨立唯讀核對。請勿重跑虛構日曆資料安裝函式，請勿刪除測試分頁。
+
+此結果不代表 LINE 員工前端真正送出假單、主管通知、正式員工權限及 Excel 薪資整合已完成。正式打卡系統與既有 GPS 測試首頁仍維持隔離。
