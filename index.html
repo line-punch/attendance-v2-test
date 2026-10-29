@@ -71,7 +71,8 @@ const CONFIG=Object.freeze({
   enableBinding:true, // iPhone whoami verified; only TEST001 with one-time invitation
   enableClock:true, // TEST001 isolated iPhone GPS clock tests
   enableTodayQuery:true, // Standalone DATA TEST new version deployed; self-only read-only query
-  enableLeaveStatus:false, // OFF until separate TEST001 backend revision passes real checks
+  enableLeaveStatus:false, // OFF; no deployed leave-status service exists yet
+  leaveStatusApi:"__NOT_CONFIGURED__", // separate read-only TEST001 deployment only
   dataApi:"https://script.google.com/macros/s/AKfycbwifAR8KLSD11HlLZF4Yy1ROTrbZv2c0DUBqlOaXxzO6rTvDc_Mqs6R-UbThBBbhSQ1/exec",
   api:"https://script.google.com/macros/s/AKfycbx2s-MtBVoHT2061E8XHNk92F9PhCbI0HtyKzQ7c5l5rasc__XZ84BL-A2HyxIyc6_OEw/exec",
   allowedResponseOrigins:["https://script.google.com"],
@@ -206,11 +207,16 @@ async function queryTestLeaveStatus(){
     box.textContent="請先完成 TEST001 的 LINE 測試身分確認。";
     return;
   }
+  // Never send leave requests to the existing GPS test dataApi.
+  if(!CONFIG.leaveStatusApi||CONFIG.leaveStatusApi.startsWith("__")){
+    box.textContent="獨立唯讀查詢服務尚未配置，不會連線或送出資料。";
+    return;
+  }
   leaveStatusBusy=true;control.disabled=true;
   control.textContent="查詢中…";
   box.textContent="正在查詢原模擬假單編號…";
   try{
-    const r=await sandboxCall("leaveStatus",{requestId:LEAVE_TEST_REQUEST_ID});
+    const r=await postForm("leaveStatus",{idToken:idTokenForTest(),requestId:LEAVE_TEST_REQUEST_ID},CONFIG.leaveStatusApi);
     if(!r||r.ok!==true||r.synthetic!==true||r.readOnly!==true||
        r.requestId!==LEAVE_TEST_REQUEST_ID){
       box.textContent="⚠️ 伺服器回覆未確認。請保留原單號稍後再查，勿重新送單。";
