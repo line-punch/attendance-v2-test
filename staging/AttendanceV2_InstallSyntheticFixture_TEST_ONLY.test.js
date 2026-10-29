@@ -7,6 +7,7 @@ const fs=require("node:fs"),path=require("node:path");
 class Sheet{
   constructor(name){this.name=name;this.cells=new Map();}
   getName(){return this.name;}
+  setFrozenRows(n){this.frozenRows=n;}
   getLastRow(){let n=0;for(const [k,v] of this.cells)if(v!==""&&v!==null&&v!==undefined)n=Math.max(n,+k.split(",")[0]);return n;}
   getRange(row,col,h=1,w=1){const me=this;return{
     getValue:()=>me.cells.get(row+","+col)??"",
