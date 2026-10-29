@@ -112,3 +112,17 @@ GitHub 靜態頁在模擬 DOM 下完成 9 項基本檢查：未點不發請求�
 下一步如擁有人準備做真正唯讀查詢：在**新** `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 專案確認另外兩項屬性沒有錯誤後，把 `V2HR_READONLY_TEST_ENABLED` 暫時改成 `enabled`；注意**此 Script Property 是專案共用**，任何同專案部署都會受影響。新獨立服務的 Web App 存取目前已用無痕 GET 和匿名 POST 關閉測試通過。然後用 TEST001 已綁定 LINE 帳號開啟新的授權查詢子路徑，貼**新服務所有人 /exec URL**，勾選確認後按一次查詢；預期回覆 `PENDING_REVIEW_TEST`。無論成功與否，當次驗證結束即將 flag 改回 `disabled`，不更動原 GPS 後端、正式請假或薪資。不得把真實 Token 或部署網址貼回對話。
 
 目前為止尚未啟用新 Script Property、未從 LINE 真的呼叫已授權 `doPost`、未在公開 Web App 端驗證綁定身分查詢成功。
+
+## 2026-10-29 18:37｜TEST001 手機唯讀查詢結果未確認，暫停重送
+
+使用者在 iPhone LINE LIFF 的獨立 `/leave-status-authorized-check/` 頁按一次「查詢原模擬假單」，手機截圖時間約 18:37，畫面確認 LINE 已登入、輸入新 Web App `/exec`（未提供完整網址），勾選已確認、查詢按鈕恢復可按，最終顯示：`⚠️ 查詢連線或回覆未完成；結果不明，請保留原單號，勿重新送單。`。
+
+**這不表示假單不存在、不證明 token 無效，更不能宣稱後端資料已成功讀取。** 目前前端 `leave-status-authorized-check/index.html` 在 `catch(error)` 中把 timeout、`UNKNOWN` 與其他錯誤合併為同一提示；只有 `AUTH` 有單獨文案。另 `receive(ev)` 除檢查 origin、bridge 與 nonce，還嚴格要求 `ev.source===iframe.contentWindow`，如 Google Apps Script HTMLService 多層 iframe 導致事件來源不同，可能忽略合法回覆；這只是**待驗證假設**，未確認不是身分/後端問題。
+
+已先向使用者要求立即將**新獨立 Apps Script 專案**的 `V2HR_READONLY_TEST_ENABLED` 改回 `disabled` 並儲存，停止重送，保留既有 GPS 第 2 版及正式系統。
+
+下一步**只讀取執行紀錄**：開啟新專案左側「執行項目」，檢查 18:36–18:38 附近是否有 `doPost`，以及開始時間、執行狀態（完成/失敗）與執行時間。**不要截圖/分享 LINE Token、Script Properties 的值、完整部署 ID 或 Web App URL。**
+
+判讀：若沒有 `doPost`，先查手機 POST 是否送達 Apps Script/是否被 iframe/Google 瀏覽器限制。若 `doPost` 完成，表示請求有進入新服務，但 `doPost` 可能把應用層失敗封裝成 HTML success；需再區分 `UNKNOWN` 拒絕、`AUTH`、已讀回而訊息遺失。若 `doPost` 失敗，依最小化錯誤訊息修正。禁止直接刪除或重建模擬假單。
+
+Google 官方 HTMLService IFRAME 說明：https://developers.google.com/apps-script/guides/html/restrictions 。
