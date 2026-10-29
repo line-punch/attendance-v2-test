@@ -95,3 +95,16 @@
 - 只能在 Apps Script 編輯器由擁有者手動執行，不能加入公開 Web App 路由，不新增排程觸發條件，完全不碰正式打卡與薪資表。
 
 純程式模擬測試：AttendanceV2_InstallSyntheticFixture_TEST_ONLY.test.js 已通過 9／9 項。這不是 Apps Script 真實寫入成功的聲明；待使用者手動執行後再核對。
+
+## 2026-10-29 14:20 後續：兩張新表的虛構資料已由使用者實機寫入、讀回
+
+使用者提供 Apps Script 執行紀錄：開始 14:20:23、紀錄輸出 ok=true, synthetic=true, company=TEST_CO, employeeId=TEST001, annualYears=[2026], calendarOverrides=1, companyStopEvents=1，14:20:26 顯示執行完畢。這是測試表的寫入及讀回成功，**不是**正式請假流程或 payroll 寫入驗證。
+
+已新增 `staging/AttendanceV2_ProbeSyntheticRules_TEST_ONLY.gs`，可供使用者另開一個 .gs 檔案貼到同一獨立 DATA_TEST_ONLY 專案。提供 `v2hrVerifySyntheticRules_TEST_ONLY` 單一編輯器執行函式，使用已上傳的唯讀模組與 *同一批虛構資料*，只讀取，不寫入：
+
+- 2026-11-11 MOCK 公司休假 -> 當天請假阻擋。
+- 2026-11-12 MOCK 正常上班日但有已確認公司停班 -> 新假單需人資核對。
+- MOCK 480 分鐘排定工時、0 分鐘實際工作、480 分鐘照薪、0 分鐘曠職。
+- 模擬資料完整性（年度核對、假日及停班事件唯一性、來源 SYNTHETIC_TEST_ONLY 等）若不符即停止；不得將測試規則套用真實員工。
+
+已執行 `AttendanceV2_ProbeSyntheticRules_TEST_ONLY.test.js`：**11／11 PASS**，包含未授權、資料缺漏、無效確認、意外額外事件與無寫入呼叫檢查。尚未在 Google Apps Script 真實執行本規則檢查；實機結果要等使用者在獨立專案手動執行後核對。原有 GPS 與正式打卡不受影響。
