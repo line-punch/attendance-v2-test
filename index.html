@@ -235,6 +235,10 @@ async function queryTestLeaveStatus(){
   }
 }
 async function refreshSandbox(){
+  // A stale cached bound state must never expose a new HR query after a
+  // network failure or an unsuccessful identity refresh.
+  leaveTestIdentityVerified=false;
+  $("leaveStatusPane").hidden=true;
   const state=$("bindState");
   state.textContent="正在讀取隔離模擬員工身分…";
   try {
@@ -264,6 +268,8 @@ async function refreshSandbox(){
     status("✅ LINE 後端驗證成功，隔離資料服務連線成功。");
     if(r.bound && CONFIG.enableTodayQuery) await refreshTodayAttendance();
   } catch(e){
+    leaveTestIdentityVerified=false;
+    $("leaveStatusPane").hidden=true;
     state.textContent="⚠️ 測試身分查詢未完成："+e.message;
     status("✅ LINE 後端驗證成功，但模擬資料查詢尚未確認。");
   }
