@@ -124,6 +124,18 @@ const tests=[
    const c=ctx();c.events=[event("2026-11-02",{status:"DRAFT"})];
    assert.equal(service.evaluateAttendance({date:"2026-11-02",scheduledWorkMinutes:480,actualWorkedMinutes:0},c,pay).code,"EVENT_UNCONFIRMED");
  }],
+ ["site-specific stop with missing site fails closed",()=>{
+   const c=ctx();c.events=[event("2026-11-02",{scope:"WORKPLACE",workplace:""})];
+   assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_WORKPLACE_UNVERIFIED");
+ }],
+ ["selected employee event without employee IDs fails closed",()=>{
+   const c=ctx();c.events=[event("2026-11-02",{scope:"EMPLOYEES",employeeIds:[]})];
+   assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_EMPLOYEES_UNVERIFIED");
+ }],
+ ["event without a type fails closed",()=>{
+   const c=ctx();c.events=[event("2026-11-02",{type:""})];
+   assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_TYPE_UNVERIFIED");
+ }],
  ["scope missing is not inferred as all employees",()=>{
    const c=ctx();c.events=[event("2026-11-02",{scope:""})];
    assert.equal(service.eventFor("2026-11-02",c,480).code,"EVENT_SCOPE_UNVERIFIED");
