@@ -81,3 +81,17 @@
 ### 下一個可操作里程碑（尚未執行）
 
 在**原本的 TEST001 隔離 DATA TEST Apps Script** 中核對目前部署與原程式後，再以安全新增模組方式加入讀取函式；由測試專案擁有人確認並手動執行 `v2hrInstallEmptyTestTabs`，只在原隔離 Sheet 新增兩張**空白**工作表；最後將已驗證 LINE 登入的唯讀查詢加入測試 API 白名單，進行真實 Google Sheet 讀回核對。這步不動正式打卡專案，也不改 GPS 寫入與請假通知。
+
+## 2026-10-29：測試分頁已由使用者建立，準備寫入虛構測試資料
+
+使用者已在原本 YC_ATTENDANCE_V2_DATA_TEST_ONLY 的 Apps Script 新增唯讀檔案，手動執行 v2hrInstallEmptyTestTabs，並確認試算表有新分頁「公司工作日曆」、「特殊出勤事件」。這僅表示表格存在，尚不能視為真實資料讀寫整合通過。
+
+下一個測試程式：staging/AttendanceV2_InstallSyntheticFixture_TEST_ONLY.gs，手動執行函式 v2hrInstallSyntheticFixture_TEST_ONLY。測試者只需新增一個獨立 .gs 檔案，不修改原本的程式碼.gs。
+
+- 先驗證 TEST001、TEST_CO、YC_ATTENDANCE_V2_TEST_ONLY 與兩張新工作表及標題。
+- 要求兩張表的資料區都完全空白，否則拒絕，不清除或覆寫任何既有資料。
+- 在「公司工作日曆」A2:H2、J2:N2 寫入虛構 2026 年度確認與 2026-11-11 休假，在「特殊出勤事件」A2:M2 寫入虛構 2026-11-12 全公司停班。全部以 SYNTHETIC_TEST_ONLY 或 MOCK-STOP-20261112 明確標註，不代表任何真實官方停班公告。
+- 寫完後立即透過原已建的唯讀模組讀回，Logger 記錄 ok、synthetic、annualYears、calendarOverrides、companyStopEvents（不顯示 LINE Token、員工真實資料或 GPS）。
+- 只能在 Apps Script 編輯器由擁有者手動執行，不能加入公開 Web App 路由，不新增排程觸發條件，完全不碰正式打卡與薪資表。
+
+純程式模擬測試：AttendanceV2_InstallSyntheticFixture_TEST_ONLY.test.js 已通過 9／9 項。這不是 Apps Script 真實寫入成功的聲明；待使用者手動執行後再核對。
