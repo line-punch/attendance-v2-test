@@ -54,3 +54,11 @@
 下一步安裝步驟：在新專案的預設 `程式碼.gs` 以本分支 `staging/AttendanceV2_StandaloneLeaveStatus_READONLY_CANDIDATE.gs` 全覆蓋，儲存。僅在該新專案的「專案設定 → 指令碼屬性」設定 `V2HR_READONLY_TEST_ENABLED=disabled`、`LINE_LOGIN_CHANNEL_ID=2012136707`、`V2HR_TEST_SHEET_ID=既有 YC_ATTENDANCE_V2_TEST_ONLY 試算表網址 /d/ 與 /edit 之間的 ID`。不要把真實 Sheet ID 貼到聊天或 GitHub；不可取 Apps Script 專案 ID 或 Web App 部署 ID 代替。不要部署也不要執行 doPost/doGet。
 
 獨立新專案尚未有真實手機測試，待使用者確認程式及三個指令碼屬性已儲存且功能旗標為 `disabled` 後，再討論唯讀安裝確認及權限授予。原 DATA_TEST 第 2 版及正式 LINE 打卡都不變。
+
+## 2026-10-29 17:28｜擁有人確認新專案程式與三項屬性已儲存
+
+使用者已回報 `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 新獨立 Apps Script 專案的完整唯讀程式及三筆 Script Properties **已儲存**；其中 `V2HR_READONLY_TEST_ENABLED=disabled`。未由助手直接讀取/驗證新專案設定，所以這是使用者確認，尚非線上公開 Web App 實測。
+
+**建議下一步僅做最小風險連線冒煙測試**：在新專案內先建立『網頁應用程式』部署，執行身分『我』、存取權『只有我』，而且保持 `disabled`。使用新部署 `/exec` 連結在同一個已登入 Google 測試帳號開啟，確認 `doGet` 只顯示「TEST001 模擬假單唯讀查詢服務；沒有網頁操作入口。」。此步不測試 LINE 身分、不開啟假單查詢，不涉及任何 POST 或寫入。
+
+不要將此新 `/exec` URL 設為原 TEST001 GPS `dataApi`，不要變更 `attendance-v2-test/main` 或正式 LINE。將來要公開給 LINE 用時，才依安全測試結果評估改成『所有人』與啟用新服務；新獨立部署不應連帶改動舊第 2 版。
