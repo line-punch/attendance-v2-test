@@ -116,9 +116,15 @@
       const day=workday(employee,date,context.calendar,context.monthApprovals);
       if(!day.ok){unverified.push({date,code:day.code});continue;}
       if(!day.workday){blocked.push({date,reason:day.reason});continue;}
+      const relevantEvents=(context.events||[]).filter(x=>x.date===date&&x.company===employee.company&&
+        (x.workplace===employee.workplace||x.workplace==="*"));
+      const plannedMinutes=context.scheduledMinutesPerDay&&context.scheduledMinutesPerDay[date];
+      if(relevantEvents.length&&(!Number.isInteger(plannedMinutes)||plannedMinutes<=0)){
+        unverified.push({date,code:"SCHEDULE_UNVERIFIED"});
+        continue;
+      }
       const events=eventDecision(employee,date,context.events,context.employeeReviews,
-        context.scheduledMinutesPerDay&&Number.isInteger(context.scheduledMinutesPerDay[date])
-         ?context.scheduledMinutesPerDay[date]:480);
+        relevantEvents.length?plannedMinutes:0);
       // If an eligible event is known, a previously approved leave may need
       // manual reconciliation; NEVER auto-cancel. New requests should not
       // automatically be accepted without an HR review of the overlap.
