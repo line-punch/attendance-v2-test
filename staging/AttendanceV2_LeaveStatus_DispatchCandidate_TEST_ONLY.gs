@@ -11,7 +11,7 @@
  * - does not create/modify any leave, punch, schedule or payroll row
  */
 function v2hrDispatchReadOnlyStatusCandidate_TEST_ONLY_(params) {
-  var ss=v2hrGuardTestSheet_(); // existing TEST001 + script-properties gate
+  // Validate untrusted public input BEFORE opening Google Sheets.
   if(!params || typeof params!=="object" || Array.isArray(params))
     throw Error("無效的 TEST001 查詢參數");
   var nonce=String(params.nonce||"");
@@ -31,7 +31,14 @@ function v2hrDispatchReadOnlyStatusCandidate_TEST_ONLY_(params) {
   var fields=Object.keys(data);
   if(fields.some(function(x){return x!=="idToken"&&x!=="requestId";}))
     throw Error("包含未授權的請假查詢欄位");
-  var lineUserId=v2dLineClaims_(data.idToken); // verify against LINE on server
+  // A malformed bearer token must not trigger a privileged Sheet read.
+  var token=data.idToken;
+  if(token.length<30||token.length>8192||token.split(".").length!==3)
+    throw Error("LINE 登入資訊無效");
+  if(String(data.requestId||"")!=="LEAVEV2_TEST_20261110_0001")
+    throw Error("非此模擬測試假單編號");
+  var ss=v2hrGuardTestSheet_(); // now checked after cheap malformed-input rejections
+  var lineUserId=v2dLineClaims_(token); // verify against LINE on server
   var result=v2hrLeaveStatusForVerifiedTester_TEST_ONLY_(ss,lineUserId,data);
   return {nonce:nonce,result:result};
 }
