@@ -153,6 +153,7 @@ const cases=[
     const y=svc.resolveAttendance({date:"2026-11-02",scheduledWorkMinutes:480,actualWorkedMinutes:0},x,pay);
     assert.equal(y.code,"DISASTER_PARTIAL_SUSPENSION_REVIEW");
     assert.equal(y.attendance.unresolvedScheduledMinutes,240);assert.equal(y.attendance.absenceMinutes,0);
+    assert.equal(y.attendance.fullAttendanceProtected,false);
   }],
   ["approved leave overlap requires human action, not auto cancellation",()=>{
     const x=ctx();x.events=[event("2026-11-02")];x.employeeReviews=[review()];
