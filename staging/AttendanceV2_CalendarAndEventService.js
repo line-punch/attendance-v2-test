@@ -4,7 +4,9 @@
  * Pure JS, NOT a deployed Apps Script endpoint. No network/Sheets/LINE writes.
  *
  * 1. 公司工作日曆: annualChecks in a settings area + date override rows.
- * 2. 特殊出勤事件: one event row, company-wide by default, rare employee scope.
+ * 2. 特殊出勤事件: company-wide by default; optional worksite only.
+ * Individual legal exceptions are handled manually by HR outside this
+ * automated event model; missing punches never become auto-absence.
  *
  * Inputs must be assembled by an authenticated server from trusted HR records,
  * not from the employee browser. The server must repeat all checks before writes.
@@ -68,17 +70,14 @@
     const applicable=[];
     for(const e of candidates){
       // No silent broadening of eligibility when scope or confirmation is missing.
-      if(!["ALL","WORKPLACE","EMPLOYEES"].includes(e.scope))
+      // Explicitly disallow per-employee automated scope. An exceptional
+      // employee situation must be reviewed manually; never infer absence.
+      if(!["ALL","WORKPLACE"].includes(e.scope))
         return resultError("EVENT_SCOPE_UNVERIFIED",{date});
       if(!e.type)return resultError("EVENT_TYPE_UNVERIFIED",{date});
       if(e.scope==="WORKPLACE"&&!e.workplace)
         return resultError("EVENT_WORKPLACE_UNVERIFIED",{date});
       if(e.scope==="WORKPLACE"&&e.workplace!==emp.workplace)continue;
-      if(e.scope==="EMPLOYEES"){
-        if(!Array.isArray(e.employeeIds)||!e.employeeIds.length)
-          return resultError("EVENT_EMPLOYEES_UNVERIFIED",{date});
-        if(!e.employeeIds.includes(emp.employeeId))continue;
-      }
       if(!confirmed(e)||!e.eventId||!e.reference||!["FULL","PARTIAL"].includes(e.period)||
         !["PAID","REVIEW"].includes(e.payPolicy))return resultError("EVENT_UNCONFIRMED",{date});
       applicable.push(e);
