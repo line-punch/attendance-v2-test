@@ -19,6 +19,12 @@ function v2hrRouteTestOnly_(params,existingDispatch) {
     throw Error("找不到原 TEST001 打卡請求分派函式");
   if(!params || params.operation!=="leaveStatus")
     return existingDispatch(params); // preserve all original GPS behavior
+  // Feature is CLOSED unless the owner explicitly enables it on a separate
+  // authorized TEST001 deployment. A pasted file alone does NOT open access.
+  if(typeof PropertiesService==="undefined" ||
+     PropertiesService.getScriptProperties().getProperty(
+       "ATTENDANCE_V2_LEAVE_QUERY_TEST")!=="enabled")
+    throw Error("TEST001 假單唯讀查詢尚未開放");
   if(typeof v2hrDispatchReadOnlyStatusCandidate_TEST_ONLY_!=="function")
     throw Error("新的唯讀假單測試功能尚未就緒");
   return v2hrDispatchReadOnlyStatusCandidate_TEST_ONLY_(params);
