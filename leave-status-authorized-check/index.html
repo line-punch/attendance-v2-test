@@ -29,7 +29,7 @@ footer{color:#687c8e;font-size:.85rem;line-height:1.6;margin-top:14px}
 <section id="queryPane" hidden>
   <label for="api">新獨立「唯讀假單查詢」服務 /exec 網址</label>
   <input id="api" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
-  <p class="note">先核對新獨立 Apps Script 的三項安全設定。**只**貼新建立的唯讀 Web App「所有人」部署 /exec 網址，不能貼 GPS 打卡服務網址。網址只保留在本頁輸入框，不會儲存或傳給 ChatGPT。</p>
+  <p class="note">先核對新獨立 Apps Script 的三項安全設定。<strong>只</strong>貼新建立的唯讀 Web App「所有人」部署 /exec 網址，不能貼 GPS 打卡服務網址。網址只保留在本頁輸入框，不會儲存或傳給 ChatGPT。</p>
   <label style="font-weight:normal"><input id="approved" type="checkbox" style="width:auto;vertical-align:middle;margin-right:8px">我已確認這是 TEST001 專用唯讀服務，且已由管理者開啟測試</label>
   <button id="query" type="button" disabled>查詢原模擬假單</button>
   <div id="queryStatus" role="status" aria-live="polite">目前尚未開放，沒有發送任何查詢。</div>
