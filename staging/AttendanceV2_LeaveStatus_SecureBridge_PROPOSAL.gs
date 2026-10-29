@@ -16,7 +16,13 @@ function v2hrLeaveStatusForVerifiedTester_TEST_ONLY_(ss,lineUserId,payload) {
   // First: validate the exact independent TEST001 spreadsheet, script
   // properties and mock employee. Reject a caller-selected spreadsheet.
   var permitted=v2hrGuardTestSheet_();
-  if(!ss||ss!==permitted)throw Error("TEST001 資料表權限或來源不符");
+  // Apps Script may return different Spreadsheet wrapper objects for
+  // the same underlying document; compare the immutable ID, not JS identity.
+  if(!ss || typeof ss.getId!=="function" ||
+     typeof permitted.getId!=="function" ||
+     ss.getId()!==permitted.getId() ||
+     ss.getName()!=="YC_ATTENDANCE_V2_TEST_ONLY")
+    throw Error("TEST001 資料表權限或來源不符");
   if(typeof v2dEmployee_!=="function")throw Error("無法核對已綁定測試員工");
   var emp=v2dEmployee_(ss,lineUserId);
   if(!emp||emp.bound!==true||emp.employeeId!=="TEST001")
