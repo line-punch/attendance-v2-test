@@ -38,11 +38,19 @@ const tests=[
   assert.equal(x.attendance.paidStopMinutes,480);
   assert.equal(x.attendance.actualWorkedMinutes,0);
 }],
-["rare selected-employee row limited to listed employee",()=>{
+["legacy employee-specific input no longer accepted",()=>{
   const row=["TEST-E","2026/11/03","颱風","指定員工","TEST002;TEST003","全日",
     "照常給薪","TEST-EVIDENCE","已確認","TEST-HR","2026-10-29"];
   const ev=adapter.eventRows([row],employee.company);
-  assert.deepEqual(ev[0].employeeIds,["TEST002","TEST003"]);
+  assert.equal(ev[0].scope,"UNKNOWN");
+  assert.equal(Object.prototype.hasOwnProperty.call(ev[0],"employeeIds"),false);
+  assert.equal(svc.eventFor("2026-11-03",{...ctx,events:ev},480).code,"EVENT_SCOPE_UNVERIFIED");
+}],
+["site-level exception remains supported without individual employee IDs",()=>{
+  const ev=adapter.eventRows([["TEST-E","2026/11/03","颱風","指定打卡地點","W2","全日",
+    "照常給薪","TEST-EVIDENCE","已確認","TEST-HR","2026-10-29"]],employee.company);
+  assert.equal(ev[0].scope,"WORKPLACE");
+  assert.equal(ev[0].workplace,"W2");
   assert.equal(svc.eventFor("2026-11-03",{...ctx,events:ev},480).event,null);
 }],
 ["unconfirmed event never counted as confirmed",()=>{
