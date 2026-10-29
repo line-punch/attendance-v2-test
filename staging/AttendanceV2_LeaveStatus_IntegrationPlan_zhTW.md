@@ -61,3 +61,16 @@
 對應模擬測試 `AttendanceV2_EditorRoutingPreflight_TEST_ONLY.test.js` **14／14 PASS**。本輪兩組安全測試共 **28／28 PASS**，但尚未在使用者的 GAS 編輯器實際執行預檢。
 
 **下一個安全步驟**：如使用者願意，在原 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` 新增上面唯讀預檢 `.gs` 檔，**只執行** `v2hrInspectTestRouting_TEST_ONLY`，回傳 `ok:true`、`editorSourceChecked:true`、`deployedRevisionVerified:false`、`existingOperations` 五個操作、`leaveStatusFeatureEnabled:false`。不要改 `doPost`、不設定 `ATTENDANCE_V2_LEAVE_QUERY_TEST`、不要部署或修改正式 LINE 打卡。
+
+## 2026-10-29 16:44：TEST001 編輯器安全預檢實機 PASS
+
+使用者在原 `YC_ATTENDANCE_V2_DATA_TEST_ONLY` Apps Script 編輯器執行 `v2hrInspectTestRouting_TEST_ONLY`。16:44:00 開始，16:44:02 記錄：
+
+- `ok:true, synthetic:true, readOnly:true, editorSourceChecked:true`。
+- `existingOperations:[whoami,bind,clock,clockStatus,todayAttendance]`，五項原功能仍在。
+- `leaveStatusRouteInExistingDispatch:false`、`leaveStatusFeatureEnabled:false`，新功能尚未開放。
+- `lineClaimsFunctionPresent:true`、`testSheetNameVerified:true`。
+- `deployedRevisionVerified:false` 是刻意的：**這只核對 Apps Script 編輯器目前草稿，不能證明測試 Web App /exec 已部署版本的程式內容或版本號**。
+- 使用者回報 16:44:02 執行完畢；此步無寫入、不部署、不更動任何 GPS 或請假資料。
+
+**下一步只查不改**：請使用者在相同測試 Apps Script 專案右上角按「部署 → 管理部署」，截圖包含部署名稱、版本、更新時間與 Web app 設定的畫面（可遮蔽部署 ID、網域或識別資料）。不要點鉛筆、不要建立新部署、不要修改存取權限或執行部署。記錄此測試部署狀態後才規劃額外唯讀候選路由和獨立測試版本。
