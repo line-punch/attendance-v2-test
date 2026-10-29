@@ -74,6 +74,11 @@
       // employee situation must be reviewed manually; never infer absence.
       if(!["ALL","WORKPLACE"].includes(e.scope))
         return resultError("EVENT_SCOPE_UNVERIFIED",{date});
+      if(e.scope==="ALL"&&(e.workplace||
+         (Array.isArray(e.employeeIds)&&e.employeeIds.length)))
+        return resultError("EVENT_SCOPE_CONFLICT",{date});
+      if(e.scope==="WORKPLACE"&&Array.isArray(e.employeeIds)&&e.employeeIds.length)
+        return resultError("EVENT_SCOPE_CONFLICT",{date});
       if(!e.type)return resultError("EVENT_TYPE_UNVERIFIED",{date});
       if(e.scope==="WORKPLACE"&&!e.workplace)
         return resultError("EVENT_WORKPLACE_UNVERIFIED",{date});
