@@ -50,8 +50,20 @@ function v2hrDate_(value) {
 function v2hrFixedRows_(sheet,startColumn,width,limit) {
   var last=sheet.getLastRow();
   if(last<2)return [];
-  if(last>limit+1)throw Error("測試資料表超出預期筆數，停止讀取");
-  return sheet.getRange(2,startColumn,last-1,width).getValues();
+  // Overall sheet lastRow spans both exception data A:H and annual settings
+  // J:N. Do not incorrectly apply a 20-row annual cap to 200 date exceptions.
+  // Still cap total scans, fail closed on partial records, and enforce an
+  // independent per-section nonempty row limit.
+  if(last>501)throw Error("測試資料表超出安全掃描上限，停止讀取");
+  var rows=sheet.getRange(2,startColumn,last-1,width).getValues();
+  var data=rows.filter(function(r){
+    var nonempty=r.some(function(v){return v!==null&&v!==undefined&&String(v).trim()!=="";});
+    if(nonempty&&(r[0]===null||r[0]===undefined||String(r[0]).trim()===""))
+      throw Error("測試資料有缺少主鍵的殘缺列，請人資核對");
+    return nonempty;
+  });
+  if(data.length>limit)throw Error("測試資料分區超出預期筆數，停止讀取");
+  return data;
 }
 function v2hrCheckHeaders_(sheet,startColumn,headers) {
   var found=sheet.getRange(1,startColumn,1,headers.length).getDisplayValues()[0];
