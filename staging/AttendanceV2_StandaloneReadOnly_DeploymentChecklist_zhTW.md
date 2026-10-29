@@ -62,3 +62,13 @@
 **建議下一步僅做最小風險連線冒煙測試**：在新專案內先建立『網頁應用程式』部署，執行身分『我』、存取權『只有我』，而且保持 `disabled`。使用新部署 `/exec` 連結在同一個已登入 Google 測試帳號開啟，確認 `doGet` 只顯示「TEST001 模擬假單唯讀查詢服務；沒有網頁操作入口。」。此步不測試 LINE 身分、不開啟假單查詢，不涉及任何 POST 或寫入。
 
 不要將此新 `/exec` URL 設為原 TEST001 GPS `dataApi`，不要變更 `attendance-v2-test/main` 或正式 LINE。將來要公開給 LINE 用時，才依安全測試結果評估改成『所有人』與啟用新服務；新獨立部署不應連帶改動舊第 2 版。
+
+## 2026-10-29：新獨立專案「僅自己」部署首次 doGet 連線成功
+
+使用者確認在新獨立 Apps Script 專案 `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 建立 **執行身分：我、存取權：只有我** 的新網頁應用程式部署後，打開該部署 `/exec` 看見：`TEST001 模擬假單唯讀查詢服務；沒有網頁操作入口。`。這表示新服務 **`doGet`** 及擁有人可存取的 Web App URL 冒煙測試成功。
+
+仍未驗證：此部署的 LINE idToken 後端確認、`doPost`、綁定 TEST001 查詢、對外公開路徑、跨網站 iframe postMessage、手機實機。安全屬性 `V2HR_READONLY_TEST_ENABLED` 預設應保持 `disabled`，不能因 `doGet` 成功就宣稱假單已可查。
+
+建議下一階段在**同一個新獨立查詢專案**建立另一筆測試 Web App 部署（不取代僅自己可存取的原部署）：執行身分「我」、存取權「所有人」，功能旗標先保持 `disabled`。僅用 Edge InPrivate 或未登入 Google 的瀏覽器開新 URL 確認 `doGet` 的相同固定說明文字，驗證對外傳遞能力；此時不應對外讀取假單。
+
+此步必須注意新舊部署同屬同一 Apps Script 專案，**Script Properties 是專案共用設定**，將來開啟時會影響所有使用這組程式設定的部署，不可誤以為每筆部署有獨立開關。若公開關閉測試通過，仍應先做錯誤 token／匿名請求 `doPost` 回覆驗證，再考慮短時間開啟僅允許已綁定 TEST001 的唯讀查詢。絕不可修改 DATA_TEST GPS 第 2 版或正式打卡專案。
