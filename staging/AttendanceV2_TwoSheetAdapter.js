@@ -37,7 +37,10 @@
   // K confirmed at, L partial approved minutes, M note.
   function eventRows(rows,activeCompany){
     return (rows||[]).filter(r=>Array.isArray(r)&&str(r[0])).map(r=>{
-      const scope=toScope(r[3]),target=str(r[4]),period=str(r[5]);
+      const requestedScope=toScope(r[3]),target=str(r[4]),period=str(r[5]);
+      // Fail closed: old personal IDs or unintended values in E must not
+      // silently change a supposed whole-company event into broad coverage.
+      const scope=requestedScope==="ALL"&&target?"UNKNOWN":requestedScope;
       return {eventId:str(r[0]),date:date(r[1]),company:activeCompany,type:str(r[2]),
         scope,workplace:scope==="WORKPLACE"?target:"",
         period:period==="全日"?"FULL":period==="部分"?"PARTIAL":"UNKNOWN",
