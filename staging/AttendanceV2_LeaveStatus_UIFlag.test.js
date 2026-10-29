@@ -42,6 +42,11 @@ const tests=[
    assert(script.includes("enableLeaveStatus:false"));
    assert(html.includes('id="leaveStatusPane" class="section" hidden'));
  }],
+ ["identity refresh hides any stale leave query before server confirmation",async()=>{
+   assert(script.includes('async function refreshSandbox(){'));
+   assert(script.includes('leaveTestIdentityVerified=false;\n  $("leaveStatusPane").hidden=true;'));
+   assert(script.includes('leaveTestIdentityVerified=false;\n    $("leaveStatusPane").hidden=true;'));
+ }],
  ["no backend request when flag disabled",async()=>{
    const ui=instance({enabled:false,verified:true,result:reply});
    await ui.queryTestLeaveStatus();
