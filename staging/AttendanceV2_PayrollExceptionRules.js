@@ -69,8 +69,8 @@ function evaluateAttendanceException(p) {
     protectedNoWorkMinutes:covered,
     paidStopMinutes:p.companyPaysStopMinutes?covered:0,
     unresolvedScheduledMinutes:scheduled-covered,
-    absenceMinutes:0,  // this means *protected portion only*. Unresolved remainder never becomes an automatic absence.
-    fullAttendanceProtected:true,
+    absenceMinutes:0,  // Only the protected portion is not absence; unprotected remainder is unresolved.
+    fullAttendanceProtected:!partial, // Do not protect an unresolved partial-day remainder by mistake.
     requiresHumanReview:partial||!p.companyPaysStopMinutes,
     flags};
 }
