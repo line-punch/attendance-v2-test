@@ -9,15 +9,16 @@ const nonce="a".repeat(40),requestId="LEAVEV2_TEST_20261110_0001";
 const bookId="TEST_BOOK_FIXED_ID_NOT_REAL",testTitle="YC_ATTENDANCE_V2_TEST_ONLY";
 const sheet={rowPresent:true};
 const book={getId:()=>bookId,getName:()=>testTitle,getSheetByName:()=>sheet};
-let verifiedCalls=0,allowed=true,bind=true,lookupCalls=0;
+let verifiedCalls=0,allowed=true,bind=true,lookupCalls=0,guardCalls=0;
 const helpers={
   v2hrGuardTestSheet_:()=>{
+    guardCalls++;
     if(!allowed)throw Error("TEST001 access disabled");
     return {getId:()=>bookId,getName:()=>testTitle,getSheetByName:()=>sheet};
   },
   v2dLineClaims_:token=>{
     verifiedCalls++;
-    if(token!=="TEST-ID-TOKEN-SYNTHETIC-NEVER-REAL")throw Error("LINE invalid");
+    if(token!=="mockjwt.syntheticclaims.not-a-real-signature")throw Error("LINE invalid");
     return "MOCK-LINE";
   },
   v2dEmployee_:(_,userId)=>bind && userId==="MOCK-LINE"?
@@ -33,7 +34,7 @@ const api=new Function(...Object.keys(helpers),proposal+"\n"+router+
   "\nreturn v2hrDispatchReadOnlyStatusCandidate_TEST_ONLY_;")(...Object.values(helpers));
 const input=(overrides={})=>({
   nonce,operation:"leaveStatus",
-  payload:JSON.stringify({idToken:"TEST-ID-TOKEN-SYNTHETIC-NEVER-REAL",requestId}),
+  payload:JSON.stringify({idToken:"mockjwt.syntheticclaims.not-a-real-signature",requestId}),
   ...overrides
 });
 const cases=[
@@ -63,9 +64,26 @@ const cases=[
  ["malformed JSON rejects",()=>{
   assert.throws(()=>api(input({payload:"Z".repeat(40)})),/JSON/);
  }],
+ ["invalid nonce does not open privileged Google Sheet",()=>{
+  const before=guardCalls;
+  assert.throws(()=>api(input({nonce:"NOT_A_NONCE"})),/回覆編號/);
+  assert.equal(guardCalls,before);
+ }],
+ ["unknown simulated request ID does not open privileged Google Sheet",()=>{
+  const before=guardCalls;
+  assert.throws(()=>api(input({payload:JSON.stringify({
+   idToken:"mockjwt.syntheticclaims.not-a-real-signature",requestId:"OTHER"
+  })})),/非此模擬/);
+  assert.equal(guardCalls,before);
+ }],
+ ["malformed token fails before Google Sheet and remote LINE verification",()=>{
+  const before=guardCalls,verified=verifiedCalls;
+  assert.throws(()=>api(input({payload:JSON.stringify({idToken:"BAD",requestId})})),/LINE 登入資訊無效/);
+  assert.equal(guardCalls,before);assert.equal(verifiedCalls,verified);
+ }],
  ["invalid LINE token never reaches row read",()=>{
   const before=lookupCalls;
-  assert.throws(()=>api(input({payload:JSON.stringify({idToken:"BAD",requestId})})),/LINE invalid/);
+  assert.throws(()=>api(input({payload:JSON.stringify({idToken:"BAD",requestId})})),/LINE 登入資訊無效/);
   assert.equal(lookupCalls,before);
  }],
  ["unbound caller cannot query",()=>{
@@ -75,18 +93,18 @@ const cases=[
  ["caller employeeId injection rejected before token read",()=>{
   const before=verifiedCalls;
   assert.throws(()=>api(input({payload:JSON.stringify({
-    idToken:"TEST-ID-TOKEN-SYNTHETIC-NEVER-REAL",requestId,employeeId:"TEST002"
+    idToken:"mockjwt.syntheticclaims.not-a-real-signature",requestId,employeeId:"TEST002"
   })})),/未授權/);
   assert.equal(before,verifiedCalls);
  }],
  ["caller company injection rejected",()=>{
   assert.throws(()=>api(input({payload:JSON.stringify({
-    idToken:"TEST-ID-TOKEN-SYNTHETIC-NEVER-REAL",requestId,company:"OTHER"
+    idToken:"mockjwt.syntheticclaims.not-a-real-signature",requestId,company:"OTHER"
   })})),/未授權/);
  }],
  ["different request ID rejected",()=>{
   assert.throws(()=>api(input({payload:JSON.stringify({
-    idToken:"TEST-ID-TOKEN-SYNTHETIC-NEVER-REAL",requestId:"OTHER_REQUEST"
+    idToken:"mockjwt.syntheticclaims.not-a-real-signature",requestId:"OTHER_REQUEST"
   })})),/非此模擬/);
  }],
  ["guard disabled blocks before auth",()=>{
