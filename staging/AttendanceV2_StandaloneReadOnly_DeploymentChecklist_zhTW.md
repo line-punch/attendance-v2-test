@@ -213,3 +213,13 @@ V3 原模擬回歸及新增安全記錄驗證 `AttendanceV2_StandaloneLeaveStatu
 接續順序：第一步由使用者確認新專案 `V2HR_READONLY_TEST_ENABLED=disabled`，僅在**新獨立**專案將 `程式碼.gs` 全部替換為 V4，儲存，先不部署。下一步再建立 V4 **新增部署**（不覆蓋 V3），先用 disabled 匿名測試確認；最後僅一次手機查詢，恢復 disabled 後 **10 分鐘內**在新專案編輯器選 `v2hrReadLastSafeStage_TEST_ONLY` 執行，回傳最末 stage code 與時間，不用 Cloud Logging。
 
 安全界線：不要修改原 TEST001 DATA_TEST GPS 第 2 版、正式 LINE 打卡、LINE OA 選單、GitHub Pages GPS 首頁，也不要提供 Web App 完整 URL、LINE Token 或測試 Sheet ID。
+
+## 2026-10-30 12:42｜V4 診斷快取實機讀回成功
+
+使用者確認新獨立唯讀專案的 V4 新版部署，在安全開關 `disabled` 時送一筆匿名測試 POST，網頁顯示 45 秒未收到符合 nonce/origin 的回覆；不代表後端未處理。後續在**10 分鐘內**於 Apps Script 編輯器執行 `v2hrReadLastSafeStage_TEST_ONLY`，顯示 `ok:true`、`found:true`、`cacheOnly:true`、`stage:SETTINGS`、時間 `2026-10-30T04:39:18.939Z`（台灣 12:39:18），約 12:42:17 成功讀回。
+
+判定：**V4 快取及管理者短效讀回實機 PASS**；該匿名請求安全旗標檢查有效並拒絕資料查詢。此步尚未驗證已登入 LINE 的 TEST001 身分與原模擬假單讀取，也不能由 45 秒逾時反推後端寫入或查詢結果。
+
+下一階段只做一次真實 TEST001 唯讀查詢：在**新獨立** GAS `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 短暫設 `V2HR_READONLY_TEST_ENABLED=enabled`，於手機 LINE 的 `leave-status-diagnostic` 頁使用**新 V4 部署** `/exec` 按一次固定單號的唯讀查詢；無論成功或逾時，立刻改回 `disabled`，並於 10 分鐘內在新專案編輯器執行 `v2hrReadLastSafeStage_TEST_ONLY`，只回報安全 `stage` 和時間。預期可能 `LINE_VERIFY`、`IDENTITY_BOUND_ACCOUNT_DENIED`、`MOCK_LEAVE`、`MOCK_FOUND`，不提前猜測。
+
+新部署與正式打卡、舊 TEST001 GPS 第 2 版、原正式 Google Sheet/薪資均維持不動。不要重複按請求、不要展示完整 `/exec` 網址、LINE Token、員工 LINE ID 或試算表 ID。
