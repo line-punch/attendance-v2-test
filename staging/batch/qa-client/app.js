@@ -4,8 +4,18 @@
 const LIFF_ID="2012136707-2dDU0aSJ";
 const BRIDGE="YC_V2_BATCH_QA_V1";
 const $=id=>document.getElementById(id);
-let loggedIn=false,busy=false,unknownWrite=false;
+let loggedIn=false,busy=false,pendingWrite=null;
+try{
+ const saved=sessionStorage.getItem("v2_batch_qa_pending_write");
+ if(saved)pendingWrite=JSON.parse(saved);
+}catch(_){pendingWrite={operation:"UNKNOWN",requestId:""};}
+let unknownWrite=!!pendingWrite;
 function status(t){$("result").textContent=t;}
+function rememberWrite(value){
+ // Persist BEFORE transmission; a reload must not permit a second write.
+ sessionStorage.setItem("v2_batch_qa_pending_write",JSON.stringify(value));
+ pendingWrite=value;unknownWrite=!!value;
+}
 function safeReadId(){
  try{return sessionStorage.getItem("v2_batch_qa_request_id")||""}
  catch(_){return "";}
@@ -14,6 +24,12 @@ function preserveId(value){
  try{sessionStorage.setItem("v2_batch_qa_request_id",value)}catch(_){}
 }
 $("requestId").value=safeReadId();
+if(pendingWrite){
+ if(pendingWrite.operation==="HR_REVIEW")
+  $("hrRequestId").value=pendingWrite.requestId||"";
+ else $("requestId").value=pendingWrite.requestId||$("requestId").value;
+ status("上次寫入尚未核對，請保留原編號並先回查："+(pendingWrite.requestId||"需管理者核對"));
+}
 function freshHex(byteCount){
  if(!window.crypto||typeof window.crypto.getRandomValues!=="function")
   throw Error("此裝置無法產生安全申請編號");
@@ -110,6 +126,7 @@ function post(url,op,idToken,args){
 }
 async function execute(op,{write=false,decision=null}={}){
  if(busy)return;
+ let writeStarted=false;
  try{
   if(!loggedIn||!liff.isLoggedIn())throw Error("請先登入 TEST001 LINE");
   if(!$("confirmed").checked)throw Error("請確認使用獨立 QA 測試部署");
@@ -123,6 +140,10 @@ async function execute(op,{write=false,decision=null}={}){
   }:requestBody(op);
   if(op==="HR_REVIEW"&&!/^[A-Za-z0-9_-]{12,80}$/.test(args.requestId))
    throw Error("缺少人資審核原單號");
+  if(write){
+   rememberWrite({operation:op,requestId:args.requestId});
+   writeStarted=true;
+  }
   busy=true;
   document.querySelectorAll("button").forEach(b=>{if(b.id!=="login")b.disabled=true});
   status("操作執行中；請勿重複點擊。\n原申請編號："+$("requestId").value.trim());
@@ -130,19 +151,24 @@ async function execute(op,{write=false,decision=null}={}){
   if(response.ok!==true){
    if(write&&(response.code==="UNKNOWN"||response.persisted===null))
     unknownWrite=true;
+   else if(write&&response.persisted===false)rememberWrite(null);
    status("QA 回覆："+String(response.code||"UNKNOWN")+
     "\n"+(response.persisted===null?"結果不明，請保留原編號查詢。":"本次未確認成功。")+
     "\n原申請編號："+$("requestId").value.trim());
    return;
   }
-  if(["LEAVE_STATUS","MISSING_STATUS"].includes(op)&&response.result&&
-     response.result.request)unknownWrite=false;
+  const found=response.result&&response.result.request;
+  if(pendingWrite&&found&&found.requestId===pendingWrite.requestId&&
+     ((write&&op===pendingWrite.operation)||
+      (op==="LEAVE_STATUS"&&pendingWrite.operation==="LEAVE_REQUEST")||
+      (op==="MISSING_STATUS"&&pendingWrite.operation==="MISSING_REQUEST")))
+   rememberWrite(null);
   status("TEST001 QA 已回覆成功（僅獨立技術測試）。\n"+
    JSON.stringify(response.result,null,2));
  }catch(e){
-  if(write)unknownWrite=true;
+  if(writeStarted)unknownWrite=true;
   status("⚠️ "+String(e&&e.message||e)+
-   (write?"\n寫入結果未確認：保留原單號，先查詢，不要再次送出。":""));
+   (writeStarted?"\n寫入結果未確認：保留原單號，先查詢，不要再次送出。":""));
  }finally{
   busy=false;
   document.querySelectorAll("button").forEach(b=>{b.disabled=false});
