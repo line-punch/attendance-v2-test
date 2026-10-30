@@ -9,7 +9,7 @@
 - LINE Developers 管理權限已確認：Channel 2012136707「打卡系統V2測試」，Developing。現有 LIFF 指向原 attendance-v2-test 根目錄；沒有修改 Endpoint、scope 或正式 OA。
 - 已另建 YC_ATTENDANCE_V2_BATCH_QA_ONLY_20261030 GAS 專案，安裝原同步整包至程式碼.gs；新建 DesktopQA_ReadonlyChecks.gs，僅供管理者關閉狀態與來源表頭預檢，無寫入函式。
 - 新 QA 設定 V2_BATCH_QA_ENABLED=disabled、V2_BATCH_QA_WRITE_ENABLED=disabled，Channel 與來源測試表設定已填入；HR 測試身分未設定。
-- 已用使用者指定的 Computer Use／Edge 工作流程另建 YC_ATTENDANCE_V2_BATCH_QA_ONLY 活頁簿，與來源簿不同 ID。只有 V2_交易流水_QA 分頁，A1:H1 為精確八個表頭，無業務資料。尚未將新 ID 設定到 GAS，仍待 Google 首次執行授權確認。
+- 已用使用者指定的 Computer Use／Edge 工作流程另建 YC_ATTENDANCE_V2_BATCH_QA_ONLY 活頁簿，與來源簿不同 ID。只有 V2_交易流水_QA 分頁，A1:H1 為精確八個表頭，無業務資料。已將新 ID 存入新 GAS 的 V2_BATCH_QA_BOOK_ID，兩個開關維持 disabled，仍待 Google 首次執行授權確認。
 - QA 前端修正：發送前儲存待核對的 requestId 與操作；重新整理仍鎖定。僅同編號且相符操作的回查可解除鎖定。前端本地驗證失敗不誤鎖。HR 不明結果會保留實際審核單號並鎖住，不自動重送；HR 不明結果的後端恢復介面仍待整合。
 - 前端與測試修正已提交至指定 feature 分支（末次提交 3f0cc1e3990a373cdcc67764ddef7e55d721d948），未發布 Pages。
 
@@ -20,6 +20,7 @@
 - 上述35項全部是離線模擬，不是 GAS、Google Sheets、LINE 或 NFC 實機成功。未重跑原全部327項，不能把累計數改稱實機驗收數。
 - Google Drive 連接器讀測試簿回覆403，已改用已登入的 Edge，未變更共用權限。
 - 新 GAS 首次執行停在「需要授權」；使用者回覆已授權，但重新讀取後執行歷史仍0筆，再次啟動唯讀檢核仍顯示「需要授權」。已請使用者檢查後續權限畫面。desktopQaDisabledSmokeTest 尚未完成執行，無實測 PASS 記錄。
+- 已找到另開的 Google OAuth 視窗，實際顯示「這個應用程式未經 Google 驗證」。此為目前已確認的授權阻礙；未代按進階、未略過警告。警告分頁已保留供使用者處理。
 - 本輪沒有新增申請／審核／通知／工時／薪資資料，沒有刪資料；沒有結果不明的業務寫入可重試。
 
 ## A～E 驗收現況
@@ -36,7 +37,7 @@
 
 1. 使用者親自完成新 QA Google 授權；若安全警告則停下核對。
 2. 讀回 GAS 停用煙霧測試結果，再跑來源唯讀預檢。
-3. 將已建立的獨立 QA 技術簿 ID 設定到新 GAS，透過唯讀預檢再次核對不同ID與表頭，不碰來源表資料。
+3. 透過唯讀預檢再次核對已設定的獨立 QA 技術簿不同ID與表頭，不碰來源表資料。
 4. 準備獨立 LIFF QA 入口，新增登入權限／公開部署前讓使用者審查具體設定。
 5. 確認後短暫開測試寫入，以原requestId回查、確認單列日誌及通知事件，保留全部測試資料。
 
