@@ -25,6 +25,13 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f5;padding:12px;
 nav{display:grid;grid-template-columns:1fr 1fr;gap:6px}nav button{margin:0;padding:15px 8px}
 [hidden]{display:none!important}table{width:100%;border-collapse:collapse;font-size:14px}th,td{overflow-wrap:anywhere;text-align:left;padding:9px 4px;border-bottom:1px solid #dde5e8}
 nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
+@media(max-width:520px){
+ #leaveHistory table,#missingHistory table{display:block}
+ #leaveHistory tr,#missingHistory tr{display:block;border:1px solid #dde5e8;border-radius:10px;padding:8px;margin:10px 0}
+ #leaveHistory tr:first-child,#missingHistory tr:first-child{display:none}
+ #leaveHistory td,#missingHistory td{display:grid;grid-template-columns:85px minmax(0,1fr);gap:8px;padding:7px 4px}
+ #leaveHistory td::before,#missingHistory td::before{content:attr(data-label);font-weight:600;color:#526b75}
+}
 </style></head><body><main>
 <div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請選擇要操作的功能。</div>
 <button id="viewSubmittedMonth" type="button" hidden>查看該月紀錄</button>
@@ -103,6 +110,6 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <details><summary>詳細執行回覆（QA）</summary><pre id="result">未發送任何請求。</pre></details>
 </section>
 </main>
-<script src="./config.js?v=20261030e"></script>
-<script src="./app.js?v=20261030e"></script></body></html>
+<script src="./config.js?v=20261030f"></script>
+<script src="./app.js?v=20261030f"></script></body></html>
 

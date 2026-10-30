@@ -188,8 +188,9 @@ function renderHistory(operation,result){
  const missing=operation==="MY_MISSING";
  const table=document.createElement("table");
  const head=document.createElement("tr");
- for(const title of missing?["補卡日期","上班／下班","申請時間","送件日期","狀態","申請編號"]:
-    ["開始日期","結束日期","假別","時段","送件日期","狀態","申請編號"]){
+ const titles=missing?["補卡日期","上班／下班","申請時間","送件日期","狀態","申請編號"]:
+    ["開始日期","結束日期","假別","時段","送件日期","狀態","申請編號"];
+ for(const title of titles){
   const cell=document.createElement("th");cell.textContent=title;head.appendChild(cell);
  }
  table.appendChild(head);
@@ -201,7 +202,10 @@ function renderHistory(operation,result){
   const values=missing?[row.date,row.type,row.time,row.submittedAt||"—",states[row.status]||row.status,row.requestId]:
    [row.startDate,row.endDate,row.leaveType,row.unit==="HOURS"?
     (row.fromTime||"")+"～"+(row.toTime||""):"全天",row.submittedAt||"—",states[row.status]||row.status,row.requestId];
-  for(const value of values){const td=document.createElement("td");td.textContent=String(value||"");tr.appendChild(td);}
+  for(const [index,value] of values.entries()){
+   const td=document.createElement("td");td.textContent=String(value||"");
+   td.setAttribute("data-label",titles[index]);tr.appendChild(td);
+  }
   table.appendChild(tr);
  }
  target.appendChild(table);
