@@ -24,6 +24,17 @@ const tests=[
  ["weekend crossing blocked",()=>assert.equal(m.leaveCheck({startDate:"2026-11-13",endDate:"2026-11-16",unit:"DAY"},cfg).code,"NON_WORKDAY_REQUIRES_SPLIT")],
  ["fictional holiday blocked",()=>assert.equal(m.leaveCheck({startDate:"2026-11-11",endDate:"2026-11-11",unit:"DAY"},cfg).code,"NON_WORKDAY_REQUIRES_SPLIT")],
  ["fictional storm requires HR review",()=>assert.equal(m.leaveCheck({startDate:"2026-11-12",endDate:"2026-11-12",unit:"DAY"},cfg).code,"NEEDS_HR_REVIEW")],
+ ["approved government-style Saturday makeup workday allowed",()=>{
+  const approved={...cfg,workDays:["2026-11-14"]};
+  assert.equal(m.leaveCheck({startDate:"2026-11-14",endDate:"2026-11-14",unit:"DAY"},approved).ok,true);
+ }],
+ ["Sunday still blocked without approved makeup",()=>{
+  assert.equal(m.leaveCheck({startDate:"2026-11-15",endDate:"2026-11-15",unit:"DAY"},cfg).code,"NON_WORKDAY_REQUIRES_SPLIT");
+ }],
+ ["conflicting work and off overrides rejected",()=>{
+  const conflicting={...cfg,workDays:["2026-11-11"]};
+  assert.equal(m.leaveCheck({startDate:"2026-11-11",endDate:"2026-11-11",unit:"DAY"},conflicting).code,"DAY_OVERRIDE_CONFLICT");
+ }],
  ["two continuous workdays allowed",()=>assert.equal(m.leaveCheck({startDate:"2026-11-09",endDate:"2026-11-10",unit:"DAY"},cfg).workingDays,2)],
  ["hourly same-day allowed",()=>assert.equal(m.leaveCheck({startDate:"2026-11-10",endDate:"2026-11-10",unit:"HOURS",fromTime:"09:00",toTime:"11:00"},cfg).ok,true)],
  ["hourly multiple-day blocked",()=>assert.equal(m.leaveCheck({startDate:"2026-11-09",endDate:"2026-11-10",unit:"HOURS",fromTime:"09:00",toTime:"11:00"},cfg).code,"HOURS_ONLY_ONE_DAY")],
