@@ -151,7 +151,8 @@ function create({identity,store,calendar,clock,flags={}}={}){
     return err("REQUEST_ID_INVALID");
    const kind=operation==="LEAVE_STATUS"?"LEAVE":"MISSING";
    const row=await store.read(async tx=>tx.find(payload.requestId));
-   if(!row||row.kind!==kind||row.employeeId!==p.employeeId)
+   if(!row||row.kind!==kind||row.employeeId!==p.employeeId||
+      row.company!==p.company)
     return err("NOT_FOUND");
    return {ok:true,readOnly:true,request:summary(row)};
   }
@@ -165,6 +166,7 @@ function create({identity,store,calendar,clock,flags={}}={}){
    const [yy,mm]=payload.month.split("-").map(Number);
    const end=new Date(Date.UTC(yy,mm,0)).toISOString().slice(0,10);
    const mine=rows.filter(x=>x.kind==="LEAVE"&&x.employeeId===p.employeeId&&
+     x.company===p.company&&
      x.body.startDate<=end&&x.body.endDate>=start).map(summary);
    return {ok:true,readOnly:true,month:payload.month,
      total:mine.length,requests:mine};
@@ -173,7 +175,7 @@ function create({identity,store,calendar,clock,flags={}}={}){
    if(Object.keys(payload).length!==0)return err("INVALID_FORM_FIELDS");
    const rows=await store.read(async tx=>tx.list());
    return {ok:true,readOnly:true,
-    pending:rows.filter(x=>x.status==="PENDING").map(summary)};
+    pending:rows.filter(x=>x.status==="PENDING"&&x.company===p.company).map(summary)};
   }
   if(operation==="HR_REVIEW"){
    if(Object.keys(payload).some(k=>!["requestId","decision"].includes(k))||
@@ -183,7 +185,7 @@ function create({identity,store,calendar,clock,flags={}}={}){
     return err("REVIEW_INPUT_INVALID");
    return store.transaction(async tx=>{
     const row=await tx.find(payload.requestId);
-    if(!row)return err("NOT_FOUND");
+    if(!row||row.company!==p.company)return err("NOT_FOUND");
     const to=payload.decision==="APPROVE"?"APPROVED":"REJECTED";
     if(row.status===to)return {ok:true,duplicate:true,request:summary(row)};
     if(row.status!=="PENDING")return err("REVIEW_CONFLICT");
