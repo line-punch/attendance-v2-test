@@ -236,10 +236,21 @@ const scenarios=[
   const f=fixture();const r=await f.call("HR_REVIEW",{requestId:REQS.leave.requestId,decision:"APPROVE",role:"HR_OWNER"});
   assert.equal(r.code,"CLIENT_SCOPE_DENIED");
  }],
- ["MY_LEAVES returns only current and previous two months",async()=>{
+ ["MY_LEAVES rejects months older than the previous two months",async()=>{
   const f=fixture();await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-10-29",endDate:"2026-10-30"});
   assert.equal((await f.call("MY_LEAVES",{month:"2026-10"})).total,1);
   assert.equal((await f.call("MY_LEAVES",{month:"2026-07"})).code,"MONTH_OUT_OF_RANGE");
+ }],
+ ["cross-month leave is the same original in both months, future reads never write",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-10-30",endDate:"2026-11-02"});
+  const before=f.db();
+  for(const month of ["2026-10","2026-11"]){
+   const r=await f.call("MY_LEAVES",{month});assert.equal(r.total,1);
+   assert.equal(r.requests[0].requestId,REQS.leave.requestId);
+   assert.equal(r.requests[0].submittedAt,"2026-10-30");
+  }
+  assert.equal((await f.call("MY_LEAVES",{month:"2026-12"})).total,0);
+  assert.deepEqual(f.db(),before);
  }],
  ["MY_LEAVES cannot return another employee",async()=>{
   const f=fixture();await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-10-29",endDate:"2026-10-30"});

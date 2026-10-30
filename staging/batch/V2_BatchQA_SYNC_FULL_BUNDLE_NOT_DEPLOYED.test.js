@@ -118,6 +118,19 @@ function make(opts={}){
  return {api,post,qaRows,counts:()=>({fetches,reads,writes,locked})};
 }
 const tests=[
+ ["future and cross-month leave reads keep one original and expose server submission date",()=>{
+  const x=make({writeEnabled:"enabled"});
+  const sent=x.post("LEAVE_REQUEST",{...request,startDate:"2026-11-30",endDate:"2026-12-01"}).reply;
+  assert.equal(sent.ok,true);
+  const before=x.counts().writes;
+  for(const month of ["2026-11","2026-12"]){
+   const r=x.post("MY_LEAVES",{month}).reply;
+   assert.equal(r.ok,true);assert.equal(r.result.total,1);
+   assert.equal(r.result.requests[0].requestId,requestId);
+   assert.equal(r.result.requests[0].submittedAt,"2026-10-30");
+  }
+  assert.equal(x.counts().writes,before);assert.equal(x.qaRows.length,2);
+ }],
  ["invalid multi-day hourly leave gives a safe actionable reason without writing",()=>{
   const x=make();const r=x.post("LEAVE_PREVIEW",{...request,unit:"HOURS",fromTime:"09:00",toTime:"11:00"}).reply;
   assert.equal(r.ok,false);assert.equal(r.reason,"LEAVE_HOURS_INVALID");

@@ -91,7 +91,7 @@ function cleanMissed(form){
 function summary(row){
  if(!row)return null;
  return {requestId:row.requestId,kind:row.kind,
-  status:row.status,employeeId:row.employeeId,
+  status:row.status,employeeId:row.employeeId,submittedAt:row.submittedAt||"",
   ...(row.kind==="LEAVE"?{
     leaveType:row.body.leaveType,startDate:row.body.startDate,
     endDate:row.body.endDate,unit:row.body.unit,
@@ -178,7 +178,7 @@ function create({identity,store,calendar,clock,flags={}}={}){
    if(Object.keys(payload).length!==1||typeof payload.month!=="string"||
       !MONTH.test(payload.month))return err("MONTH_INVALID");
    const allowed=months(clock.today());
-   if(!allowed.includes(payload.month))return err("MONTH_OUT_OF_RANGE");
+   if(payload.month<allowed[2])return err("MONTH_OUT_OF_RANGE");
    const rows=store.read(tx=>tx.list());
    const start=payload.month+"-01";
    const [yy,mm]=payload.month.split("-").map(Number);

@@ -23,10 +23,11 @@ button[aria-busy=true]::before{content:"";display:inline-block;width:12px;height
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f5;padding:12px;border-radius:10px}
 .small{font-size:13px;color:#667984}.pair{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 nav{display:grid;grid-template-columns:1fr 1fr;gap:6px}nav button{margin:0;padding:15px 8px}
-[hidden]{display:none!important}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 4px;border-bottom:1px solid #dde5e8}
+[hidden]{display:none!important}table{width:100%;border-collapse:collapse;font-size:14px}th,td{overflow-wrap:anywhere;text-align:left;padding:9px 4px;border-bottom:1px solid #dde5e8}
 nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 </style></head><body><main>
 <div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請選擇要操作的功能。</div>
+<button id="viewSubmittedMonth" type="button" hidden>查看該月紀錄</button>
 <section class="panel"><h1>員工打卡｜獨立 QA</h1>
 <p class="note"><strong>獨立 QA 測試頁，TEST001 專用。</strong>資料不計入正式出勤。</p>
 <button id="login">確認 TEST001 LINE 登入</button>
@@ -69,8 +70,8 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <button id="preview" type="button">請假日期預檢（唯讀）</button>
 <button id="leaveStatus" type="button">查原請假單（唯讀）</button>
 <button id="submitLeave" type="button">送出請假申請</button>
-<h2>當月請假紀錄</h2>
-<button id="currentLeaves" type="button">查看當月請假紀錄</button>
+<h2>請假紀錄</h2><p class="small">依請假日期查詢。跨月假單在涵蓋月份都顯示，同一申請編號不重複建單。</p><label>查詢月份<input id="month" type="month"></label>
+<button id="currentLeaves" type="button">查詢所選月份</button>
 <div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div>
 </section>
 <section class="panel" id="pageMissing" hidden><h2>補打卡申請</h2><p class="small">不限地點，不需要定位。補打卡只列於此處，不合併正常打卡。</p>
@@ -80,15 +81,15 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <label>原因<input id="missingReason" value=""></label>
 <button id="submitMissing" type="button">送出補打卡申請</button>
 <button id="missingStatus" type="button">查原補打卡單（唯讀）</button>
-<h2>當月補打卡紀錄</h2>
-<button id="myMissing" type="button">查看當月補打卡紀錄</button>
+<h2>補打卡紀錄</h2><label>查詢月份<input id="missingMonth" type="month"></label>
+<button id="myMissing" type="button">查詢所選月份</button>
 <p class="small">補打卡核准後仍只列在這裡，不回填正常打卡時間。</p>
 <div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div>
 </section>
 <section class="panel" id="pageHr" hidden><h2>人資查詢（建置中）</h2>
 <p>日後可查詢人資結算後匯入的本人資料，目前尚未開放。</p></section>
 <details class="panel"><summary>QA 技術檢查（非員工功能）</summary>
-<label>請假月份（本月與前兩個月）<input id="month" type="month" value="2026-10"></label>
+
 <button id="myLeaves" type="button">查本人請假（唯讀）</button>
 <button id="hrPending" type="button">人資待審核（需測試人資身分）</button>
 <label>欲審核的原申請編號<input id="hrRequestId" autocomplete="off"></label>
@@ -102,6 +103,6 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <details><summary>詳細執行回覆（QA）</summary><pre id="result">未發送任何請求。</pre></details>
 </section>
 </main>
-<script src="./config.js?v=20261030d"></script>
-<script src="./app.js?v=20261030d"></script></body></html>
+<script src="./config.js?v=20261030e"></script>
+<script src="./app.js?v=20261030e"></script></body></html>
 

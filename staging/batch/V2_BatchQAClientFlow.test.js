@@ -36,7 +36,7 @@ function make(options={}){
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
  "hrApprove","hrReject","hrStatus","writeConsent","result","myMissing","missingHistory","leaveHistory",
  "currentLeaves","navClock","navLeave","navMissing","navHr","pageClock","pageLeave","pageMissing","pageHr",
- "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback"];
+ "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});
@@ -58,7 +58,7 @@ function make(options={}){
   querySelectorAll:()=>ids.filter(id=>["login","newId","preview","leaveStatus",
    "submitLeave","submitMissing","missingStatus","myLeaves","hrPending",
    "hrApprove","hrReject","hrStatus","clockIn","clockOut","clockStatus","myClocks",
-   "currentLeaves","myMissing","navClock","navLeave","navMissing","navHr"].includes(id)).map(id=>dom[id]),
+   "currentLeaves","myMissing","navClock","navLeave","navMissing","navHr","viewSubmittedMonth"].includes(id)).map(id=>dom[id]),
   createElement:tag=>elem(tag),
   body:{appendChild(){}}
  };
@@ -92,6 +92,18 @@ function make(options={}){
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["selected months are sent as read-only queries and successful future leave links to that month",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,startDate:"2026-11-09",endDate:"2026-11-10"}}});
+  await x.click("submitLeave");assert.equal(x.dom.viewSubmittedMonth.hidden,false);
+  assert(x.dom.feedback.textContent.includes("2026-11-09"));
+  await x.click("viewSubmittedMonth");assert.equal(x.posts[1].operation,"MY_LEAVES");
+  assert.equal(JSON.parse(x.posts[1].payload).args.month,"2026-11");
+  x.dom.month.value="2026-09";await x.click("currentLeaves");
+  assert.equal(JSON.parse(x.posts[2].payload).args.month,"2026-09");
+  x.dom.missingMonth.value="2026-08";await x.click("myMissing");
+  assert.equal(JSON.parse(x.posts[3].payload).args.month,"2026-08");
+ }],
  ["all actions show busy feedback, block double clicks and restore their labels",async()=>{
   const x=make({defer:true});await x.authReady();await x.click("newId");x.dom.preview.textContent="日期預檢";
   const first=x.click("preview");await Promise.resolve();
@@ -177,7 +189,7 @@ const tests=[
   assert.equal(x.posts[0].operation,"MY_MISSING");
   const table=x.dom.missingHistory.children[0];
   assert.equal(table.children.length,2);
-  assert.deepEqual(table.children[1].children.map(c=>c.textContent),["2026-10-02","上班","08:30","已核准"]);
+  assert.deepEqual(table.children[1].children.map(c=>c.textContent),["2026-10-02","上班","08:30","—","已核准",""]);
   assert.equal(x.dom.leaveHistory.children.length,0);
  }],
  ["current leave table displays requested hourly range as plain text",async()=>{
@@ -188,7 +200,7 @@ const tests=[
   await x.click("currentLeaves");
   const cells=x.dom.leaveHistory.children[0].children[1].children;
   assert.equal(cells[2].textContent,"<script>synthetic</script>");
-  assert.equal(cells[3].textContent,"09:00～11:00");assert.equal(cells[4].textContent,"待審核");
+  assert.equal(cells[3].textContent,"09:00～11:00");assert.equal(cells[5].textContent,"待審核");
  }],
  ["original GPS LIFF cannot initialize the independent QA client",async()=>{
   const x=make({liffId:"2012136707-2dDU0aSJ"});await x.authReady();

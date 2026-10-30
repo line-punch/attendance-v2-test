@@ -46,6 +46,7 @@ for(const page of pages){
   }
   if(page!=="Hr"){
    $("month").value=localToday().slice(0,7);
+   $("missingMonth").value=localToday().slice(0,7);
    await execute({Clock:"MY_CLOCKS",Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]);
   }
  });
@@ -71,6 +72,8 @@ $("requestId").value=safeReadId();
 const today=localToday();
 for(const field of ["start","end","missingDate"])$(field).value=today;
 $("month").value=today.slice(0,7);
+$("missingMonth").value=today.slice(0,7);
+let submittedMonth=null;
 if(pendingWrite){
  if(pendingWrite.operation==="HR_REVIEW")
   $("hrRequestId").value=pendingWrite.requestId||"";
@@ -129,7 +132,7 @@ function requestBody(operation){
  if(operation==="LEAVE_STATUS"||operation==="MISSING_STATUS")
   return {requestId:requestId()};
  if(operation==="MY_LEAVES")return {month:$("month").value};
- if(operation==="MY_MISSING")return {month:localToday().slice(0,7)};
+ if(operation==="MY_MISSING")return {month:$("missingMonth").value};
  if(operation==="MY_CLOCKS")return {};
  if(operation==="GPS_STATUS")return {requestId:requestId(),type:clockType};
  if(operation==="HR_PENDING")return {};
@@ -185,8 +188,8 @@ function renderHistory(operation,result){
  const missing=operation==="MY_MISSING";
  const table=document.createElement("table");
  const head=document.createElement("tr");
- for(const title of missing?["日期","上班／下班","申請時間","狀態"]:
-    ["開始日期","結束日期","假別","時段","狀態"]){
+ for(const title of missing?["補卡日期","上班／下班","申請時間","送件日期","狀態","申請編號"]:
+    ["開始日期","結束日期","假別","時段","送件日期","狀態","申請編號"]){
   const cell=document.createElement("th");cell.textContent=title;head.appendChild(cell);
  }
  table.appendChild(head);
@@ -195,9 +198,9 @@ function renderHistory(operation,result){
   // A mixed-kind response must never show another workflow in this table.
   if(row.kind!==(missing?"MISSING":"LEAVE"))continue;
   const tr=document.createElement("tr");
-  const values=missing?[row.date,row.type,row.time,states[row.status]||row.status]:
+  const values=missing?[row.date,row.type,row.time,row.submittedAt||"—",states[row.status]||row.status,row.requestId]:
    [row.startDate,row.endDate,row.leaveType,row.unit==="HOURS"?
-    (row.fromTime||"")+"～"+(row.toTime||""):"全天",states[row.status]||row.status];
+    (row.fromTime||"")+"～"+(row.toTime||""):"全天",row.submittedAt||"—",states[row.status]||row.status,row.requestId];
   for(const value of values){const td=document.createElement("td");td.textContent=String(value||"");tr.appendChild(td);}
   table.appendChild(tr);
  }
@@ -301,6 +304,17 @@ async function execute(op,{write=false,decision=null}={}){
   const summaries={MY_CLOCKS:"當月正常打卡紀錄已更新。",MY_LEAVES:"當月請假紀錄已更新。",
    MY_MISSING:"當月補打卡紀錄已更新。",LEAVE_REQUEST:"請假申請已送出。",MISSING_REQUEST:"補打卡申請已送出。",
    GPS_CLOCK:"打卡成功。",LEAVE_PREVIEW:"請假日期檢查完成。"};
+  if(op==="LEAVE_REQUEST"||op==="MISSING_REQUEST"){
+   const request=response.result&&response.result.request;
+   if(request&&/^\d{4}-\d{2}-\d{2}$/.test(String(request.startDate||request.date||""))){
+    const date=op==="LEAVE_REQUEST"?request.startDate:request.date;
+    submittedMonth={operation:op==="LEAVE_REQUEST"?"MY_LEAVES":"MY_MISSING",month:date.slice(0,7)};
+    $("viewSubmittedMonth").hidden=false;
+    $("viewSubmittedMonth").textContent="查看 "+submittedMonth.month+" 紀錄";
+    summaries[op]+="日期："+date+(request.endDate&&request.endDate!==date?"～"+request.endDate:"")+"。可按「查看該月紀錄」。";
+   }
+  }
+  if(op==="MY_LEAVES"||op==="MY_MISSING")summaries[op]=response.result.month+" 紀錄已更新。";
   status((summaries[op]||"查詢完成。")+"（獨立 QA）\n"+
    JSON.stringify(response.result,null,2),"success");
  }catch(e){
@@ -354,7 +368,15 @@ for(const [id,op,write] of binds)
 onAction("hrApprove",()=>execute("HR_REVIEW",{write:true,decision:"APPROVE"}));
 onAction("hrReject",()=>execute("HR_REVIEW",{write:true,decision:"REJECT"}));
 onAction("currentLeaves",()=>{
- $("month").value=localToday().slice(0,7);return execute("MY_LEAVES");
+ return execute("MY_LEAVES");
+});
+onAction("viewSubmittedMonth",async()=>{
+ if(!submittedMonth)return;
+ const leave=submittedMonth.operation==="MY_LEAVES";
+ for(const name of pages){$("page"+name).hidden=name!==(leave?"Leave":"Missing");
+  $("nav"+name).setAttribute("aria-pressed",String(name===(leave?"Leave":"Missing")));}
+ $(leave?"month":"missingMonth").value=submittedMonth.month;
+ await execute(submittedMonth.operation);
 });
 for(const [id,type] of [["clockIn","上班"],["clockOut","下班"]]){
  onAction(id,()=>{
