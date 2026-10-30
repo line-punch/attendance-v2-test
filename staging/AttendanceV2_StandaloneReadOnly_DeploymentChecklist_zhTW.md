@@ -183,3 +183,11 @@ V3 原模擬回歸及新增安全記錄驗證 `AttendanceV2_StandaloneLeaveStatu
 4. 若要手機實際診斷，才短暫設 `enabled`，用新部署網址在已成功的 TEST001 LIFF 診斷頁查詢**一次**；之後立即恢復 `disabled`。回到 Apps Script「執行項目」找到新版本 `doPost` 之安全記錄 `V2HR_DIAGNOSTIC=...`，只回報代碼即可；不分享 LINE token、完整 URL/部署 ID 或 Sheet ID。
 
 **請勿誤判**：V3 是候選程式與模擬測試，目前還沒有在真實新專案安裝、部署或手機測試。已部署的原第 2 版與正式打卡保持不動。
+
+## 2026-10-30：獨立 V3 Web App 新部署 doGet 實機成功
+
+使用者回報已在 **新獨立** `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 專案將 `程式碼.gs` 替換為 V3 完整診斷程式並儲存，接著以「新增部署作業」建立 V3 Web App 新部署。用新 `/exec` 網址打開後，頁面實際顯示 `TEST001 模擬假單唯讀查詢服務；沒有網頁操作入口。`，表示新部署的 doGet 連線冒煙測試 PASS。
+
+本次尚未驗證新部署 doPost 的診斷記錄。新專案 `V2HR_READONLY_TEST_ENABLED` 應保持 `disabled`，先使用原 `https://line-punch.github.io/attendance-v2-test/leave-status-smoke/` 頁面的無效 Token 匿名 POST 測試，輸入**新 V3「所有人」部署** `/exec`，只按一次；預期收到 `UNKNOWN`，然後到該新 Apps Script 的「執行項目」查看對應 `doPost` 記錄是否出現 `V2HR_DIAGNOSTIC=SETTINGS`。只回報固定診斷代碼，不分享 URL、Sheet ID、LINE ID、Token。
+
+預先確認 V3 診斷架構僅在後端 Logger 印安全階段代碼；公眾回覆仍只保留固定 `AUTH` / `UNKNOWN`。不得更新原 GPS DATA_TEST 第 2 版或正式系統。匿名關閉測試成功後才可以短暫開啟 `enabled` 做已綁定 TEST001 真實查詢一次，查詢結束後立即改回 `disabled`。
