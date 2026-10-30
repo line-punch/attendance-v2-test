@@ -63,3 +63,20 @@
 5. 全部元件完成離線回歸後，才讓使用者依 A–E 批次測試手機與人資流程，沒有測過不得發布正式版。
 
 不需要使用者此時進行任何手機／Apps Script 操作，保留 V4 安全開關 disabled。
+
+## 2026-10-30 第二批：測試後端、併發安全、通知與月結候選
+
+在既有 60 項整合 UI／規則測試後，本輪繼續建置：
+
+- `staging/batch/V2_BatchWorkflowCore.js`：受信任後端的身份範圍、請假與補打卡寫入/回查、本人近三個月查詢、同公司 HR 待審核/核准/駁回、同單號內容衝突及通知 outbox。**31／31 項純模擬 PASS**。
+- `staging/batch/V2_BatchTestStore.js`：獨立假資料的併發交易順序、事務回滾、同單號重複只新增一筆、同時審核防衝突。**17／17 PASS**。這只是記憶體資料模型；Google Sheets 沒有原子交易，真實版要另做 LockService 和補償。
+- `staging/batch/V2_BatchOutboxPolicy.js`：通知唯一鍵、發送租約、確認失敗退避重試、回覆不明先停下核對；不發真實 LINE 訊息。**23／23 PASS**。
+- `staging/batch/V2_BatchMonthCloseReadiness.js`：核對日曆/停班/審核/備份後才能判定是否就緒；同公司隔離，未打卡不自動認定曠職，實際工作分鐘與停班照薪分鐘分開。**22／22 PASS**。
+- 工作日曆增補已核定週六補班規則、最多 31 天的邊界測試；原 `V2_BatchRules.js` 變成 **33／33 PASS**。
+- 虛構四格頁面模擬資料的同單號內容變更、跨申請類型重用防護；`V2_DemoState.js` 變成 **20／20 PASS**，四格頁面點擊回歸仍 **14／14 PASS**。
+
+此分支目前七組**合計 160／160 項離線測試通過**。已新增 `staging/batch/package.json` 可使用 `npm test` 一次回歸，並保存完整交付界線於 `staging/batch/README_整批交付與測試界線.md`。
+
+**尚未建成、不能宣稱可實際使用的部分**：安全的真正 GAS Sheet 寫入適配及可靠持久 outbox、HR 權限清單與訊息發送、原 Excel 薪資/封存備份、NFC 密碼學 SUN 實體驗證，以及上線前的 iOS/Android 端到端實測。這些仍需在 TEST001 隔離環境建置和整批測試後才能接正式版。
+
+目前使用者不需操作；新獨立 V4 查詢服務安全屬性維持 `disabled`，正式打卡與 TEST001 GPS 都不修改。
