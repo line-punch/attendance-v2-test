@@ -65,9 +65,9 @@ function make(options={}){
   getIDToken:()=>params.login?TOKEN:null,login(){}};
  const URLMock=class{
   constructor(text){
-   const m=/^(https?):\/\/([^/]+)(\/[^?#]*)(\?[^#]*)?(#.*)?$/.exec(text);
+   const m=/^(https?):\/\/([^/]+)(\/[^?#]*)?(\?[^#]*)?(#.*)?$/.exec(text);
    if(!m)throw Error("URL_BAD");
-   this.protocol=m[1]+":";this.hostname=m[2];this.pathname=m[3];
+   this.protocol=m[1]+":";this.hostname=m[2];this.pathname=m[3]||"/";
    this.username="";this.password="";this.search=m[4]||"";this.hash=m[5]||"";
    this.href=text;
   }
