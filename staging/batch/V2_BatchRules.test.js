@@ -39,6 +39,13 @@ const tests=[
  ["hourly same-day allowed",()=>assert.equal(m.leaveCheck({startDate:"2026-11-10",endDate:"2026-11-10",unit:"HOURS",fromTime:"09:00",toTime:"11:00"},cfg).ok,true)],
  ["hourly multiple-day blocked",()=>assert.equal(m.leaveCheck({startDate:"2026-11-09",endDate:"2026-11-10",unit:"HOURS",fromTime:"09:00",toTime:"11:00"},cfg).code,"HOURS_ONLY_ONE_DAY")],
  ["inverted hourly range blocked",()=>assert.equal(m.leaveCheck({startDate:"2026-11-10",endDate:"2026-11-10",unit:"HOURS",fromTime:"16:00",toTime:"10:00"},cfg).code,"HOURS_INVALID")],
+ ["a 31-day leave span is accepted only if it contains no off days",()=>{
+   assert.equal(m.days("2026-11-01","2026-12-01").length,31);
+ }],
+ ["a 32-day leave span is rejected by calendar rule",()=>{
+   assert.equal(m.days("2026-11-01","2026-12-02"),null);
+   assert.equal(m.leaveCheck({startDate:"2026-11-01",endDate:"2026-12-02",unit:"DAY"},cfg).code,"DATES_INVALID_OR_OVER_31_DAYS");
+ }],
  ["invalid date blocked",()=>assert.equal(m.leaveCheck({startDate:"2026-02-30",endDate:"2026-03-01",unit:"DAY"},cfg).code,"DATES_INVALID_OR_OVER_31_DAYS")],
  ["NFC never accepts unverified scan",()=>assert.equal(m.nfcPermitted({deviceConfirmed:true}),false)],
  ["NFC requires crypto and anti replay and location device check",()=>assert.equal(m.nfcPermitted({cryptogramVerified:true,replayChecked:true,deviceConfirmed:true}),true)],
