@@ -3,14 +3,24 @@
 (function(root){
 function create(){
  const state={clock:[],leave:[],missed:[],reviews:[],synthetic:true};
+ const requestFingerprints=new Map();
  const clone=x=>JSON.parse(JSON.stringify(x));
  function add(collection,item){
    if(!item||typeof item.id!=="string"||item.id.length<5)
      return {ok:false,code:"INVALID_ID"};
-   const existing=state[collection].find(x=>x.id===item.id);
-   if(existing)return {ok:true,duplicate:true,item:clone(existing)};
+   if(!["clock","leave","missed"].includes(collection))
+     return {ok:false,code:"INVALID_COLLECTION"};
+   const fingerprint=JSON.stringify([collection,item]);
+   if(requestFingerprints.has(item.id)){
+     if(requestFingerprints.get(item.id)!==fingerprint)
+       return {ok:false,code:"REQUEST_ID_CONFLICT"};
+     const existing=state[collection].find(x=>x.id===item.id);
+     if(!existing)return {ok:false,code:"REQUEST_ID_CONFLICT"};
+     return {ok:true,duplicate:true,item:clone(existing)};
+   }
    const value={...item,status:"PENDING"};
    state[collection].push(value);
+   requestFingerprints.set(item.id,fingerprint);
    return {ok:true,duplicate:false,item:clone(value)};
  }
  function review(collection,id,choice){
