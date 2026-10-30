@@ -46,3 +46,13 @@ E. iPhone／Android、不同 Google 帳號、斷線逾時、重試、NFC 實體�
 - 同一申請或寫入結果不明，先查原請求，不可反覆按送出。
 - 本文件不包含 Spreadsheet ID、LINE Token、AES 私鑰或其他憑證。
 - GitHub 模擬測試通過 ≠ 真實 Google Sheets 寫入成功；桌面版能否直接操作，取決於當時已連接的帳號、Work 或電腦操作授權。
+
+## 2026-10-30 本輪接續更新｜13 組離線回歸與多帳號檢查
+
+已逐組重新執行原 11 組 **223／223 項**，新增 NFC 動態 SUN 驗證契約 **20／20 項**及帳號／QA 工作簿唯讀預檢 **13／13 項**。合計 **13 組 256／256 項離線測試通過**；不是 Google Sheet／LINE／NFC 實機成功。已在 `staging/batch/package.json` 安排 13 組的 npm test 測試指令。
+
+本輪新增 `staging/batch/V2_BatchNFCDynamicGate.js`／`.test.js`：必須由真正伺服器 AES SDM 驗證器確認 SUN，才允許用 read counter 防重播。NFC 仍為 disabled，沒有金鑰，無實體標籤實測，合法且尚未使用的 SUN 網址有即時轉送風險。
+
+本輪新增 `staging/batch/V2_BatchQAOwnerPreflight_READONLY_NOT_DEPLOYED.gs`／`.test.js`：未安裝、不會寫入，未來只有選對 TEST001 技術 QA 的 Google 帳號、feature flag disabled 和正確 8 欄技術流水時才顯示預檢通過，避免網站多個 Google 帳號切換而誤操作。若 QA 技術工作簿未建立，函式會安全報未配置，不能拿其他同名帳本代替。
+
+開始桌面／Work 接手時，先唯讀查核 GitHub 分支、正確 Google 帳號、QA 工作簿身分、既有 TEST001 GPS 第 2 版與 V4 disabled，再按 A～E 驗收。原正式資料禁止修改、原測試資料禁止刪除，寫入不明時先查原單號。
