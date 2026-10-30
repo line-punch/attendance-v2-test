@@ -119,3 +119,11 @@ QA Pages 提交 5741886fc7598afde1fce0e2ac8badec763a51c6，來源 feature 提交
 
 新增合成補打卡後，再以真實 QA 查詢 MY_CLOCKS，正常月表仍僅 10/30／18:14:47／18:28:13；沒有 10/29 的 17:31 補打卡。證據 evidence/qa-normal-after-auto-missing.txt。
 
+## 最新真實 QA 下載、平面匯出與備份讀回
+
+已從正確隔離 QA 工作簿重新直接下載 evidence/QA_CloudRecords_Latest_20261030.xlsx，未更動共用權限。唯讀讀取確認技術流水 5 列、正常 GPS 打卡 2 列。以既有匯出模組驗證流水雜湊與版本後，產出 evidence/operational-export-latest/clock.csv（2）、leaves.csv（3）、missing.csv（2）。跨月假單是同一原單，匯出不重複；補打卡原單沒有進入正常打卡。
+
+package_qa_export.py 再驗證 CSV BOM、欄數、TEST001／TEST_CO 隔離、各原 ID 與下載快照完整對上、無重複 ID，將來源 xlsx／三 CSV／README／SHA-256 manifest 打包為 evidence/QA_Excel_Handoff_20261030.zip。ZIP CRC 檢查及內部各檔解壓讀回雜湊均通過。不是雲端還原測試、不是使用者既有 Excel 匯入成功。
+
+已向使用者索取三類 Excel 匯入欄位名稱與順序（不需員工資料）；尚未收到之前保留候選欄位，不改既有 Excel、不推定薪資公式。另已提供新版 iPhone 唯讀驗收步驟：三頁與 11／12 月，不要求再打卡或送件。A～E 表已更新並保留 HR 真角色／通知／Android／斷線及實體 NFC 未完成狀態。本輪沒有新增雲端資料，QA 寫入仍 disabled。
+
