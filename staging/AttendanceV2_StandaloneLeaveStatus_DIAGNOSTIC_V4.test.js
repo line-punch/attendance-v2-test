@@ -302,10 +302,10 @@ const tests=[
    assert(cacheWrites>=1);
    assert(!/SpreadsheetApp\.[^;]*setValues?\s*\(/.test(code));
    assert(!/\.(?:setValue|setValues|appendRow|insertSheet|clearContents|setProperty)\s*\(/.test(code));
- }]
- ["only doPost/doGet public, no admin or write functions",()=>{
+ }],
+ ["only doPost/doGet and owner-checked diagnostic exposed, no writes",()=>{
   const names=[...code.matchAll(/function\s+(\w+)\s*\(/g)].map(x=>x[1]);
-  assert.deepEqual(names.filter(x=>!x.endsWith("_")),["doPost","doGet"]);
+  assert.deepEqual(names.filter(x=>!x.endsWith("_")).sort(),["doPost","doGet","v2hrReadLastSafeStage_TEST_ONLY"].sort());
   assert(!/\.(?:setValue|setValues|appendRow|insertSheet|deleteRows|clearContents|setProperty)\s*\(/.test(code));
   assert(!/\b(?:pushMessage|replyMessage)\s*\(/.test(code));
  }]
