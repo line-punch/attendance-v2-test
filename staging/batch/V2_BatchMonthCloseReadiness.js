@@ -15,7 +15,8 @@ function evaluate({month,today,principal,calendarConfirmed=false,
  specialEventsConfirmed=false,pendingApprovals=0,
  backupReady=false,employeeDays=[]}={}){
  const issues=[];
- if(!principal||principal.verified!==true||principal.role!=="HR_OWNER")
+ if(!principal||principal.verified!==true||principal.role!=="HR_OWNER"||
+    typeof principal.company!=="string"||!principal.company)
   return {ok:false,code:"HR_ONLY"};
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(month||""))||
     !parseDay(month+"-01")||!parseDay(today))
@@ -29,11 +30,12 @@ function evaluate({month,today,principal,calendarConfirmed=false,
  if(backupReady!==true)issues.push("BACKUP_NOT_CONFIRMED");
  if(!Array.isArray(employeeDays)||employeeDays.length>10000)
   return {ok:false,code:"SCANNED_ROWS_INVALID"};
+ if(employeeDays.length===0)issues.push("NO_RECONCILED_DAYS");
  let totals={scheduled:0,actualWorked:0,paidDisaster:0,
   daysRequiringHR:0,confirmedDays:0};
  const found=new Set();
  for(const d of employeeDays){
-  if(!d||typeof d.employeeId!=="string"||
+  if(!d||d.company!==principal.company||typeof d.employeeId!=="string"||
      !/^[A-Za-z0-9_-]{2,40}$/.test(d.employeeId)||
      !parseDay(d.date)||d.date.slice(0,7)!==month)
    return {ok:false,code:"INVALID_DAY_ROW"};
