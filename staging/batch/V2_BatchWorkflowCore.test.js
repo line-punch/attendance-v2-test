@@ -93,11 +93,11 @@ const scenarios=[
   assert.equal(r.ok,true);assert.equal(r.days,2);assert.equal(f.db().rows.length,0);
  }],
  ["approved holiday is blocked",async()=>{
-  const f=fixture();const r=await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-11-11"});
+  const f=fixture();const r=await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-11-11",endDate:"2026-11-11"});
   assert.equal(r.code,"NON_WORKDAY");assert.equal(f.db().rows.length,0);
  }],
  ["storm date needs HR and is blocked",async()=>{
-  const f=fixture();assert.equal((await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-11-12"})).code,"HR_REVIEW_REQUIRED");
+  const f=fixture();assert.equal((await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-11-12",endDate:"2026-11-12"})).code,"HR_REVIEW_REQUIRED");
  }],
  ["first leave transaction adds one row plus outbox event",async()=>{
   const f=fixture();const r=await f.call("LEAVE_REQUEST",REQS.leave);
