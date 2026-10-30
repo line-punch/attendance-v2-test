@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TEST001｜V2 整批驗收入口（未部署）</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{font-family:system-ui,"Microsoft JhengHei",sans-serif;background:#eef4f5;color:#263846}
+body{margin:0;padding:14px}main{max-width:650px;margin:auto}.panel{background:#fff;border-radius:14px;padding:18px;margin:12px 0}
+h1{font-size:22px;margin:0 0 12px}h2{font-size:18px;margin:0 0 10px}
+label{display:block;font-weight:600;margin-top:12px}
+input,select,textarea{width:100%;font:inherit;box-sizing:border-box;padding:10px;border:1px solid #c5d3d6;border-radius:8px}
+input[type=checkbox]{width:auto}button{font:inherit;background:#236c54;color:#fff;border:0;border-radius:8px;padding:10px;margin:8px 5px 4px 0;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}.note{background:#f3f5f7;padding:10px;border-left:3px solid #758b98}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f5;padding:12px;border-radius:10px}
+.small{font-size:13px;color:#667984}.pair{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+</style></head><body><main>
+<section class="panel"><h1>TEST001｜LINE 打卡 V2 集中測試</h1>
+<p class="note"><strong>尚未部署的 QA 候選頁。</strong>只可用獨立 TEST001 QA 後端與虛構測試帳號。不能使用正式打卡或原 GPS 第 2 版網址。真正送單前，必須確認 QA 安全開關及測試活頁簿隔離。</p>
+<button id="login">確認 TEST001 LINE 登入</button>
+<p id="identity" role="status">尚未登入 LINE</p>
+<label>新的獨立 QA Web App /exec 網址
+<input id="endpoint" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"></label>
+<label><input id="confirmed" type="checkbox"> 已核對這是獨立 QA 部署，非正式或 GPS 服務</label>
+<p class="small">不儲存完整網址或 LINE ID Token；只在此頁使用。送出結果不明時，保留同一申請編號先查詢。</p>
+</section>
+<section class="panel"><h2>員工請假：預檢、送單、回查</h2>
+<div class="pair">
+<label>開始日期<input id="start" type="date" value="2026-11-09"></label>
+<label>結束日期<input id="end" type="date" value="2026-11-10"></label>
+</div>
+<label>假別<select id="leaveType"><option>事假</option><option>病假</option><option>特休</option><option>公假</option><option>婚假</option><option>喪假</option></select></label>
+<label>申請單位<select id="unit"><option value="DAY">全天／連續多日</option><option value="HOURS">單日指定時數</option></select></label>
+<div class="pair">
+<label>開始時間<input id="fromTime" type="time" value="09:00"></label>
+<label>結束時間<input id="toTime" type="time" value="11:00"></label>
+</div>
+<label>請假原因（僅測試）<textarea id="reason">TEST001 虛構請假</textarea></label>
+<label>原申請編號（保留以便查詢）<input id="requestId" autocomplete="off" spellcheck="false"></label>
+<button id="newId" type="button">產生測試申請編號</button>
+<button id="preview" type="button">請假日期預檢（唯讀）</button>
+<button id="leaveStatus" type="button">查原請假單（唯讀）</button>
+<button id="submitLeave" type="button">送出 TEST001 測試假單</button>
+</section>
+<section class="panel"><h2>忘記打卡與狀態</h2>
+<div class="pair"><label>日期<input id="missingDate" type="date" value="2026-10-30"></label>
+<label>時間<input id="missingTime" type="time" value="08:30"></label></div>
+<label>上班／下班<select id="missingType"><option>上班</option><option>下班</option></select></label>
+<label>原因<input id="missingReason" value="TEST001 虛構忘打卡"></label>
+<button id="submitMissing" type="button">送出 TEST001 補打卡</button>
+<button id="missingStatus" type="button">查原補打卡單（唯讀）</button>
+</section>
+<section class="panel"><h2>本人紀錄／測試人資</h2>
+<label>請假月份（本月與前兩個月）<input id="month" type="month" value="2026-10"></label>
+<button id="myLeaves" type="button">查本人請假（唯讀）</button>
+<button id="hrPending" type="button">人資待審核（需測試人資身分）</button>
+<label>欲審核的原申請編號<input id="hrRequestId" autocomplete="off"></label>
+<button id="hrApprove" type="button">人資核准（測試）</button>
+<button id="hrReject" type="button">人資駁回（測試）</button>
+</section>
+<section class="panel">
+<label><input id="writeConsent" type="checkbox"> 確認後端僅寫入獨立 QA 技術流水，且 QA 寫入開關已由管理者核准啟用</label>
+<p class="small">預設不允許寫入。若上次送單逾時或結果不明，會鎖定再次送單，請先用同一編號回查。</p>
+<h2>執行回饋</h2><pre id="result" role="status">未發送任何請求。</pre>
+</section>
+</main>
+<script src="./app.js"></script></body></html>
