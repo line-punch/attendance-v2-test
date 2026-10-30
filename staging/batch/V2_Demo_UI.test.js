@@ -6,10 +6,14 @@ const html=fs.readFileSync(path.join(base,"demo/index.html"),"utf8");
 const app=fs.readFileSync(path.join(base,"demo/app.js"),"utf8");
 const rules=require("./V2_BatchRules.js"),state=require("./V2_DemoState.js");
 function el(id){
- return {id,value:"",textContent:"",hidden:false,disabled:false,children:[],listeners:{},attrs:{},
+ const x={id,value:"",hidden:false,disabled:false,children:[],listeners:{},attrs:{},
   addEventListener(name,cb){(this.listeners[name]||(this.listeners[name]=[])).push(cb);},
   setAttribute(n,v){this.attrs[n]=v;},removeAttribute(n){delete this.attrs[n];},
   appendChild(child){this.children.push(child);},dataset:{}};
+ let raw="";
+ Object.defineProperty(x,"textContent",{get(){return raw;},
+  set(v){raw=String(v);x.children=[];}});
+ return x;
 }
 const ids=["clock","missing","history","leave","clockIn","clockOut","clockCheck",
  "missDate","missTime","missType","missReason","missSend","missResult",
