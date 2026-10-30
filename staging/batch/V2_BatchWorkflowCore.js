@@ -87,9 +87,9 @@ function summary(row){
     endDate:row.body.endDate,unit:row.body.unit
   }:{date:row.body.date,type:row.body.type,time:row.body.time})};
 }
-function fingerprint(kind,employeeId,data){
+function fingerprint(kind,employeeId,company,data){
  // Deterministic semantic comparison. This is NOT a cryptographic signature.
- return JSON.stringify([kind,employeeId,data]);
+ return JSON.stringify([kind,employeeId,company,data]);
 }
 function create({identity,store,calendar,clock,flags={}}={}){
  if(!identity||typeof identity.verify!=="function"||
@@ -116,8 +116,9 @@ function create({identity,store,calendar,clock,flags={}}={}){
    // Repeat identical calendar validation under the actual write lock.
    return store.transaction(async tx=>{
     const old=await tx.find(parsed.data.requestId);
-    const fp=fingerprint("LEAVE",p.employeeId,parsed.data);
-    if(old)return old.fingerprint===fp&&old.employeeId===p.employeeId?
+    const fp=fingerprint("LEAVE",p.employeeId,p.company,parsed.data);
+    if(old)return old.fingerprint===fp&&old.employeeId===p.employeeId&&
+      old.company===p.company?
       {ok:true,duplicate:true,request:summary(old)}:err("REQUEST_ID_CONFLICT");
     let v;
     try{v=await calendar.validateLeave(parsed.data,p,clock.today());}
@@ -140,8 +141,9 @@ function create({identity,store,calendar,clock,flags={}}={}){
    const parsed=cleanMissed(payload);if(!parsed.ok)return parsed;
    return store.transaction(async tx=>{
     const old=await tx.find(parsed.data.requestId);
-    const fp=fingerprint("MISSING",p.employeeId,parsed.data);
-    if(old)return old.fingerprint===fp&&old.employeeId===p.employeeId?
+    const fp=fingerprint("MISSING",p.employeeId,p.company,parsed.data);
+    if(old)return old.fingerprint===fp&&old.employeeId===p.employeeId&&
+      old.company===p.company?
       {ok:true,duplicate:true,request:summary(old)}:err("REQUEST_ID_CONFLICT");
     const row={kind:"MISSING",employeeId:p.employeeId,company:p.company,
       requestId:parsed.data.requestId,body:parsed.data,fingerprint:fp,
