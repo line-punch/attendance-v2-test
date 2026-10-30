@@ -223,3 +223,15 @@ V3 原模擬回歸及新增安全記錄驗證 `AttendanceV2_StandaloneLeaveStatu
 下一階段只做一次真實 TEST001 唯讀查詢：在**新獨立** GAS `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 短暫設 `V2HR_READONLY_TEST_ENABLED=enabled`，於手機 LINE 的 `leave-status-diagnostic` 頁使用**新 V4 部署** `/exec` 按一次固定單號的唯讀查詢；無論成功或逾時，立刻改回 `disabled`，並於 10 分鐘內在新專案編輯器執行 `v2hrReadLastSafeStage_TEST_ONLY`，只回報安全 `stage` 和時間。預期可能 `LINE_VERIFY`、`IDENTITY_BOUND_ACCOUNT_DENIED`、`MOCK_LEAVE`、`MOCK_FOUND`，不提前猜測。
 
 新部署與正式打卡、舊 TEST001 GPS 第 2 版、原正式 Google Sheet/薪資均維持不動。不要重複按請求、不要展示完整 `/exec` 網址、LINE Token、員工 LINE ID 或試算表 ID。
+
+## 2026-10-30 12:46｜iPhone LINE → V4 TEST001 唯讀假單查詢實機成功
+
+使用者提供 iPhone LINE 內建瀏覽器 12:46 螢幕截圖，顯示 `TEST001｜假單查詢回覆診斷`，登入狀態 `已登入測試 LINE`、安全測試勾選框已勾選，底部**成功結果**：`✅ 查到 TEST001 原模擬假單一筆，狀態：待審核（測試）。`。
+
+可依此確認**手機 LINE LIFF → 新獨立 V4 GAS `/exec` 的經 LINE ID Token 驗證 → 受保護 TEST001 員工綁定 → 固定虛構假單資料讀取 → 手機接收合格回覆**首次完整唯讀實機 PASS。這是 TEST001 固定模擬單號，**不代表真實員工請假送單、主管審核、LINE 推播、正式薪資或正式系統已完成**。
+
+上一階段 V4 `disabled` 匿名測試，後端快取 `SETTINGS` 已由擁有人實機讀回；此次手機已能回傳明確 `MOCK_FOUND` 意義的可見成功結果，**不需要為了證明畫面已成功而再次送出同一查詢**。
+
+安全措施：使用者下一動作是立即將新獨立 GAS 專案 `V2HR_READONLY_TEST_ENABLED` 改回 `disabled` 並儲存。不改或重新部署原 GPS 打卡 V2／正式系統，不刪測試資料。若還在 10 分鐘內，管理者可選擇唯讀執行 `v2hrReadLastSafeStage_TEST_ONLY` 補充核對 `MOCK_FOUND`，但不是驗證手機成功所必需；不要為過期快取重送。
+
+下一開發方向：以此成功的獨立身分驗證與安全唯讀回覆路徑為基礎，規劃**多筆、本人、已核准／待審核／駁回**假單查詢，再分階段測試真正請假送單、主管審核／通知。嚴格保持正式 SSO/LINE 打卡與 TEST001 GPS 原部署不變。
