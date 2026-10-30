@@ -7,6 +7,8 @@ const core=require("./V2_BatchWorkflowCore.js");
 const staff={source:"VERIFIED_SERVER_BINDING",employeeId:"TEST001",company:"TEST_CO",active:true,role:"STAFF"};
 const other={...staff,employeeId:"TEST002"};
 const hr={...staff,employeeId:"HR_TEST",role:"HR_OWNER"};
+const otherCompanyHr={...hr,employeeId:"HR_OTHER",company:"OTHER_CO"};
+const sameIdOtherCompany={...staff,company:"OTHER_CO"};
 const REQS={
  leave:{requestId:"REQ_LEAVE_20261030_AAA",leaveType:"事假",startDate:"2026-11-09",
   endDate:"2026-11-10",unit:"DAY",reason:"純合成申請"},
@@ -51,6 +53,8 @@ function fixture(){
     if(token==="STAFF")return staff;
     if(token==="OTHER")return other;
     if(token==="HR")return hr;
+    if(token==="OTHER_HR")return otherCompanyHr;
+    if(token==="SAME_ID_OTHER_COMPANY")return sameIdOtherCompany;
     if(token==="INACTIVE")return {...staff,active:false};
     throw Error("Invalid synthetic auth token");
   }},
@@ -190,6 +194,31 @@ const scenarios=[
   const f=fixture();await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-10-29",endDate:"2026-10-30"});
   const r=await f.call("MY_LEAVES",{month:"2026-10"});
   assert(!JSON.stringify(r).includes("純合成申請"));
+ }],
+
+ ["HR cannot see another company pending work",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
+  const r=await f.call("HR_PENDING",{},"OTHER_HR");
+  assert.equal(r.ok,true);assert.equal(r.pending.length,0);
+ }],
+ ["other company HR cannot review TEST_CO leave even with guessed request ID",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
+  const r=await f.call("HR_REVIEW",{requestId:REQS.leave.requestId,
+    decision:"APPROVE"},"OTHER_HR");
+  assert.equal(r.code,"NOT_FOUND");
+  assert.equal(f.db().rows[0].status,"PENDING");
+ }],
+ ["same employee ID in different company cannot read leave status",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
+  const r=await f.call("LEAVE_STATUS",{requestId:REQS.leave.requestId},
+    "SAME_ID_OTHER_COMPANY");
+  assert.equal(r.code,"NOT_FOUND");
+ }],
+ ["same employee ID in different company does not see my history",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",
+    {...REQS.leave,startDate:"2026-10-30",endDate:"2026-10-30"});
+  const r=await f.call("MY_LEAVES",{month:"2026-10"},"SAME_ID_OTHER_COMPANY");
+  assert.equal(r.total,0);
  }],
  ["no new public web handlers or Google Sheets writes",async()=>{
   const fs=require("node:fs"),path=require("node:path");
