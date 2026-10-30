@@ -8,7 +8,7 @@ const TOKEN="QA_FAKE_LINE_ID_TOKEN_NEVER_REAL";
 function make(options={}){
  const params={login:true,origin:"https://script.googleusercontent.com",...options};
  let events=new Map(),posts=[],results=[],timerCalls=0;
- let stored=new Map();
+ let stored=options.stored||new Map();
  function elem(id){
   return {id,value:"",checked:false,disabled:false,textContent:"",
    listeners:{},children:[],style:{},name:"",
@@ -150,10 +150,54 @@ const tests=[
   const x=make();await x.authReady();await x.click("newId");
   x.results.push({ok:false,code:"UNKNOWN",persisted:null});
   await x.click("submitLeave");
-  x.results.push({ok:true,result:{request:{status:"PENDING"}}});
+  x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,status:"PENDING"}}});
   await x.click("leaveStatus");
-  await x.click("newId");assert(x.dom.requestId.value.startsWith("QA_"));
+  await x.click("submitLeave");
+  assert.equal(x.posts.length,3);
+ }],
+ ["unknown write remains locked after page reload",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  const original=x.dom.requestId.value;
+  x.results.push({ok:false,code:"UNKNOWN",persisted:null});
+  await x.click("submitLeave");
+  const y=make({stored:x.stored});await y.authReady();
+  assert.equal(y.dom.requestId.value,original);
+  await y.click("submitLeave");await y.click("newId");
+  assert.equal(y.posts.length,0);assert.equal(y.dom.requestId.value,original);
+ }],
+ ["another request readback cannot unlock the original unknown write",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  x.results.push({ok:false,code:"UNKNOWN",persisted:null});await x.click("submitLeave");
+  x.dom.requestId.value="QA_ANOTHER_REQUEST_0001";
+  x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,status:"PENDING"}}});
+  await x.click("leaveStatus");await x.click("submitLeave");
   assert.equal(x.posts.length,2);
+ }],
+ ["wrong operation readback cannot unlock a pending leave",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  x.results.push({ok:false,code:"UNKNOWN",persisted:null});await x.click("submitLeave");
+  x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,status:"PENDING"}}});
+  await x.click("missingStatus");await x.click("submitLeave");
+  assert.equal(x.posts.length,2);
+ }],
+ ["local validation failure permits corrected first submission",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  x.dom.writeConsent.checked=false;await x.click("submitLeave");
+  x.dom.writeConsent.checked=true;await x.click("submitLeave");
+  assert.equal(x.posts.length,1);
+ }],
+ ["explicit no-write response permits another attempt",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  x.results.push({ok:false,code:"DISABLED",persisted:false});await x.click("submitLeave");
+  await x.click("submitLeave");assert.equal(x.posts.length,2);
+ }],
+ ["HR unknown reload restores actual HR request and blocks another review",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  x.dom.hrRequestId.value="QA_HR_REVIEW_REQUEST_0001";
+  x.results.push({ok:false,code:"UNKNOWN",persisted:null});await x.click("hrApprove");
+  const y=make({stored:x.stored});await y.authReady();
+  assert.equal(y.dom.hrRequestId.value,"QA_HR_REVIEW_REQUEST_0001");
+  await y.click("hrApprove");assert.equal(y.posts.length,0);
  }],
  ["untrusted origin never marks a request confirmed",async()=>{
   const x=make({origin:"https://evil.example"});await x.authReady();
