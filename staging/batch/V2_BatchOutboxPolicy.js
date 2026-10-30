@@ -19,8 +19,9 @@
  function idempotencyKey(e){
   if(!e||!TYPES.includes(e.type)||typeof e.requestId!=="string"||
      !/^[A-Za-z0-9_-]{12,80}$/.test(e.requestId))return null;
-  if(e.type==="REVIEWED"&&!["APPROVED","REJECTED"].includes(e.status))return null;
-  return e.type+"|"+e.requestId+"|"+(e.type==="REVIEWED"?e.status:"PENDING");
+  const decision=e.reviewStatus||e.status;
+  if(e.type==="REVIEWED"&&!["APPROVED","REJECTED"].includes(decision))return null;
+  return e.type+"|"+e.requestId+"|"+(e.type==="REVIEWED"?decision:"PENDING");
  }
  function make(entry,nowISO){
   const now=date(nowISO),key=idempotencyKey(entry);
@@ -38,7 +39,9 @@
   if(event.state==="SENT"||event.state==="DEAD"||event.state==="UNCERTAIN")
     return fail("NOT_RETRYABLE");
   if(event.attempts>=MAX_ATTEMPTS)return fail("ATTEMPT_LIMIT");
+  if(event.state==="PENDING"&&date(event.dueAt)===null)return fail("INVALID_EVENT");
   if(event.state==="PENDING"&&now<date(event.dueAt))return fail("NOT_DUE");
+  if(event.state==="CLAIMED"&&date(event.leaseUntil)===null)return fail("INVALID_EVENT");
   if(event.state==="CLAIMED"&&now<date(event.leaseUntil))return fail("LEASE_ACTIVE");
   if(!idempotencyKey(event)||event.eventKey!==idempotencyKey(event))
     return fail("IDEMPOTENCY_KEY_MISMATCH");
