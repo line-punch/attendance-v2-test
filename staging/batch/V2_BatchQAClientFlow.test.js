@@ -66,8 +66,9 @@ function make(options={}){
  const win={V2_QA_LIFF_ID:options.liffId??"2012136707-QAOFFLINETEST",crypto:{getRandomValues:arr=>{randomSeed++;for(let i=0;i<arr.length;i++)arr[i]=(i+randomSeed)%256;return arr}},
   addEventListener:(ev,fn)=>{events.set(ev,[...(events.get(ev)||[]),fn])},
   removeEventListener:(ev,fn)=>{events.set(ev,(events.get(ev)||[]).filter(f=>f!==fn))}};
- const liff={init:async()=>{},isLoggedIn:()=>params.login,
-  getIDToken:()=>params.login?TOKEN:null,login(){}};
+ const liff={init:async()=>{},isLoggedIn:()=>params.login,isInClient:()=>!!params.inClient,
+  getIDToken:()=>params.login?TOKEN:null,login(){params.loginCalls=(params.loginCalls||0)+1},
+  logout(){params.logoutCalls=(params.logoutCalls||0)+1;params.login=false}};
  const URLMock=class{
   constructor(text){
    const m=/^(https?):\/\/([^/]+)(\/[^?#]*)?(\?[^#]*)?(#.*)?$/.exec(text);
@@ -93,6 +94,18 @@ function make(options={}){
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["server auth rejection requires a fresh external login and never repeats the rejected operation",async()=>{
+  const x=make();await x.authReady();x.results.push({ok:false,code:"AUTH",persisted:false});
+  await x.click("myClocks");assert(x.dom.identity.textContent.includes("重新登入"));
+  await x.click("myClocks");assert.equal(x.posts.length,1);
+  await x.click("login");assert.equal(x.params.logoutCalls,1);assert.equal(x.params.loginCalls,1);
+  assert.equal(x.posts.length,1);
+ }],
+ ["LIFF browser auth rejection asks to reopen instead of calling external login",async()=>{
+  const x=make({inClient:true});await x.authReady();x.results.push({ok:false,code:"AUTH",persisted:false});
+  await x.click("myClocks");await x.click("login");assert.equal(x.params.loginCalls,undefined);
+  assert(x.dom.feedback.textContent.includes("關閉此視窗"));assert.equal(x.posts.length,1);
+ }],
  ["an old saved ID is not reused for a new form and switching workflows gets a separate draft",async()=>{
   const old="QA_OLDER_CONFIRMED_REQUEST_0001";
   const x=make({stored:new Map([["v2_batch_qa_request_id",old]])});await x.authReady();

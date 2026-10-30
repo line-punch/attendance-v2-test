@@ -306,6 +306,10 @@ async function execute(op,{write=false,decision=null}={}){
   status("操作執行中；請勿重複點擊。\n原申請編號："+(args.requestId||"無"),"busy");
   const response=await post(endpoint,op,token,args);
   if(response.ok!==true){
+   if(response.code==="AUTH"){
+    loggedIn=false;$("identity").textContent="LINE 驗證未通過，請重新登入後再查詢。";
+    $("login").textContent="重新登入 LINE";
+   }
    if(write&&(response.code==="UNKNOWN"||response.persisted===null))
     unknownWrite=true;
    else if(write&&response.persisted===false)rememberWrite(null);
@@ -320,7 +324,7 @@ async function execute(op,{write=false,decision=null}={}){
     CALENDAR_OR_EVENT_REVIEW_REQUIRED:"該日期的行事曆或停班事件仍須人資核對，暫不能送件。",
     LEAVE_HOURS_INVALID:"指定時數只能申請單日，且結束時間須晚於開始時間。",
     LEAVE_DATES_INVALID:"請檢查開始與結束日期，結束日期不可早於開始日期。"};
-   status("QA 回覆："+String(response.code||"UNKNOWN")+
+   status((response.code==="AUTH"?"LINE 驗證未通過，請按「重新登入 LINE」。":"QA 回覆："+String(response.code||"UNKNOWN"))+
     "\n"+(response.persisted===null?"結果不明，請保留原編號查詢。":
       messages[response.reason]||(response.code==="DISABLED"?"QA 寫入尚未開放，本次未寫入。":"本次未確認成功。"))+
     "\n原申請編號："+(args.requestId||"無"),response.persisted===null?"unknown":"error");
@@ -376,7 +380,11 @@ async function init(){
  }catch(e){loggedIn=false;$("identity").textContent=String(e.message||e)}
 }
 onAction("login",async()=>{
- if(typeof liff!=="undefined"&&!liff.isLoggedIn()){
+ if(typeof liff!=="undefined"&&(!loggedIn||!liff.isLoggedIn())){
+  if(typeof liff.isInClient==="function"&&liff.isInClient()){
+   status("請關閉此視窗，再從 LINE 開啟 QA 入口以重新登入；尚未自動重送任何申請。");return;
+  }
+  if(liff.isLoggedIn()&&typeof liff.logout==="function")liff.logout();
   status("正在開啟 LINE 登入，請完成登入確認。","busy");liff.login();return;
  }
  await init();
