@@ -123,8 +123,13 @@ function create({identity,store,calendar,clock,flags={}}={}){
     try{v=await calendar.validateLeave(parsed.data,p,clock.today());}
     catch(_){return err("CALENDAR_UNVERIFIED");}
     if(!v.ok)return err(v.code||"CALENDAR_UNVERIFIED");
+    // Calendar-verified days belong in the durable record, not guessed
+    // from the browser or later inferred from the date range.
+    if(!Number.isInteger(v.workingDays)||v.workingDays<1||v.workingDays>31)
+      return err("CALENDAR_DAY_COUNT_UNVERIFIED");
     const row={kind:"LEAVE",employeeId:p.employeeId,company:p.company,
-      requestId:parsed.data.requestId,body:parsed.data,fingerprint:fp,
+      requestId:parsed.data.requestId,
+      body:{...parsed.data,workingDays:v.workingDays},fingerprint:fp,
       status:"PENDING",submittedAt:clock.today()};
     await tx.create(row);
     await tx.outbox({type:"LEAVE_SUBMITTED",requestId:row.requestId});
