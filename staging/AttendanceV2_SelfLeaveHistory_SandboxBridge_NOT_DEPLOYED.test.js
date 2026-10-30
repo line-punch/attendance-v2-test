@@ -76,7 +76,7 @@ const tests=[
  }],
  ["malformed or missing month blocked",()=>{
   assert.throws(()=>api(lineId,{month:"2026/10"}),/期間未通過核對/);
-  assert.throws(()=>api(lineId,{}),/未授權欄位/);
+  assert.throws(()=>api(lineId,{}),/未授權/);
  }],
  ["extra older month blocked",()=>{
   assert.throws(()=>api(lineId,{month:"2026-05"}),/期間未通過核對/);
