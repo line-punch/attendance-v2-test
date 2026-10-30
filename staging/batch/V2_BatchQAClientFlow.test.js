@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(__dirname,"qa-client/index.html"),"utf8");
 const TOKEN="QA_FAKE_LINE_ID_TOKEN_NEVER_REAL";
 function make(options={}){
  const params={login:true,origin:"https://script.googleusercontent.com",...options};
- let events=new Map(),posts=[],results=[],timerCalls=0;
+ let events=new Map(),posts=[],results=[],pendingResponses=[],timerCalls=0;
  let stored=options.stored||new Map();
  function elem(id){
   return {id,value:"",checked:false,disabled:false,textContent:"",
@@ -18,15 +18,16 @@ function make(options={}){
    submit(){
     const fields=Object.fromEntries(this.children.map(x=>[x.name,x.value]));
     posts.push(fields);
-    Promise.resolve().then(()=>{
+    const deliver=()=>{
      const data=results.length?results.shift():{ok:true,result:{ok:true,readOnly:true}};
      const event={origin:params.origin,data:{
        bridge:"YC_V2_BATCH_QA_V1",nonce:fields.nonce,...data
      }};
      for(const fn of events.get("message")||[])fn(event);
-    });
+    };
+    if(params.defer)pendingResponses.push(deliver);else Promise.resolve().then(deliver);
    },
-   setAttribute(){}
+   attributes:{},setAttribute(key,value){this.attributes[key]=value;}
   };
  }
  const ids=["login","identity","endpoint","confirmed","start","end","leaveType",
@@ -35,7 +36,7 @@ function make(options={}){
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
  "hrApprove","hrReject","hrStatus","writeConsent","result","myMissing","missingHistory","leaveHistory",
  "currentLeaves","navClock","navLeave","navMissing","navHr","pageClock","pageLeave","pageMissing","pageHr",
- "clockIn","clockOut","clockStatus","myClocks","clockHistory"];
+ "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});
@@ -56,7 +57,8 @@ function make(options={}){
   getElementById:id=>{if(!dom[id])throw Error("missing "+id);return dom[id]},
   querySelectorAll:()=>ids.filter(id=>["login","newId","preview","leaveStatus",
    "submitLeave","submitMissing","missingStatus","myLeaves","hrPending",
-   "hrApprove","hrReject","hrStatus"].includes(id)).map(id=>dom[id]),
+   "hrApprove","hrReject","hrStatus","clockIn","clockOut","clockStatus","myClocks",
+   "currentLeaves","myMissing","navClock","navLeave","navMissing","navHr"].includes(id)).map(id=>dom[id]),
   createElement:tag=>elem(tag),
   body:{appendChild(){}}
  };
@@ -86,10 +88,43 @@ function make(options={}){
   const returned=fn();if(returned&&typeof returned.then==="function")await returned;
   await Promise.resolve();await Promise.resolve();
  }
- return {click,dom,posts,results,stored,params,events,
+ return {click,dom,posts,results,stored,params,events,release:()=>pendingResponses.shift()(),
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["all actions show busy feedback, block double clicks and restore their labels",async()=>{
+  const x=make({defer:true});await x.authReady();await x.click("newId");x.dom.preview.textContent="日期預檢";
+  const first=x.click("preview");await Promise.resolve();
+  assert.equal(x.dom.preview.textContent,"處理中…");assert.equal(x.dom.preview.attributes["aria-busy"],"true");
+  assert.equal(x.dom.login.disabled,true);assert.equal(x.dom.submitLeave.disabled,true);
+  assert.equal(x.dom.feedback.attributes["data-phase"],"busy");
+  await x.click("preview");assert.equal(x.posts.length,1);
+  x.release();await first;
+  assert.equal(x.dom.preview.textContent,"日期預檢");assert.equal(x.dom.preview.attributes["aria-busy"],"false");
+  assert.equal(x.dom.preview.disabled,false);assert.equal(x.dom.feedback.attributes["data-phase"],"success");
+ }],
+ ["unknown write disables new writes while original readback stays available and unlocks them",async()=>{
+  const x=make();await x.authReady();await x.click("newId");
+  x.results.push({ok:false,code:"UNKNOWN",persisted:null});await x.click("submitLeave");
+  assert.equal(x.dom.submitLeave.disabled,true);assert.equal(x.dom.clockOut.disabled,true);
+  assert.equal(x.dom.leaveStatus.disabled,false);assert.equal(x.dom.feedback.attributes["data-phase"],"unknown");
+  x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,status:"PENDING"}}});
+  await x.click("leaveStatus");assert.equal(x.dom.submitLeave.disabled,false);assert.equal(x.dom.clockOut.disabled,false);
+ }],
+ ["empty normal month shows a clear empty message without generating dates",async()=>{
+  const x=make();await x.authReady();x.results.push({ok:true,result:{month:"2026-10",days:[]}});
+  await x.click("myClocks");assert.equal(x.dom.clockHistory.children.length,1);
+  assert.equal(x.dom.clockHistory.children[0].children[0].textContent,"本月尚無正常打卡紀錄。");
+ }],
+ ["normal month shows sorted data dates only, including a clock-out-only date",async()=>{
+  const x=make();await x.authReady();x.results.push({ok:true,result:{month:"2026-10",days:[
+   {date:"2026-10-30",clockIn:"18:14:47",clockOut:"18:28:13"},
+   {date:"2026-10-31",clockIn:"",clockOut:""},
+   {date:"2026-10-02",clockIn:"",clockOut:"17:30:00"}
+  ]}});await x.click("myClocks");const rows=x.dom.clockHistory.children;
+  assert.equal(rows.length,2);assert.deepEqual(rows[0].children.map(c=>c.textContent),["2026-10-02","","17:30:00"]);
+  assert.deepEqual(rows[1].children.map(c=>c.textContent),["2026-10-30","18:14:47","18:28:13"]);
+ }],
  ["confirmed duplicate GPS rejection explains existing attendance and releases pending lock",async()=>{
   const x=make();await x.authReady();x.results.push({ok:false,code:"REJECTED",reason:"ALREADY_CLOCKED",persisted:false});
   await x.click("clockIn");assert(x.dom.result.textContent.includes("今天已有同類型"));
@@ -113,8 +148,8 @@ const tests=[
   const x=make();await x.authReady();x.results.push({ok:true,result:{month:"2026-10",
    days:[{date:"2026-10-02",clockIn:"08:30:00",clockOut:""}]}});
   await x.click("myClocks");assert.equal(x.posts[0].operation,"MY_CLOCKS");
-  const rows=x.dom.clockHistory.children;assert.equal(rows.length,31);
-  assert.deepEqual(rows[1].children.map(c=>c.textContent),["2026-10-02","08:30:00",""]);
+  const rows=x.dom.clockHistory.children;assert.equal(rows.length,1);
+  assert.deepEqual(rows[0].children.map(c=>c.textContent),["2026-10-02","08:30:00",""]);
   assert.equal(rows[0].children.length,3);assert.equal(x.dom.missingHistory.children.length,0);
  }],
  ["four employee pages switch locally without sending requests",async()=>{

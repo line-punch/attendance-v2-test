@@ -5,7 +5,32 @@ const LIFF_ID=String(window.V2_QA_LIFF_ID||"");
 const BRIDGE="YC_V2_BATCH_QA_V1";
 const $=id=>document.getElementById(id);
 if(window.V2_QA_ENDPOINT){$("endpoint").value=window.V2_QA_ENDPOINT;$("endpoint").readOnly=true;}
-let loggedIn=false,busy=false,pendingWrite=null;
+let loggedIn=false,busy=false,uiBusy=false,pendingWrite=null;
+const writeButtons=new Set(["clockIn","clockOut","submitLeave","submitMissing","hrApprove","hrReject","newId"]);
+function onAction(id,handler){
+ const button=$(id);
+ button.addEventListener("click",async()=>{
+  if(uiBusy||busy)return;
+  const label=button.textContent;
+  const buttons=Array.from(document.querySelectorAll("button"));
+  const previous=buttons.map(b=>b.disabled);
+  uiBusy=true;
+  buttons.forEach(b=>{b.disabled=true;});
+  button.textContent="處理中…";
+  button.setAttribute("aria-busy","true");button.setAttribute("data-state","busy");
+  const progress="正在處理「"+label+"」，請稍候…";
+  status(progress,"busy");
+  try{await handler();if($("feedback").textContent===progress)
+   status(unknownWrite?"仍有待核對的原申請，請先回查。":"已完成："+label,unknownWrite?"unknown":"success");}
+  catch(e){status("⚠️ "+String(e&&e.message||e),"error");}
+  finally{
+   uiBusy=false;button.textContent=label;
+   button.setAttribute("aria-busy","false");button.setAttribute("data-state","idle");
+   buttons.forEach((b,i)=>{b.disabled=(!writeButtons.has(b.id)&&previous[i])||!!(b.dataset&&b.dataset.unavailable==="true")||
+    (unknownWrite&&writeButtons.has(b.id));});
+  }
+ });
+}
 try{
  const saved=sessionStorage.getItem("v2_batch_qa_pending_write");
  if(saved)pendingWrite=JSON.parse(saved);
@@ -14,14 +39,18 @@ let unknownWrite=!!pendingWrite;
 let clockType=pendingWrite&&pendingWrite.type||"上班";
 const pages=["Clock","Leave","Missing","Hr"];
 for(const page of pages){
- $("nav"+page).addEventListener("click",()=>{
+ onAction("nav"+page,()=>{
   for(const name of pages){
    $("page"+name).hidden=name!==page;
    $("nav"+name).setAttribute("aria-pressed",String(name===page));
   }
  });
 }
-function status(t){$("result").textContent=t;}
+function status(t,phase="info"){
+ $("result").textContent=t;
+ $("feedback").textContent=String(t).split("\n")[0];
+ $("feedback").setAttribute("data-phase",phase);
+}
 function rememberWrite(value){
  // Persist BEFORE transmission; a reload must not permit a second write.
  sessionStorage.setItem("v2_batch_qa_pending_write",JSON.stringify(value));
@@ -42,7 +71,7 @@ if(pendingWrite){
  if(pendingWrite.operation==="HR_REVIEW")
   $("hrRequestId").value=pendingWrite.requestId||"";
  else $("requestId").value=pendingWrite.requestId||$("requestId").value;
- status("上次寫入尚未核對，請保留原編號並先回查："+(pendingWrite.requestId||"需管理者核對"));
+ status("上次寫入尚未核對，請保留原編號並先回查："+(pendingWrite.requestId||"需管理者核對"),"unknown");
 }
 function freshHex(byteCount){
  if(!window.crypto||typeof window.crypto.getRandomValues!=="function")
@@ -125,11 +154,16 @@ function renderClocks(result){
  if(!result||!/^\d{4}-(0[1-9]|1[0-2])$/.test(result.month)||!Array.isArray(result.days)){
   target.textContent="打卡紀錄回覆格式錯誤，請重新查詢。";return;
  }
- const [year,month]=result.month.split("-").map(Number);
- const count=new Date(Date.UTC(year,month,0)).getUTCDate();
- for(let n=1;n<=count;n++){
-  const date=result.month+"-"+String(n).padStart(2,"0");
-  const day=result.days.find(x=>x.date===date)||{};
+ const days=result.days.filter(day=>day&&typeof day.date==="string"&&
+  day.date.startsWith(result.month+"-")&&(day.clockIn||day.clockOut))
+  .sort((a,b)=>a.date.localeCompare(b.date));
+ if(!days.length){
+  const tr=document.createElement("tr"),td=document.createElement("td");
+  td.setAttribute("colspan","3");td.textContent="本月尚無正常打卡紀錄。";
+  tr.appendChild(td);target.appendChild(tr);return;
+ }
+ for(const day of days){
+  const date=day.date;
   const tr=document.createElement("tr");
   for(const value of [date,day.clockIn||"",day.clockOut||""]){
    const td=document.createElement("td");td.textContent=String(value);tr.appendChild(td);
@@ -216,7 +250,7 @@ async function execute(op,{write=false,decision=null}={}){
   }:op==="GPS_CLOCK"?{requestId:requestId(),type:clockType}:requestBody(op);
   if(op==="GPS_CLOCK"){
    busy=true;document.querySelectorAll("button").forEach(b=>{b.disabled=true});
-   status("正在取得新的 GPS 定位，尚未送出打卡…");
+   status("正在取得新的 GPS 定位，尚未送出打卡…","busy");
    args={...args,...await obtainGPS()};
   }
   if(op==="HR_REVIEW"&&!/^[A-Za-z0-9_-]{12,80}$/.test(args.requestId))
@@ -227,7 +261,7 @@ async function execute(op,{write=false,decision=null}={}){
   }
   busy=true;
   document.querySelectorAll("button").forEach(b=>{if(b.id!=="login")b.disabled=true});
-  status("操作執行中；請勿重複點擊。\n原申請編號："+(args.requestId||"無"));
+  status("操作執行中；請勿重複點擊。\n原申請編號："+(args.requestId||"無"),"busy");
   const response=await post(endpoint,op,token,args);
   if(response.ok!==true){
    if(write&&(response.code==="UNKNOWN"||response.persisted===null))
@@ -247,7 +281,7 @@ async function execute(op,{write=false,decision=null}={}){
    status("QA 回覆："+String(response.code||"UNKNOWN")+
     "\n"+(response.persisted===null?"結果不明，請保留原編號查詢。":
       messages[response.reason]||(response.code==="DISABLED"?"QA 寫入尚未開放，本次未寫入。":"本次未確認成功。"))+
-    "\n原申請編號："+(args.requestId||"無"));
+    "\n原申請編號："+(args.requestId||"無"),response.persisted===null?"unknown":"error");
    return;
   }
   if(op==="MY_LEAVES"||op==="MY_MISSING")renderHistory(op,response.result);
@@ -261,11 +295,11 @@ async function execute(op,{write=false,decision=null}={}){
       (op==="HR_STATUS"&&pendingWrite.operation==="HR_REVIEW")))
    rememberWrite(null);
   status("TEST001 QA 已回覆成功（僅獨立技術測試）。\n"+
-   JSON.stringify(response.result,null,2));
+   JSON.stringify(response.result,null,2),"success");
  }catch(e){
   if(writeStarted)unknownWrite=true;
   status("⚠️ "+String(e&&e.message||e)+
-   (writeStarted?"\n寫入結果未確認：保留原單號，先查詢，不要再次送出。":""));
+   (writeStarted?"\n寫入結果未確認：保留原單號，先查詢，不要再次送出。":""),writeStarted?"unknown":"error");
  }finally{
   busy=false;
   document.querySelectorAll("button").forEach(b=>{b.disabled=b.dataset&&b.dataset.unavailable==="true"});
@@ -282,11 +316,14 @@ async function init(){
    "請按登入，完成 LINE 測試登入";
  }catch(e){loggedIn=false;$("identity").textContent=String(e.message||e)}
 }
-$("login").addEventListener("click",()=>{
- if(typeof liff!=="undefined"&&!liff.isLoggedIn()){liff.login();return}
- init();
+onAction("login",async()=>{
+ if(typeof liff!=="undefined"&&!liff.isLoggedIn()){
+  status("正在開啟 LINE 登入，請完成登入確認。","busy");liff.login();return;
+ }
+ await init();
+ status(loggedIn?"LINE 登入已確認。":$("identity").textContent,loggedIn?"success":"error");
 });
-$("newId").addEventListener("click",()=>{
+onAction("newId",()=>{
  if(unknownWrite){status("上次寫入結果不明，先用原單號查詢；暫不能換新編號");return}
  try{const id="QA_"+freshHex(16);$("requestId").value=id;preserveId(id);
   status("已建立新測試申請編號："+id+"\n不會自動送出");}
@@ -306,20 +343,21 @@ const binds=[
  ["hrStatus","HR_STATUS",false]
 ];
 for(const [id,op,write] of binds)
- $(id).addEventListener("click",()=>execute(op,{write}));
-$("hrApprove").addEventListener("click",()=>execute("HR_REVIEW",{write:true,decision:"APPROVE"}));
-$("hrReject").addEventListener("click",()=>execute("HR_REVIEW",{write:true,decision:"REJECT"}));
-$("currentLeaves").addEventListener("click",()=>{
+ onAction(id,()=>execute(op,{write}));
+onAction("hrApprove",()=>execute("HR_REVIEW",{write:true,decision:"APPROVE"}));
+onAction("hrReject",()=>execute("HR_REVIEW",{write:true,decision:"REJECT"}));
+onAction("currentLeaves",()=>{
  $("month").value=localToday().slice(0,7);return execute("MY_LEAVES");
 });
 for(const [id,type] of [["clockIn","上班"],["clockOut","下班"]]){
- $(id).addEventListener("click",()=>{
+ onAction(id,()=>{
   if(busy||unknownWrite){status("請先核對上一筆操作結果，不要再次送出。");return;}
   try{clockType=type;const id="QA_GPS_"+freshHex(16);$("requestId").value=id;preserveId(id);}
   catch(e){status(e.message);return;}
   return execute("GPS_CLOCK",{write:true});
  });
 }
+if(unknownWrite)document.querySelectorAll("button").forEach(b=>{if(writeButtons.has(b.id))b.disabled=true;});
 init();
 })();
 

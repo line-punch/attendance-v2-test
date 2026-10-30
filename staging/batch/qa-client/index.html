@@ -9,13 +9,24 @@ h1{font-size:22px;margin:0 0 12px}h2{font-size:18px;margin:0 0 10px}
 label{display:block;font-weight:600;margin-top:12px}
 input,select,textarea{width:100%;font:inherit;box-sizing:border-box;padding:10px;border:1px solid #c5d3d6;border-radius:8px}
 input[type=checkbox]{width:auto}button{font:inherit;background:#236c54;color:#fff;border:0;border-radius:8px;padding:10px;margin:8px 5px 4px 0;cursor:pointer}
-button:disabled{opacity:.5;cursor:not-allowed}.note{background:#f3f5f7;padding:10px;border-left:3px solid #758b98}
+button{min-height:44px;box-shadow:0 3px 0 #164937;transition:transform .08s,box-shadow .08s,background-color .08s;touch-action:manipulation;-webkit-tap-highlight-color:#a4ddc3}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 2px 4px #123b2b;background:#174a3b}
+button:focus-visible{outline:3px solid #d59523;outline-offset:3px}
+button:disabled{opacity:.55;cursor:not-allowed}button[aria-busy=true]{opacity:1;background:#47685d;box-shadow:none}
+button[aria-busy=true]::before{content:"";display:inline-block;width:12px;height:12px;margin-right:8px;border:2px solid #ffffff70;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){button{transition:none}button[aria-busy=true]::before{animation:none}}
+.note{background:#f3f5f7;padding:10px;border-left:3px solid #758b98}
+#feedback{position:sticky;top:8px;z-index:20;background:#eef3f7;border:1px solid #b6c8d1;border-radius:10px;padding:12px;margin:8px 0;box-shadow:0 2px 8px #0002}
+#feedback[data-phase=busy]{background:#fff4d6;border-color:#bc8f29}#feedback[data-phase=success]{background:#e6f5ec;border-color:#65a27c}
+#feedback[data-phase=error],#feedback[data-phase=unknown]{background:#fff0eb;border-color:#bf795f}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f5;padding:12px;border-radius:10px}
 .small{font-size:13px;color:#667984}.pair{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 nav{display:grid;grid-template-columns:1fr 1fr;gap:6px}nav button{margin:0;padding:15px 8px}
 [hidden]{display:none!important}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 4px;border-bottom:1px solid #dde5e8}
 nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 </style></head><body><main>
+<div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請選擇要操作的功能。</div>
 <section class="panel"><h1>TEST001｜LINE 打卡 V2 集中測試</h1>
 <p class="note"><strong>獨立 QA 測試頁。</strong>只可用獨立 TEST001 QA 後端與虛構測試帳號。不能使用正式打卡或原 GPS 第 2 版網址。真正送單前，必須確認 QA 安全開關及測試活頁簿隔離。</p>
 <button id="login">確認 TEST001 LINE 登入</button>
@@ -38,7 +49,7 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button>
 <button id="clockStatus" type="button">核對上一筆打卡</button>
 <h2>當月正常打卡紀錄</h2>
-<p class="small">只顯示正常打卡時間。補打卡請到「補打卡」查看，即使核准也不填入此表。</p>
+<p class="small">只列出有正常打卡資料的日期。補打卡請到「補打卡」查看，即使核准也不填入此表。</p>
 <table><thead><tr><th>日期</th><th>上班時間</th><th>下班時間</th></tr></thead><tbody id="clockHistory"><tr><td colspan="3">尚未連接打卡資料，不能視為沒有紀錄。</td></tr></tbody></table>
 <button id="myClocks" type="button">重新整理當月正常打卡紀錄</button>
 </section>
@@ -87,9 +98,9 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <section class="panel">
 <label><input id="writeConsent" type="checkbox"> 確認後端僅寫入獨立 QA 的申請流水／正常打卡分頁，且 QA 寫入開關已由管理者核准啟用</label>
 <p class="small">預設不允許寫入。若上次送單逾時或結果不明，會鎖定再次送單，請先用同一編號回查。</p>
-<h2>執行回饋</h2><pre id="result" role="status">未發送任何請求。</pre>
+<h2>執行回饋</h2><pre id="result">未發送任何請求。</pre>
 </section>
 </main>
-<script src="./config.js?v=20261030b"></script>
-<script src="./app.js?v=20261030b"></script></body></html>
+<script src="./config.js?v=20261030c"></script>
+<script src="./app.js?v=20261030c"></script></body></html>
 
