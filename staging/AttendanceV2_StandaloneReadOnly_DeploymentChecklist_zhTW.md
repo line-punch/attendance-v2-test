@@ -191,3 +191,11 @@ V3 原模擬回歸及新增安全記錄驗證 `AttendanceV2_StandaloneLeaveStatu
 本次尚未驗證新部署 doPost 的診斷記錄。新專案 `V2HR_READONLY_TEST_ENABLED` 應保持 `disabled`，先使用原 `https://line-punch.github.io/attendance-v2-test/leave-status-smoke/` 頁面的無效 Token 匿名 POST 測試，輸入**新 V3「所有人」部署** `/exec`，只按一次；預期收到 `UNKNOWN`，然後到該新 Apps Script 的「執行項目」查看對應 `doPost` 記錄是否出現 `V2HR_DIAGNOSTIC=SETTINGS`。只回報固定診斷代碼，不分享 URL、Sheet ID、LINE ID、Token。
 
 預先確認 V3 診斷架構僅在後端 Logger 印安全階段代碼；公眾回覆仍只保留固定 `AUTH` / `UNKNOWN`。不得更新原 GPS DATA_TEST 第 2 版或正式系統。匿名關閉測試成功後才可以短暫開啟 `enabled` 做已綁定 TEST001 真實查詢一次，查詢結束後立即改回 `disabled`。
+
+## 2026-10-30 12:11｜V3 已部署版匿名 POST 實機執行完成
+
+使用者上傳兩張螢幕截圖：GitHub 測試頁 `TEST001｜新假單服務安全檢查` 收到新獨立 Web App 的 `UNKNOWN` 拒絕回覆，不含假單資料；新 `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 的 Apps Script「執行項目」中，**版本 3 網頁應用程式 doPost** 於 2026-10-30 12:11:29 執行、耗時約 1.422 秒、狀態「已完成」。附近版本 3 doGet 12:08:56 亦完成。`doPost` 編輯器 12:05:55 是其他執行，勿與部署紀錄混淆。
+
+重要區別：`UNKNOWN`＋執行完成證明 HTTP POST 到達 V3 部署並回覆拒絕，但**不等於**後端已成功讀取假單。下一步需在「執行項目」點選 **12:11:29、版本 3、網頁應用程式、doPost** 那一列，查看詳細記錄是否有 `V2HR_DIAGNOSTIC=SETTINGS`（預期當旗標 disabled）；只貼代碼，不需上傳 deployment ID、LINE ID、Token、試算表 ID 或其他敏感資訊。
+
+在觀察診斷記錄前**不應**更改安全旗標、重試 POST 或重新部署。原 TEST001 GPS 部署及正式系統保持不動。
