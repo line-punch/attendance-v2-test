@@ -90,7 +90,7 @@ const cases=[
   assert.equal(r.code,"NON_WORKDAY_IN_RANGE");
  }],
  ["crossing known nonworking day requires split",()=>{
-  const r=fixture().make().validateLeave(leave("2026-11-10","2026-11-13"),user,"2026-10-30");
+  const r=fixture().make().validateLeave(leave("2026-11-13","2026-11-16"),user,"2026-10-30");
   assert.equal(r.code,"NON_WORKDAY_IN_RANGE");
  }],
  ["confirmed synthetic disaster requires HR",()=>{
@@ -150,7 +150,7 @@ const cases=[
  }],
  ["historical leave is blocked",()=>{
   const r=fixture().make().validateLeave(leave("2026-10-29"),user,"2026-10-30");
-  assert.equal(r.code,"CALENDAR_OR_EVENT_REVIEW_REQUIRED");
+  assert.equal(r.code,"PAST_DATE");
  }],
  ["source is free of mutations and public handlers",()=>{
   assert(!/function\s+(?:doPost|doGet)\s*\(/.test(code));
