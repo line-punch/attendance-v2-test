@@ -1,0 +1,9 @@
+{
+  "name": "attendance-v2-batch-staging",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Offline synthetic-only V2 regression; no LINE or Google access",
+  "scripts": {
+    "test": "node V2_BatchRules.test.js && node V2_DemoState.test.js && node V2_Demo_UI.test.js && node V2_BatchWorkflowCore.test.js && node V2_BatchTestStore.test.js && node V2_BatchOutboxPolicy.test.js && node V2_BatchMonthCloseReadiness.test.js"
+  }
+}
