@@ -72,3 +72,15 @@
 
 本輪收尾已在正確隔離 GAS 設定儲存並回讀：V2_BATCH_QA_ENABLED=enabled、V2_BATCH_QA_WRITE_ENABLED=disabled。保留查詢，暫停新增 QA 寫入；未刪除任何資料，未改正式、原 GPS 或 V4 服務。GAS 仍為第 2 版，尚未部署來源中新增的細分錯誤原因。
 
+## 員工畫面精簡與切頁自動查詢（20261030d）
+
+已將固定 QA 連線網址、申請編號及原始 JSON 回覆收進可展開區域；保留明確 TEST001 隔離標示和 QA 確認限制。按鈕與主要提示使用員工能理解的文字。請假／補打卡表單明示不限地點、不需定位；人資維持建置中。
+
+切換正常打卡、請假、補打卡畫面時自動查詢本人當月紀錄；進人資畫面不呼叫後端，初始載入亦不自動送出任何請求。進階查詢月份不會意外影響回到員工畫面的本月查詢。離線 client 38/38 通過，包含切頁操作對應唯讀 API，以及未確認 QA 不傳送。
+
+QA Pages 提交 5741886fc7598afde1fce0e2ac8badec763a51c6，來源 feature 提交 0722ee2ef851aaaf5b013e2b05e0168d30cede31；GitHub Pages build/deploy 成功。實際 Edge 已登入 LINE 切頁：請假自動列出 10/30 事假全天待審核；補打卡自動列出 10/30 上班 08:30 待審核。此輪僅唯讀查詢，沒有取得 GPS、重送打卡或新增假單。
+
+證據 evidence/qa-month-on-entry-leave.png、qa-month-on-entry-missing.png。新版尚需 iPhone 畫面重驗。QA 主開關 enabled、寫入 disabled 維持不變。當月請假目前依請假日期，已向使用者釐清跨月單應歸送件月或請假月；未收到答案前維持現有規則，不宣稱該語意已驗收。
+
+正常打卡切頁自動查詢亦已實際成功：僅 2026-10-30 一列，上班 18:14:47／下班 18:28:13，沒有補打卡 08:30。證據 evidence/qa-month-on-entry-clock.png。
+
