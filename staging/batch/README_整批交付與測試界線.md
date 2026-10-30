@@ -58,3 +58,7 @@ D. 停班事件、薪資分鐘與月結準備度、封存、本地備份。
 E. 真實 iOS／Android 斷線、回覆遺失、NFC 424 DNA 實測與回歸。
 
 **在所有必要測試通過前，不修改正式打卡、TEST001 已驗證 GPS 部署、正式資料庫或真實薪資工作簿。**
+
+## 後續更新：2026-10-30 完整回歸與 NFC／多帳號
+
+原本表格記錄的 160 項是**此前階段**成果，不是目前總數。本輪已重新執行本分支既有 11 組共 223／223 項離線測試，新增 NFC 安全驗證入口 20／20、QA Google 多帳號唯讀預檢 13／13，合計**13 組 256／256 項純模擬驗證通過**。已將 13 組加入 package.json 的 npm test 指令，但未在真實 Node 命令列執行。新增 V2_BatchNFCDynamicGate.js 與 V2_BatchQAOwnerPreflight_READONLY_NOT_DEPLOYED.gs，均未部署；NFC 密鑰、實體標籤、GAS 實際寫入和 LINE 通知仍需安全實機整合。桌面接手請以 staging/V2_DesktopHandoff_Checkpoint_20261030.md 為準。
