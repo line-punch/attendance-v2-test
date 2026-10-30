@@ -12,7 +12,7 @@
 (function(root){
 const OPERATIONS=[
  "LEAVE_PREVIEW","LEAVE_REQUEST","LEAVE_STATUS","MY_LEAVES",
- "MISSING_REQUEST","MISSING_STATUS","HR_PENDING","HR_STATUS","HR_REVIEW"
+ "MISSING_REQUEST","MISSING_STATUS","MY_MISSING","HR_PENDING","HR_STATUS","HR_REVIEW"
 ];
 const HR_ONLY=new Set(["HR_PENDING","HR_STATUS","HR_REVIEW"]);
 const CLIENT_SCOPE=new Set(["employeeId","empid","userId","lineUserId",
@@ -84,7 +84,8 @@ function summary(row){
   status:row.status,employeeId:row.employeeId,
   ...(row.kind==="LEAVE"?{
     leaveType:row.body.leaveType,startDate:row.body.startDate,
-    endDate:row.body.endDate,unit:row.body.unit
+    endDate:row.body.endDate,unit:row.body.unit,
+    fromTime:row.body.fromTime||"",toTime:row.body.toTime||""
   }:{date:row.body.date,type:row.body.type,time:row.body.time})};
 }
 function fingerprint(kind,employeeId,company,data){
@@ -163,7 +164,7 @@ function create({identity,store,calendar,clock,flags={}}={}){
     return err("NOT_FOUND");
    return {ok:true,readOnly:true,request:summary(row)};
   }
-  if(operation==="MY_LEAVES"){
+  if(operation==="MY_LEAVES"||operation==="MY_MISSING"){
    if(Object.keys(payload).length!==1||typeof payload.month!=="string"||
       !MONTH.test(payload.month))return err("MONTH_INVALID");
    const allowed=months(clock.today());
@@ -172,9 +173,11 @@ function create({identity,store,calendar,clock,flags={}}={}){
    const start=payload.month+"-01";
    const [yy,mm]=payload.month.split("-").map(Number);
    const end=new Date(Date.UTC(yy,mm,0)).toISOString().slice(0,10);
-   const mine=rows.filter(x=>x.kind==="LEAVE"&&x.employeeId===p.employeeId&&
+   const kind=operation==="MY_LEAVES"?"LEAVE":"MISSING";
+   const mine=rows.filter(x=>x.kind===kind&&x.employeeId===p.employeeId&&
      x.company===p.company&&
-     x.body.startDate<=end&&x.body.endDate>=start).map(summary);
+     (kind==="LEAVE"?x.body.startDate<=end&&x.body.endDate>=start:
+       x.body.date>=start&&x.body.date<=end)).map(summary);
    return {ok:true,readOnly:true,month:payload.month,
      total:mine.length,requests:mine};
   }
@@ -218,3 +221,5 @@ const api=Object.freeze({create,cleanLeave,cleanMissed,person,months,OPERATIONS}
 if(typeof module==="object"&&module.exports)module.exports=api;
 else root.V2BatchWorkflowCore=api;
 })(typeof window!=="undefined"?window:this);
+
+

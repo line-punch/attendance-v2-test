@@ -74,6 +74,30 @@ function fixture(){
   failOutbox:()=>{failNextOutbox=true}};
 }
 const scenarios=[
+ ["monthly missed history excludes leave and isolates employee and company",async()=>{
+  const f=fixture();await f.call("MISSING_REQUEST",REQS.missed);
+  await f.call("LEAVE_REQUEST",{...REQS.leave,startDate:"2026-10-29",endDate:"2026-10-30"});
+  await f.call("MISSING_REQUEST",{...REQS.missed,requestId:"REQ_OTHER_MISSED_0001"},"OTHER");
+  await f.call("MISSING_REQUEST",{...REQS.missed,requestId:"REQ_COMPANY_MISSED_0001"},"SAME_ID_OTHER_COMPANY");
+  const before=f.db();const r=await f.call("MY_MISSING",{month:"2026-10"});
+  assert.equal(r.ok,true);assert.equal(r.total,1);
+  assert.equal(r.requests[0].requestId,REQS.missed.requestId);
+  assert.equal(r.requests[0].kind,"MISSING");assert.deepEqual(f.db(),before);
+ }],
+ ["approved missed history stays separate from leave history",async()=>{
+  const f=fixture();await f.call("MISSING_REQUEST",REQS.missed);
+  await f.call("HR_REVIEW",{requestId:REQS.missed.requestId,decision:"APPROVE"},"HR");
+  const r=await f.call("MY_MISSING",{month:"2026-10"});
+  assert.equal(r.requests[0].status,"APPROVED");assert.equal(r.requests[0].time,"08:30");
+  assert.equal((await f.call("MY_LEAVES",{month:"2026-10"})).total,0);
+ }],
+ ["missed monthly query validates month and does not leak reason",async()=>{
+  const f=fixture();await f.call("MISSING_REQUEST",REQS.missed);
+  assert.equal((await f.call("MY_MISSING",{month:"2026-07"})).code,"MONTH_OUT_OF_RANGE");
+  assert.equal((await f.call("MY_MISSING",{month:"2026-13"})).code,"MONTH_INVALID");
+  assert.equal((await f.call("MY_MISSING",{month:"2026-09"})).total,0);
+  assert(!JSON.stringify(await f.call("MY_MISSING",{month:"2026-10"})).includes(REQS.missed.reason));
+ }],
  ["HR status recovers reviewed original without writing or exposing reason",async()=>{
   const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
   await f.call("HR_REVIEW",{requestId:REQS.leave.requestId,decision:"APPROVE"},"HR");
@@ -267,3 +291,5 @@ const scenarios=[
  }
  console.log(pass+"/"+scenarios.length+" PASSED");
 })();
+
+

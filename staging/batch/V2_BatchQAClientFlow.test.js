@@ -33,7 +33,9 @@ function make(options={}){
  "unit","fromTime","toTime","reason","requestId","newId","preview","leaveStatus",
  "submitLeave","missingDate","missingTime","missingType","missingReason",
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
- "hrApprove","hrReject","hrStatus","writeConsent","result"];
+ "hrApprove","hrReject","hrStatus","writeConsent","result","myMissing","missingHistory","leaveHistory",
+ "currentLeaves","navClock","navLeave","navMissing","navHr","pageClock","pageLeave","pageMissing","pageHr",
+ "clockIn","clockOut","clockStatus","myClocks","clockHistory"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});
@@ -73,10 +75,12 @@ function make(options={}){
   }
  };
  new Function("document","window","liff","sessionStorage","setTimeout",
-   "clearTimeout","URL",client)(doc,win,liff,{
+   "clearTimeout","URL","navigator",client)(doc,win,liff,{
     getItem:k=>stored.get(k)||"",
     setItem:(k,v)=>stored.set(k,v)
-   },()=>++timerCalls,()=>{},URLMock);
+   },()=>++timerCalls,()=>{},URLMock,{geolocation:{getCurrentPosition:(ok,fail)=>{
+    if(options.gpsFailure)fail({code:1});else ok({coords:{latitude:25,longitude:121,accuracy:10}});
+   }}});
  async function click(id){
   const fn=dom[id].listeners.click;if(!fn)throw Error("missing click "+id);
   const returned=fn();if(returned&&typeof returned.then==="function")await returned;
@@ -86,6 +90,57 @@ function make(options={}){
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["GPS failed positioning sends no request and leaves no pending write",async()=>{
+  const x=make({gpsFailure:true});await x.authReady();await x.click("clockIn");
+  assert.equal(x.posts.length,0);assert(!x.stored.get("v2_batch_qa_pending_write"));
+ }],
+ ["GPS unknown write preserves original type and ID across reload for readback",async()=>{
+  const x=make();await x.authReady();x.results.push({ok:false,code:"UNKNOWN",persisted:null});
+  await x.click("clockOut");const original=JSON.parse(x.posts[0].payload).args;
+  assert.equal(original.type,"下班");assert.equal(original.lat,25);
+  const y=make({stored:x.stored});await y.authReady();await y.click("clockIn");assert.equal(y.posts.length,0);
+  y.results.push({ok:true,result:{request:{requestId:original.requestId,kind:"CLOCK",type:"下班"}}});
+  await y.click("clockStatus");assert.equal(y.posts[0].operation,"GPS_STATUS");
+  assert.equal(JSON.parse(y.posts[0].payload).args.type,"下班");
+  assert.equal(y.stored.get("v2_batch_qa_pending_write"),"null");
+ }],
+ ["normal monthly table has only date and normal times, missing time stays blank",async()=>{
+  const x=make();await x.authReady();x.results.push({ok:true,result:{month:"2026-10",
+   days:[{date:"2026-10-02",clockIn:"08:30:00",clockOut:""}]}});
+  await x.click("myClocks");assert.equal(x.posts[0].operation,"MY_CLOCKS");
+  const rows=x.dom.clockHistory.children;assert.equal(rows.length,31);
+  assert.deepEqual(rows[1].children.map(c=>c.textContent),["2026-10-02","08:30:00",""]);
+  assert.equal(rows[0].children.length,3);assert.equal(x.dom.missingHistory.children.length,0);
+ }],
+ ["four employee pages switch locally without sending requests",async()=>{
+  const x=make();await x.authReady();await x.click("navMissing");
+  assert.equal(x.dom.pageMissing.hidden,false);assert.equal(x.dom.pageClock.hidden,true);
+  await x.click("navHr");assert.equal(x.dom.pageHr.hidden,false);
+  assert.equal(x.dom.pageMissing.hidden,true);assert.equal(x.posts.length,0);
+ }],
+ ["monthly missed table filters out leave and displays approved missed time",async()=>{
+  const x=make();await x.authReady();
+  x.results.push({ok:true,result:{requests:[
+   {kind:"LEAVE",startDate:"2026-10-01",leaveType:"病假",status:"APPROVED"},
+   {kind:"MISSING",date:"2026-10-02",type:"上班",time:"08:30",status:"APPROVED"}
+  ]}});
+  await x.click("myMissing");
+  assert.equal(x.posts[0].operation,"MY_MISSING");
+  const table=x.dom.missingHistory.children[0];
+  assert.equal(table.children.length,2);
+  assert.deepEqual(table.children[1].children.map(c=>c.textContent),["2026-10-02","上班","08:30","已核准"]);
+  assert.equal(x.dom.leaveHistory.children.length,0);
+ }],
+ ["current leave table displays requested hourly range as plain text",async()=>{
+  const x=make();await x.authReady();
+  x.results.push({ok:true,result:{requests:[{kind:"LEAVE",startDate:"2026-10-02",
+   endDate:"2026-10-02",leaveType:"<script>synthetic</script>",unit:"HOURS",
+   fromTime:"09:00",toTime:"11:00",status:"PENDING"}]}});
+  await x.click("currentLeaves");
+  const cells=x.dom.leaveHistory.children[0].children[1].children;
+  assert.equal(cells[2].textContent,"<script>synthetic</script>");
+  assert.equal(cells[3].textContent,"09:00～11:00");assert.equal(cells[4].textContent,"待審核");
+ }],
  ["original GPS LIFF cannot initialize the independent QA client",async()=>{
   const x=make({liffId:"2012136707-2dDU0aSJ"});await x.authReady();
   await x.click("newId");await x.click("preview");
@@ -258,3 +313,5 @@ for(const [name,fn] of tests){
 }
 console.log(pass+"/"+tests.length+" PASSED");
 })();
+
+

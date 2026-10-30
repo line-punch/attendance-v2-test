@@ -118,6 +118,19 @@ function make(opts={}){
  return {api,post,qaRows,counts:()=>({fetches,reads,writes,locked})};
 }
 const tests=[
+ ["synchronous monthly missed query includes approved requests and excludes leave",()=>{
+  const x=make({writeEnabled:"enabled"});
+  const id="QA_MISSING_MONTH_20261030";
+  x.post("MISSING_REQUEST",{requestId:id,date:"2026-10-30",time:"08:30",type:"上班",reason:"synthetic"});
+  x.post("LEAVE_REQUEST",request);
+  x.post("HR_REVIEW",{requestId:id,decision:"APPROVE"},hrToken);
+  const before=x.counts().writes;
+  const r=x.post("MY_MISSING",{month:"2026-10"}).reply;
+  assert.equal(r.ok,true);assert.equal(r.result.total,1);
+  assert.equal(r.result.requests[0].kind,"MISSING");
+  assert.equal(r.result.requests[0].status,"APPROVED");
+  assert.equal(x.counts().writes,before);
+ }],
  ["HR original status is read-only and returns the reviewed original",()=>{
   const x=make({writeEnabled:"enabled"});x.post("LEAVE_REQUEST",request);
   x.post("HR_REVIEW",{requestId,decision:"APPROVE"},hrToken);
@@ -214,3 +227,5 @@ let passed=0;
 for(const [name,fn] of tests)try{fn();passed++;console.log("PASS",name)}
 catch(e){console.error("FAIL",name,e.stack);process.exitCode=1}
 console.log(passed+"/"+tests.length+" PASSED");
+
+

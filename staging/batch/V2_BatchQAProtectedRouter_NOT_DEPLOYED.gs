@@ -24,10 +24,11 @@
  */
 var V2_BATCH_QA_CHANNEL_="2012136707";
 var V2_BATCH_QA_OPS_=[
+ "GPS_CLOCK","GPS_STATUS","MY_CLOCKS",
  "LEAVE_PREVIEW","LEAVE_REQUEST","LEAVE_STATUS","MY_LEAVES",
- "MISSING_REQUEST","MISSING_STATUS","HR_PENDING","HR_STATUS","HR_REVIEW"
+ "MISSING_REQUEST","MISSING_STATUS","MY_MISSING","HR_PENDING","HR_STATUS","HR_REVIEW"
 ];
-var V2_BATCH_QA_WRITES_=["LEAVE_REQUEST","MISSING_REQUEST","HR_REVIEW"];
+var V2_BATCH_QA_WRITES_=["LEAVE_REQUEST","MISSING_REQUEST","HR_REVIEW","GPS_CLOCK"];
 function v2BatchQASettings_(){
  var p=PropertiesService.getScriptProperties();
  if(p.getProperty("V2_BATCH_QA_ENABLED")!=="enabled"||
@@ -144,6 +145,10 @@ async function v2BatchQAHandleCandidate_(params){
       return V2BatchAppendJournal.make(v2BatchGASTestPort_()).transaction(callback);
     }
   };
+  var result;
+  if(["GPS_CLOCK","GPS_STATUS","MY_CLOCKS"].indexOf(request.operation)>=0){
+   result=v2MobileClockHandle_(request,config);
+  }else{
   var calendar=v2BatchCalendarQA_(); // isolated source, read only
   var service=V2BatchWorkflowCore.create({
     identity:v2BatchQAIdentity_(config),
@@ -153,9 +158,10 @@ async function v2BatchQAHandleCandidate_(params){
     }},
     flags:flags
   });
-  var result=await service.handle({
+  result=await service.handle({
     operation:request.operation,payload:request.args,credential:request.token
   });
+  }
   if(result&&result.ok===true)
     return {bridge:"YC_V2_BATCH_QA_V1",nonce:request.nonce,
       ok:true,result:result};
@@ -170,3 +176,5 @@ async function v2BatchQAHandleCandidate_(params){
     ok:false,code:"UNKNOWN",persisted:null};
  }
 }
+
+
