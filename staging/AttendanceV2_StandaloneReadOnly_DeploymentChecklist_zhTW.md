@@ -167,3 +167,19 @@ LINE 官方文件支援 LIFF URL 的下層路徑及 query parameter；實際是�
 對應 `AttendanceV2_StandaloneOwnerDiagnostics_READONLY_TEST.test.js` **14／14 離線模擬 PASS**。此診斷只核對編輯器草稿與測試 Sheet，**不能核對已部署 Web App 版本**，也無法以沒有 LINE token 的方式證明目前手機 LINE 身分與試算表的綁定 ID 一致。
 
 下一步使用者只要將 `.gs` 檔貼到**新**專案 `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 的新 Script 檔，保持安全旗標 `disabled`，選 `v2hrAuditStandaloneOwner_TEST_ONLY` 執行一次，把 JSON Logger 結果貼回。不得修改原 TEST001 GPS DATA_TEST_ONLY 專案、正式打卡、或新部署；如果診斷顯示 `ok:true` 但手機曾回 `UNKNOWN`，後續再隔離辨識部署版／LINE 身分差異。
+
+## 2026-10-30｜獨立唯讀後端 V3 安全階段記錄
+
+昨晚擁有人在新的 `YC_ATTENDANCE_V2_LEAVE_STATUS_READONLY_TEST` 執行編輯器唯讀檢查，結果 `ok:true`，安全旗標 `disabled`，TEST001 測試 Sheet 的設定、員工綁定欄位**格式**、固定假單 12 欄等皆通過，`mismatchedColumns:[]`，`deployedRevisionVerified:false`。LINE 手機曾從新的獨立 Web App 收到 `UNKNOWN`，原因仍不明。
+
+為縮小 UNKNOWN 的原因，在 GitHub 測試分支新增 `staging/AttendanceV2_StandaloneLeaveStatus_DIAGNOSTIC_V3.gs`。這是**完整覆蓋候選程式**，僅供新的獨立唯讀 Apps Script `程式碼.gs` 安裝，不可貼進原 TEST001 GPS 後端或正式打卡專案。它在後端 Logger 中只記錄白名單代碼：`INPUT`、`SETTINGS`、`LINE_VERIFY`、`IDENTITY`、`IDENTITY_BOUND_ACCOUNT_DENIED`、`MOCK_LEAVE`、`MOCK_FOUND` 等。即使後端發生錯誤，對外回覆仍維持原本安全的 `AUTH` 或 `UNKNOWN`，不提供原始例外內容。
+
+V3 原模擬回歸及新增安全記錄驗證 `AttendanceV2_StandaloneLeaveStatus_DIAGNOSTIC_V3.test.js` **32／32 PASS**，原有只讀、失敗拒絕、不輸出敏感內容、匿名拒絕等行為保持不變。
+
+**建議分階段部署**：
+1. 使用者在新獨立專案確認 `V2HR_READONLY_TEST_ENABLED=disabled`，將 `程式碼.gs` 的 V2 內容替換為 V3 完整程式，按 Ctrl+S；原已部署第 2 版不變。
+2. 先在編輯器核對原本管理者唯讀檢查仍正常；不需要再次匯入固定測試假單，也不能執行任何送單寫入函式。
+3. 只有確認新程式安全後，在新獨立專案**新增一筆 Web App 部署**（不要編輯既有第 2 版部署），開始時仍保持 `disabled`。新部署與原版本的 Script Properties 是同一專案共用。
+4. 若要手機實際診斷，才短暫設 `enabled`，用新部署網址在已成功的 TEST001 LIFF 診斷頁查詢**一次**；之後立即恢復 `disabled`。回到 Apps Script「執行項目」找到新版本 `doPost` 之安全記錄 `V2HR_DIAGNOSTIC=...`，只回報代碼即可；不分享 LINE token、完整 URL/部署 ID 或 Sheet ID。
+
+**請勿誤判**：V3 是候選程式與模擬測試，目前還沒有在真實新專案安裝、部署或手機測試。已部署的原第 2 版與正式打卡保持不動。
