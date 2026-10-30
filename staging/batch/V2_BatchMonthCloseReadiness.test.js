@@ -2,9 +2,9 @@
 /* All times/minutes are synthetic and audited, no payroll rate calculation. */
 const assert=require("node:assert/strict");
 const m=require("./V2_BatchMonthCloseReadiness.js");
-const hr={verified:true,role:"HR_OWNER",employeeId:"HR_TEST"};
+const hr={verified:true,role:"HR_OWNER",employeeId:"HR_TEST",company:"TEST_CO"};
 const day=(date,scheduledMinutes=480,actualWorkedMinutes=480,paidDisasterMinutes=0,more={})=>({
- employeeId:"TEST001",date,scheduledMinutes,actualWorkedMinutes,paidDisasterMinutes,
+ employeeId:"TEST001",company:"TEST_CO",date,scheduledMinutes,actualWorkedMinutes,paidDisasterMinutes,
  confirmed:true,missingPunchUnresolved:false,...more
 });
 const base={
@@ -59,9 +59,10 @@ const cases=[
  ["duplicate same employee-day prevented",()=>{
   assert.equal(check({employeeDays:[day("2026-09-30"),day("2026-09-30")]}).code,"DUPLICATE_DAY_ROW");
  }],
- ["another company's rows need independent authoritative scope",()=>{
-  const r=check({employeeDays:[day("2026-09-30",480,0,480,{employeeId:"TEST_OTHER"})]});
-  assert.equal(r.ok,true);
+ ["different company row rejected before month close",()=>{
+   const r=check({employeeDays:[day("2026-09-30",480,0,480,
+    {employeeId:"TEST_OTHER",company:"OTHER_CO"})]});
+   assert.equal(r.code,"INVALID_DAY_ROW");
  }],
  ["incompatible disaster and actual minutes blocked",()=>{
   assert.equal(check({employeeDays:[day("2026-09-30",480,300,300)]}).code,"MINUTE_CONFLICT");
@@ -77,9 +78,9 @@ const cases=[
   const r=check({employeeDays:[day("2026-09-30",480,600,0)]});
   assert.equal(r.ok,true);assert.equal(r.summary.actualWorkedMinutes,600);
  }],
- ["empty month with confirmed preconditions returns zero readiness",()=>{
-  const r=check({employeeDays:[]});assert.equal(r.canClose,true);
-  assert.equal(r.summary.confirmedDayCount,0);
+ ["empty month cannot silently be closed",()=>{
+   const r=check({employeeDays:[]});assert.equal(r.canClose,false);
+   assert(r.issues.includes("NO_RECONCILED_DAYS"));
  }],
  ["invalid date rejected",()=>{
   assert.equal(check({employeeDays:[day("2026-09-31")]}).code,"INVALID_DAY_ROW");
