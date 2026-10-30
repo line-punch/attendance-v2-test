@@ -1,0 +1,18 @@
+:root{font:15px/1.6 system-ui,"Microsoft JhengHei",sans-serif;color:#243a48;background:#eef4f5}
+*{box-sizing:border-box}body{margin:0;padding:16px}main{max-width:680px;margin:auto}
+h1{font-size:23px;margin:0 0 10px}h2{font-size:19px;margin:0 0 12px}
+.panel{background:#fff;border-radius:16px;margin-bottom:14px;padding:18px;box-shadow:0 3px 16px #143f4920}
+.note{background:#edf5f2;padding:12px;border-left:3px solid #258267;border-radius:8px}
+nav{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+button{font:inherit;min-height:43px;border:0;background:#286d55;color:white;border-radius:9px;padding:10px 13px;margin:5px;cursor:pointer}
+button:active{transform:scale(.98)}button:disabled{background:#a4b4ae;cursor:not-allowed}
+nav button{height:75px;background:#e7f1ed;color:#16523b;font-weight:650}
+nav button[aria-current="page"]{background:#286d55;color:#fff}
+label{display:block;margin:11px 0;font-weight:600}
+input,select,textarea{display:block;width:100%;font:inherit;padding:10px;border:1px solid #aec2c6;border-radius:8px;background:white}
+textarea{min-height:55px}
+output{white-space:pre-wrap;display:block;background:#f1f5f6;border-radius:9px;padding:12px;margin-top:12px;min-height:43px}
+section[hidden]{display:none}
+.entry{padding:10px 0;border-bottom:1px solid #e2ebeb}
+.entry button{font-size:13px;min-height:36px}
+footer{color:#657982;font-size:13px;text-align:center;padding:10px}
