@@ -125,6 +125,25 @@ const scenarios=[
   const r=await f.call("LEAVE_REQUEST",REQS.leave,"OTHER");
   assert.equal(r.code,"REQUEST_ID_CONFLICT");
  }],
+ ["same employee ID from a different company cannot reuse leave request ID",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
+  const x=await f.call("LEAVE_REQUEST",REQS.leave,"SAME_ID_OTHER_COMPANY");
+  assert.equal(x.code,"REQUEST_ID_CONFLICT");
+  assert.equal(f.db().rows.length,1);
+  assert.equal(f.db().rows[0].company,"TEST_CO");
+ }],
+ ["same employee ID from another company cannot reuse missed punch request ID",async()=>{
+  const f=fixture();await f.call("MISSING_REQUEST",REQS.missed);
+  const x=await f.call("MISSING_REQUEST",REQS.missed,"SAME_ID_OTHER_COMPANY");
+  assert.equal(x.code,"REQUEST_ID_CONFLICT");
+  assert.equal(f.db().rows.length,1);
+  assert.equal(f.db().rows[0].company,"TEST_CO");
+ }],
+ ["the different company cannot create a second notification via guessed ID",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
+  await f.call("LEAVE_REQUEST",REQS.leave,"SAME_ID_OTHER_COMPANY");
+  assert.equal(f.db().events.length,1);
+ }],
  ["outbox failure rolls back row and audit entry",async()=>{
   const f=fixture();f.failOutbox();
   await assert.rejects(()=>f.call("LEAVE_REQUEST",REQS.leave),/outbox failed/);
