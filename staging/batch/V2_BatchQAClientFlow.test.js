@@ -33,7 +33,7 @@ function make(options={}){
  "unit","fromTime","toTime","reason","requestId","newId","preview","leaveStatus",
  "submitLeave","missingDate","missingTime","missingType","missingReason",
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
- "hrApprove","hrReject","writeConsent","result"];
+ "hrApprove","hrReject","hrStatus","writeConsent","result"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});
@@ -54,11 +54,11 @@ function make(options={}){
   getElementById:id=>{if(!dom[id])throw Error("missing "+id);return dom[id]},
   querySelectorAll:()=>ids.filter(id=>["login","newId","preview","leaveStatus",
    "submitLeave","submitMissing","missingStatus","myLeaves","hrPending",
-   "hrApprove","hrReject"].includes(id)).map(id=>dom[id]),
+   "hrApprove","hrReject","hrStatus"].includes(id)).map(id=>dom[id]),
   createElement:tag=>elem(tag),
   body:{appendChild(){}}
  };
- const win={crypto:{getRandomValues:arr=>{for(let i=0;i<arr.length;i++)arr[i]=i+1;return arr}},
+ const win={V2_QA_LIFF_ID:options.liffId??"2012136707-QAOFFLINETEST",crypto:{getRandomValues:arr=>{for(let i=0;i<arr.length;i++)arr[i]=i+1;return arr}},
   addEventListener:(ev,fn)=>{events.set(ev,[...(events.get(ev)||[]),fn])},
   removeEventListener:(ev,fn)=>{events.set(ev,(events.get(ev)||[]).filter(f=>f!==fn))}};
  const liff={init:async()=>{},isLoggedIn:()=>params.login,
@@ -86,6 +86,32 @@ function make(options={}){
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["original GPS LIFF cannot initialize the independent QA client",async()=>{
+  const x=make({liffId:"2012136707-2dDU0aSJ"});await x.authReady();
+  await x.click("newId");await x.click("preview");
+  assert.equal(x.posts.length,0);assert(x.dom.identity.textContent.includes("不可使用原 GPS"));
+ }],
+ ["missing QA LIFF config fails closed",async()=>{
+  const x=make({liffId:""});await x.authReady();await x.click("newId");
+  await x.click("preview");assert.equal(x.posts.length,0);
+ }],
+ ["HR original status restores unknown review without another review submission",async()=>{
+  const x=make();await x.authReady();
+  x.dom.hrRequestId.value="QA_HR_REVIEW_REQUEST_0001";
+  x.results.push({ok:false,code:"UNKNOWN",persisted:null});await x.click("hrApprove");
+  const y=make({stored:x.stored});await y.authReady();
+  y.results.push({ok:true,result:{request:{requestId:y.dom.hrRequestId.value,status:"APPROVED"}}});
+  await y.click("hrStatus");
+  assert.equal(y.posts.length,1);assert.equal(y.posts[0].operation,"HR_STATUS");
+  assert.equal(y.stored.get("v2_batch_qa_pending_write"),"null");
+ }],
+ ["another HR request status cannot release original review lock",async()=>{
+  const x=make();await x.authReady();x.dom.hrRequestId.value="QA_HR_REVIEW_REQUEST_0001";
+  x.results.push({ok:false,code:"UNKNOWN",persisted:null});await x.click("hrApprove");
+  x.dom.hrRequestId.value="QA_DIFFERENT_HR_REQUEST_0002";
+  x.results.push({ok:true,result:{request:{requestId:x.dom.hrRequestId.value,status:"APPROVED"}}});
+  await x.click("hrStatus");await x.click("hrApprove");assert.equal(x.posts.length,2);
+ }],
  ["page is clearly isolated QA and not deployed",async()=>{
   assert(html.includes("未部署"));
   assert(!html.includes('action="https://script.google.com'));
