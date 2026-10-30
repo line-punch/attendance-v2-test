@@ -181,10 +181,11 @@ const tests=[
   }),/OUTBOX_REQUIRED/);
   assert.equal(f.raw().length,0);
  }],
- ["single-request read never returns another employee",async()=>{
+ ["original request readback works without reading all months",async()=>{
   const f=setup();await f.run("LEAVE_REQUEST",req);
-  const list=await f.run("MY_LEAVES",{month:"2026-11"});
-  assert.equal(list.total,1);
+  const result=await f.run("LEAVE_STATUS",{requestId:req.requestId});
+  assert.equal(result.ok,true);
+  assert.equal(result.request.requestId,req.requestId);
  }],
  ["no public endpoint and no direct Google/LINE/network operations",async()=>{
   const s=require("node:fs").readFileSync(
