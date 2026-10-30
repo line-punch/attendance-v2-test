@@ -9,7 +9,7 @@ const payload={requestId:"NFC_REQ_TEST_20261030_0001",type:"上班",
  sunUrl:"https://example.invalid/nfc?picc=opaque&cmac=opaque"};
 function fixture(opts={}){
  const counter=new Map(),requests=new Map(),calls={auth:0,verify:0,commit:0};
- let block=null,wait=Promise.resolve();
+ let proof=opts.attestation||attestation,wait=Promise.resolve();
  const f=NFC.create({
   enabled:opts.enabled??true,
   verifyIdentity:async token=>{
@@ -18,7 +18,7 @@ function fixture(opts={}){
   },
   verifySun:async url=>{
    calls.verify++;if(opts.verifierThrows)throw Error("CMAC_INVALID");
-   return opts.attestation||attestation;
+   return proof;
   },
   commitOnce:async record=>{
    calls.commit++;
@@ -42,7 +42,7 @@ function fixture(opts={}){
   }
  });
  return {call:(p=payload,token="TEST_LOGIN")=>f.handle({payload:p,idToken:token}),
-  calls,counter,requests};
+  calls,counter,requests,setProof:p=>{proof=p}};
 }
 const tests=[
  ["disabled flag blocks before any token or SUN verification",async()=>{
@@ -83,10 +83,13 @@ const tests=[
   assert.equal(r.code,"REPLAY_DETECTED");
   assert.equal(x.requests.size,1);
  }],
- ["different request with higher counter is allowed after fresh read",async()=>{
+ ["fresh higher counter on SAME tag is accepted as a second reading",async()=>{
   const x=fixture();await x.call();
-  const y=fixture({attestation:{...attestation,readCounter:24}});
-  assert.equal((await y.call({...payload,requestId:"NFC_REQ_TEST_20261030_0002"})).ok,true);
+  x.setProof({...attestation,readCounter:24});
+  const r=await x.call({...payload,requestId:"NFC_REQ_TEST_20261030_0002"});
+  assert.equal(r.ok,true);
+  assert.equal(x.requests.size,2);
+  assert.equal(x.counter.get("TAG_QA_0001"),24);
  }],
  ["untrusted site rejected before committing",async()=>{
   const x=fixture({attestation:{...attestation,siteId:"OTHER_SITE"}});
