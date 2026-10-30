@@ -1,7 +1,7 @@
 "use strict";
 /* TEST001 QA ONLY. NOT DEPLOYED. No production URLs or passwords embedded. */
 (function(){
-const LIFF_ID="2012136707-2dDU0aSJ";
+const LIFF_ID=String(window.V2_QA_LIFF_ID||"");
 const BRIDGE="YC_V2_BATCH_QA_V1";
 const $=id=>document.getElementById(id);
 let loggedIn=false,busy=false,pendingWrite=null;
@@ -81,11 +81,11 @@ function requestBody(operation){
   return {requestId:requestId()};
  if(operation==="MY_LEAVES")return {month:$("month").value};
  if(operation==="HR_PENDING")return {};
- if(operation==="HR_REVIEW"){
+ if(operation==="HR_REVIEW"||operation==="HR_STATUS"){
   const id=$("hrRequestId").value.trim();
   if(!/^[A-Za-z0-9_-]{12,80}$/.test(id))
    throw Error("人資請填入原申請編號");
-  return {requestId:id,decision:this.decision};
+  return operation==="HR_STATUS"?{requestId:id}:{requestId:id,decision:this.decision};
  }
  throw Error("不支援的操作");
 }
@@ -146,7 +146,7 @@ async function execute(op,{write=false,decision=null}={}){
   }
   busy=true;
   document.querySelectorAll("button").forEach(b=>{if(b.id!=="login")b.disabled=true});
-  status("操作執行中；請勿重複點擊。\n原申請編號："+$("requestId").value.trim());
+  status("操作執行中；請勿重複點擊。\n原申請編號："+(args.requestId||"無"));
   const response=await post(endpoint,op,token,args);
   if(response.ok!==true){
    if(write&&(response.code==="UNKNOWN"||response.persisted===null))
@@ -154,14 +154,15 @@ async function execute(op,{write=false,decision=null}={}){
    else if(write&&response.persisted===false)rememberWrite(null);
    status("QA 回覆："+String(response.code||"UNKNOWN")+
     "\n"+(response.persisted===null?"結果不明，請保留原編號查詢。":"本次未確認成功。")+
-    "\n原申請編號："+$("requestId").value.trim());
+    "\n原申請編號："+(args.requestId||"無"));
    return;
   }
   const found=response.result&&response.result.request;
   if(pendingWrite&&found&&found.requestId===pendingWrite.requestId&&
      ((write&&op===pendingWrite.operation)||
       (op==="LEAVE_STATUS"&&pendingWrite.operation==="LEAVE_REQUEST")||
-      (op==="MISSING_STATUS"&&pendingWrite.operation==="MISSING_REQUEST")))
+      (op==="MISSING_STATUS"&&pendingWrite.operation==="MISSING_REQUEST")||
+      (op==="HR_STATUS"&&pendingWrite.operation==="HR_REVIEW")))
    rememberWrite(null);
   status("TEST001 QA 已回覆成功（僅獨立技術測試）。\n"+
    JSON.stringify(response.result,null,2));
@@ -176,6 +177,8 @@ async function execute(op,{write=false,decision=null}={}){
 }
 async function init(){
  try{
+  if(!/^2012136707-[A-Za-z0-9]+$/.test(LIFF_ID)||LIFF_ID==="2012136707-2dDU0aSJ")
+   throw Error("獨立 QA LIFF 尚未設定；不可使用原 GPS LIFF");
   if(typeof liff==="undefined")throw Error("LINE SDK 尚未載入");
   await liff.init({liffId:LIFF_ID});
   loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();
@@ -200,7 +203,8 @@ const binds=[
  ["submitMissing","MISSING_REQUEST",true],
  ["missingStatus","MISSING_STATUS",false],
  ["myLeaves","MY_LEAVES",false],
- ["hrPending","HR_PENDING",false]
+ ["hrPending","HR_PENDING",false],
+ ["hrStatus","HR_STATUS",false]
 ];
 for(const [id,op,write] of binds)
  $(id).addEventListener("click",()=>execute(op,{write}));
