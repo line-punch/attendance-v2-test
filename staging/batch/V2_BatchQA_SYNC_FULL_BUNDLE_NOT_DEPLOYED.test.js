@@ -118,6 +118,25 @@ function make(opts={}){
  return {api,post,qaRows,counts:()=>({fetches,reads,writes,locked})};
 }
 const tests=[
+ ["HR original status is read-only and returns the reviewed original",()=>{
+  const x=make({writeEnabled:"enabled"});x.post("LEAVE_REQUEST",request);
+  x.post("HR_REVIEW",{requestId,decision:"APPROVE"},hrToken);
+  const before=x.counts().writes;
+  const r=x.post("HR_STATUS",{requestId},hrToken).reply;
+  assert.equal(r.ok,true);assert.equal(r.result.request.requestId,requestId);
+  assert.equal(r.result.request.status,"APPROVED");assert.equal(x.counts().writes,before);
+ }],
+ ["ordinary staff cannot use HR original status",()=>{
+  const x=make({writeEnabled:"enabled"});x.post("LEAVE_REQUEST",request);
+  assert.equal(x.post("HR_STATUS",{requestId}).reply.ok,false);
+  assert.equal(x.qaRows.length,2);
+ }],
+ ["HR original status rejects extra fields and unknown original IDs",()=>{
+  const x=make();
+  assert.equal(x.post("HR_STATUS",{requestId,decision:"APPROVE"},hrToken).reply.ok,false);
+  assert.equal(x.post("HR_STATUS",{requestId},hrToken).reply.ok,false);
+  assert.equal(x.counts().writes,0);
+ }],
  ["Web App doPost returns synchronous HtmlOutput not Promise",()=>{
   const x=make();const r=x.post("LEAVE_PREVIEW",request);
   assert(!("then" in r));assert.equal(r.reply.ok,true);
