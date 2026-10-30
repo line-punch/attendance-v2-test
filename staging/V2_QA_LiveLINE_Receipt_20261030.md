@@ -107,3 +107,15 @@ QA Pages 提交 5741886fc7598afde1fce0e2ac8badec763a51c6，來源 feature 提交
 - 補上伺服器 AUTH 回覆後的重新登入提示；外部瀏覽器明確重新登入時清除舊 LIFF 登入狀態再開啟正常 LINE 登入；LIFF 內提示關閉重開。沒有自動重送申請。依 LINE 官方 API 文件 https://developers.line.biz/en/reference/liff/#logout 與 #login。
 - Client 45/45 離線流程檢查通過，含成功後列表查詢失敗、重載防重送、草稿隔離及登入狀態恢復；不能稱為這輪真實送件通過。真實成功送件／自動刷新仍待 LINE 登入恢復後驗證。後端維持第 3 版，正式、原 GPS、V4 均未變更。
 
+### 本輪真實送件與登入恢復已完成（後續結果）
+
+已用先前由使用者確認的同一個 LINE 測試帳號（李思慧），在相同 channel／LIFF／openid 範圍完成例行重新登入，沒有新增權限；重新查詢成功。前述 AUTH 阻礙已解除。
+
+新版 Pages aa333c73e3b06b5fe8d77a76231ed366ddb7ed84 成功發布。真實 Edge LINE → 第 3 版 QA GAS → QA 試算表：沒有點「新增編號」，直接送出合成補打卡 2026-10-29／下班／17:31，系統自動產生 QA_185e998a2db31b260bf5b937d76484fa；成功 PENDING、duplicate=false。送件後程式自動唯讀刷新 2026-10 補打卡列表，顯示原 10/30 上班單及新 10/29 下班單，沒有手動按查詢。
+
+頁面原送出按鈕已停用並顯示「已送出（請查看紀錄）」，收據保留原 ID；重新開同頁後 isEnabled=false，未再送出原單。另以實際 UI 切換 HOURS 顯示時間欄位，切 DAY 後 hourFields 不可見且 fromTime 停用；此操作沒有新請假寫入。
+
+本輪僅新增上述一筆 TEST001／TEST_CO 合成補打卡，保留不刪除，沒有正常打卡寫入。最後 QA 主開關 enabled、寫入 disabled 已儲存回讀。證據 evidence/qa-auto-submit-request-id.txt、qa-auto-submit-success.txt、qa-auto-submit-success.png。45 項為離線檢查，以上真實送件是另列的 Edge 實測，尚未把新送件 UX 稱為 iPhone 驗收。
+
+新增合成補打卡後，再以真實 QA 查詢 MY_CLOCKS，正常月表仍僅 10/30／18:14:47／18:28:13；沒有 10/29 的 17:31 補打卡。證據 evidence/qa-normal-after-auto-missing.txt。
+
