@@ -43,7 +43,7 @@
   }
   return out;
  }
- function leaveCheck(form,{calendarConfirmed=false,offDays=[],stormDays=[]}={}){
+ function leaveCheck(form,{calendarConfirmed=false,offDays=[],workDays=[],stormDays=[]}={}){
   if(!form||typeof form!=="object")return fail("MISSING_FORM");
   if(!calendarConfirmed)return fail("CALENDAR_NOT_APPROVED");
   const span=days(form.startDate,form.endDate);
@@ -56,7 +56,11 @@
    if(!re.test(String(form.fromTime||""))||!re.test(String(form.toTime||""))||
       form.fromTime>=form.toTime)return fail("HOURS_INVALID");
   }
-  if(span.some(x=>[0,6].includes(date(x).getUTCDay())||offDays.includes(x)))
+  if(span.some(x=>offDays.includes(x)&&workDays.includes(x)))
+   return fail("DAY_OVERRIDE_CONFLICT");
+  // HR-approved makeup workdays may fall on Saturday or Sunday.
+  if(span.some(x=>offDays.includes(x)||
+    (!workDays.includes(x)&&[0,6].includes(date(x).getUTCDay()))))
    return fail("NON_WORKDAY_REQUIRES_SPLIT");
   if(span.some(x=>stormDays.includes(x)))return fail("NEEDS_HR_REVIEW");
   return {ok:true,workingDays:span.length,requiresHumanReview:false};
