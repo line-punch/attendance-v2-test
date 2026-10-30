@@ -22,9 +22,9 @@
 var V2BatchWorkflowCore=(function(){
 const OPERATIONS=[
  "LEAVE_PREVIEW","LEAVE_REQUEST","LEAVE_STATUS","MY_LEAVES",
- "MISSING_REQUEST","MISSING_STATUS","HR_PENDING","HR_REVIEW"
+ "MISSING_REQUEST","MISSING_STATUS","HR_PENDING","HR_STATUS","HR_REVIEW"
 ];
-const HR_ONLY=new Set(["HR_PENDING","HR_REVIEW"]);
+const HR_ONLY=new Set(["HR_PENDING","HR_STATUS","HR_REVIEW"]);
 const CLIENT_SCOPE=new Set(["employeeId","empid","userId","lineUserId",
  "company","workplace","role","managerId","approvedBy","sheetId",
  "spreadsheetId","trustedToday","verified","hrRole"]);
@@ -187,6 +187,13 @@ function create({identity,store,calendar,clock,flags={}}={}){
      x.body.startDate<=end&&x.body.endDate>=start).map(summary);
    return {ok:true,readOnly:true,month:payload.month,
      total:mine.length,requests:mine};
+  }
+  if(operation==="HR_STATUS"){
+   if(Object.keys(payload).length!==1||!REQ.test(String(payload.requestId||"")))
+    return err("REQUEST_ID_INVALID");
+   const row=store.read(tx=>tx.find(payload.requestId));
+   if(!row||row.company!==p.company)return err("NOT_FOUND");
+   return {ok:true,readOnly:true,request:summary(row)};
   }
   if(operation==="HR_PENDING"){
    if(Object.keys(payload).length!==0)return err("INVALID_FORM_FIELDS");
@@ -876,7 +883,7 @@ function v2BatchCalendarQA_(){
 var V2_BATCH_QA_CHANNEL_="2012136707";
 var V2_BATCH_QA_OPS_=[
  "LEAVE_PREVIEW","LEAVE_REQUEST","LEAVE_STATUS","MY_LEAVES",
- "MISSING_REQUEST","MISSING_STATUS","HR_PENDING","HR_REVIEW"
+ "MISSING_REQUEST","MISSING_STATUS","HR_PENDING","HR_STATUS","HR_REVIEW"
 ];
 var V2_BATCH_QA_WRITES_=["LEAVE_REQUEST","MISSING_REQUEST","HR_REVIEW"];
 function v2BatchQASettings_(){
