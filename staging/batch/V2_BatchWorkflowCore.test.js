@@ -74,6 +74,19 @@ function fixture(){
   failOutbox:()=>{failNextOutbox=true}};
 }
 const scenarios=[
+ ["HR status recovers reviewed original without writing or exposing reason",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
+  await f.call("HR_REVIEW",{requestId:REQS.leave.requestId,decision:"APPROVE"},"HR");
+  const before=f.db();const r=await f.call("HR_STATUS",{requestId:REQS.leave.requestId},"HR");
+  assert.equal(r.ok,true);assert.equal(r.readOnly,true);assert.equal(r.request.status,"APPROVED");
+  assert(!JSON.stringify(r).includes("純合成申請"));assert.deepEqual(f.db(),before);
+ }],
+ ["HR status rejects ordinary staff and another company's HR",async()=>{
+  const f=fixture();await f.call("LEAVE_REQUEST",REQS.leave);
+  const input={requestId:REQS.leave.requestId};
+  assert.equal((await f.call("HR_STATUS",input)).code,"HR_ONLY");
+  assert.equal((await f.call("HR_STATUS",input,"OTHER_HR")).code,"NOT_FOUND");
+ }],
  ["features must be explicitly enabled",async()=>{
   const f=fixture();f.flags.LEAVE_REQUEST=false;
   const r=await f.call("LEAVE_REQUEST",REQS.leave);
