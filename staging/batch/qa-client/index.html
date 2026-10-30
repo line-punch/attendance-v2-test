@@ -27,12 +27,13 @@ nav{display:grid;grid-template-columns:1fr 1fr;gap:6px}nav button{margin:0;paddi
 nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 </style></head><body><main>
 <div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請選擇要操作的功能。</div>
-<section class="panel"><h1>TEST001｜LINE 打卡 V2 集中測試</h1>
-<p class="note"><strong>獨立 QA 測試頁。</strong>只可用獨立 TEST001 QA 後端與虛構測試帳號。不能使用正式打卡或原 GPS 第 2 版網址。真正送單前，必須確認 QA 安全開關及測試活頁簿隔離。</p>
+<section class="panel"><h1>員工打卡｜獨立 QA</h1>
+<p class="note"><strong>獨立 QA 測試頁，TEST001 專用。</strong>資料不計入正式出勤。</p>
 <button id="login">確認 TEST001 LINE 登入</button>
 <p id="identity" role="status">尚未登入 LINE</p>
-<label>新的獨立 QA Web App /exec 網址
+<details><summary>QA 連線設定</summary><label>獨立 QA Web App /exec 網址
 <input id="endpoint" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"></label>
+</details>
 <label><input id="confirmed" type="checkbox"> 已核對這是獨立 QA 部署，非正式或 GPS 服務</label>
 <p class="small">不儲存完整網址或 LINE ID Token；只在此頁使用。送出結果不明時，保留同一申請編號先查詢。</p>
 </section>
@@ -42,10 +43,10 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <button id="navMissing" type="button" aria-pressed="false">補打卡</button>
 <button id="navHr" type="button" aria-pressed="false">人資查詢（建置中）</button>
 </nav>
-<section class="panel"><label>申請編號（結果不明時保留原編號查詢）<input id="requestId" autocomplete="off" spellcheck="false"></label>
-<button id="newId" type="button">新增一筆測試申請</button></section>
+<details class="panel"><summary>申請編號與原單核對</summary><label>申請編號（結果不明時保留原編號查詢）<input id="requestId" autocomplete="off" spellcheck="false"></label>
+<button id="newId" type="button">新增一筆測試申請</button></details>
 <section class="panel" id="pageClock"><h2>上下班打卡</h2>
-<p class="note">僅 TEST001 獨立 QA：需完成 LINE 登入並由管理者安裝新版 QA 後端及正常打卡分頁。</p>
+<p class="note">上下班打卡須位於指定地點 50 公尺內。請允許精確定位，按下後等待結果。</p>
 <button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button>
 <button id="clockStatus" type="button">核對上一筆打卡</button>
 <h2>當月正常打卡紀錄</h2>
@@ -53,7 +54,7 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <table><thead><tr><th>日期</th><th>上班時間</th><th>下班時間</th></tr></thead><tbody id="clockHistory"><tr><td colspan="3">尚未連接打卡資料，不能視為沒有紀錄。</td></tr></tbody></table>
 <button id="myClocks" type="button">重新整理當月正常打卡紀錄</button>
 </section>
-<section class="panel" id="pageLeave" hidden><h2>請假申請</h2>
+<section class="panel" id="pageLeave" hidden><h2>請假申請</h2><p class="small">不限地點，不需要定位。送出後可在下方查詢當月紀錄與狀態。</p>
 <div class="pair">
 <label>開始日期<input id="start" type="date" value="2026-11-09"></label>
 <label>結束日期<input id="end" type="date" value="2026-11-10"></label>
@@ -64,20 +65,20 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <label>開始時間<input id="fromTime" type="time" value="09:00"></label>
 <label>結束時間<input id="toTime" type="time" value="11:00"></label>
 </div>
-<label>請假原因（僅測試）<textarea id="reason">TEST001 虛構請假</textarea></label>
+<label>請假原因<textarea id="reason"></textarea></label>
 <button id="preview" type="button">請假日期預檢（唯讀）</button>
 <button id="leaveStatus" type="button">查原請假單（唯讀）</button>
-<button id="submitLeave" type="button">送出 TEST001 測試假單</button>
+<button id="submitLeave" type="button">送出請假申請</button>
 <h2>當月請假紀錄</h2>
 <button id="currentLeaves" type="button">查看當月請假紀錄</button>
 <div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div>
 </section>
-<section class="panel" id="pageMissing" hidden><h2>補打卡申請</h2>
+<section class="panel" id="pageMissing" hidden><h2>補打卡申請</h2><p class="small">不限地點，不需要定位。補打卡只列於此處，不合併正常打卡。</p>
 <div class="pair"><label>日期<input id="missingDate" type="date" value="2026-10-30"></label>
 <label>時間<input id="missingTime" type="time" value="08:30"></label></div>
 <label>上班／下班<select id="missingType"><option>上班</option><option>下班</option></select></label>
-<label>原因<input id="missingReason" value="TEST001 虛構忘打卡"></label>
-<button id="submitMissing" type="button">送出 TEST001 補打卡</button>
+<label>原因<input id="missingReason" value=""></label>
+<button id="submitMissing" type="button">送出補打卡申請</button>
 <button id="missingStatus" type="button">查原補打卡單（唯讀）</button>
 <h2>當月補打卡紀錄</h2>
 <button id="myMissing" type="button">查看當月補打卡紀錄</button>
@@ -98,9 +99,9 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <section class="panel">
 <label><input id="writeConsent" type="checkbox"> 確認後端僅寫入獨立 QA 的申請流水／正常打卡分頁，且 QA 寫入開關已由管理者核准啟用</label>
 <p class="small">預設不允許寫入。若上次送單逾時或結果不明，會鎖定再次送單，請先用同一編號回查。</p>
-<h2>執行回饋</h2><pre id="result">未發送任何請求。</pre>
+<details><summary>詳細執行回覆（QA）</summary><pre id="result">未發送任何請求。</pre></details>
 </section>
 </main>
-<script src="./config.js?v=20261030c"></script>
-<script src="./app.js?v=20261030c"></script></body></html>
+<script src="./config.js?v=20261030d"></script>
+<script src="./app.js?v=20261030d"></script></body></html>
 

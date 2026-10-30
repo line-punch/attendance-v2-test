@@ -152,11 +152,20 @@ const tests=[
   assert.deepEqual(rows[0].children.map(c=>c.textContent),["2026-10-02","08:30:00",""]);
   assert.equal(rows[0].children.length,3);assert.equal(x.dom.missingHistory.children.length,0);
  }],
- ["four employee pages switch locally without sending requests",async()=>{
+ ["entering monthly pages queries only own records while HR stays a placeholder",async()=>{
   const x=make();await x.authReady();await x.click("navMissing");
   assert.equal(x.dom.pageMissing.hidden,false);assert.equal(x.dom.pageClock.hidden,true);
+  assert.equal(x.posts[0].operation,"MY_MISSING");
   await x.click("navHr");assert.equal(x.dom.pageHr.hidden,false);
-  assert.equal(x.dom.pageMissing.hidden,true);assert.equal(x.posts.length,0);
+  assert.equal(x.dom.pageMissing.hidden,true);assert.equal(x.posts.length,1);
+  await x.click("navLeave");assert.equal(x.posts[1].operation,"MY_LEAVES");
+  await x.click("navClock");assert.equal(x.posts[2].operation,"MY_CLOCKS");
+  assert.equal(x.stored.has("v2_batch_qa_pending_write"),false);
+ }],
+ ["page navigation without QA confirmation never queries or obtains location",async()=>{
+  const x=make();await x.authReady();x.dom.confirmed.checked=false;
+  await x.click("navLeave");await x.click("navMissing");await x.click("navClock");
+  assert.equal(x.posts.length,0);
  }],
  ["monthly missed table filters out leave and displays approved missed time",async()=>{
   const x=make();await x.authReady();

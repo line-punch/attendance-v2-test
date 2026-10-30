@@ -39,10 +39,14 @@ let unknownWrite=!!pendingWrite;
 let clockType=pendingWrite&&pendingWrite.type||"上班";
 const pages=["Clock","Leave","Missing","Hr"];
 for(const page of pages){
- onAction("nav"+page,()=>{
+ onAction("nav"+page,async()=>{
   for(const name of pages){
    $("page"+name).hidden=name!==page;
    $("nav"+name).setAttribute("aria-pressed",String(name===page));
+  }
+  if(page!=="Hr"){
+   $("month").value=localToday().slice(0,7);
+   await execute({Clock:"MY_CLOCKS",Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]);
   }
  });
 }
@@ -294,7 +298,10 @@ async function execute(op,{write=false,decision=null}={}){
       (op==="GPS_STATUS"&&pendingWrite.operation==="GPS_CLOCK")||
       (op==="HR_STATUS"&&pendingWrite.operation==="HR_REVIEW")))
    rememberWrite(null);
-  status("TEST001 QA 已回覆成功（僅獨立技術測試）。\n"+
+  const summaries={MY_CLOCKS:"當月正常打卡紀錄已更新。",MY_LEAVES:"當月請假紀錄已更新。",
+   MY_MISSING:"當月補打卡紀錄已更新。",LEAVE_REQUEST:"請假申請已送出。",MISSING_REQUEST:"補打卡申請已送出。",
+   GPS_CLOCK:"打卡成功。",LEAVE_PREVIEW:"請假日期檢查完成。"};
+  status((summaries[op]||"查詢完成。")+"（獨立 QA）\n"+
    JSON.stringify(response.result,null,2),"success");
  }catch(e){
   if(writeStarted)unknownWrite=true;
