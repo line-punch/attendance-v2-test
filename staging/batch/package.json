@@ -2,8 +2,8 @@
   "name": "attendance-v2-batch-staging",
   "private": true,
   "version": "0.1.0",
-  "description": "Offline synthetic-only 12-suite V2 batch regression, no LINE, Google or NFC hardware calls",
+  "description": "Offline synthetic-only 13-suite V2 batch regressions. No LINE, Google or real NFC calls.",
   "scripts": {
-    "test": "node V2_BatchRules.test.js && node V2_DemoState.test.js && node V2_Demo_UI.test.js && node V2_BatchWorkflowCore.test.js && node V2_BatchTestStore.test.js && node V2_BatchOutboxPolicy.test.js && node V2_BatchMonthCloseReadiness.test.js && node V2_BatchAppendJournal.test.js && node V2_BatchGASJournalPort_QA_NOT_DEPLOYED.test.js && node V2_BatchLegacyRows_READONLY.test.js && node V2_BatchJournalLegacy_E2E.test.js && node V2_BatchNFCDynamicGate.test.js"
+    "test": "node V2_BatchRules.test.js && node V2_DemoState.test.js && node V2_Demo_UI.test.js && node V2_BatchWorkflowCore.test.js && node V2_BatchTestStore.test.js && node V2_BatchOutboxPolicy.test.js && node V2_BatchMonthCloseReadiness.test.js && node V2_BatchAppendJournal.test.js && node V2_BatchGASJournalPort_QA_NOT_DEPLOYED.test.js && node V2_BatchLegacyRows_READONLY.test.js && node V2_BatchJournalLegacy_E2E.test.js && node V2_BatchNFCDynamicGate.test.js && node V2_BatchQAOwnerPreflight_READONLY_NOT_DEPLOYED.test.js"
   }
 }
