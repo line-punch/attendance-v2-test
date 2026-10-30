@@ -326,18 +326,18 @@ function decode(lines){
 function safeReader(state,readonly,changes,events){
  const find=id=>deep(state.latest.get(id)||null);
  return Object.freeze({
-  find,list:async()=>Array.from(state.latest.values()).map(deep),
-  create:readonly?async()=>{throw ERROR("READ_ONLY");}:row=>{
+  find,list:()=>Array.from(state.latest.values()).map(deep),
+  create:readonly?()=>{throw ERROR("READ_ONLY");}:row=>{
    ensureRow(row);
    if(state.latest.has(row.requestId))throw ERROR("DUPLICATE_REQUEST");
    changes.push({kind:"CREATE",row:deep(row)});
   },
-  replace:readonly?async()=>{throw ERROR("READ_ONLY");}:row=>{
+  replace:readonly?()=>{throw ERROR("READ_ONLY");}:row=>{
    ensureRow(row);
    if(!state.latest.has(row.requestId))throw ERROR("UNKNOWN_REQUEST");
    changes.push({kind:"REPLACE",row:deep(row)});
   },
-  outbox:readonly?async()=>{throw ERROR("READ_ONLY");}:event=>{
+  outbox:readonly?()=>{throw ERROR("READ_ONLY");}:event=>{
    if(!event||typeof event!=="object")throw ERROR("OUTBOX_REQUIRED");
    events.push(deep(event));
   }
@@ -350,14 +350,14 @@ function make(io){
  function read(fn){
   if(typeof fn!=="function")throw ERROR("BAD_CALLBACK");
   // Read consistent snapshot under same exclusive lock, fail-closed.
-  return io.withExclusive(async()=>{
+  return io.withExclusive(()=>{
    const state=decode(io.readRows());
    return fn(safeReader(state,true,[],[]));
   });
  }
  function transaction(fn){
   if(typeof fn!=="function")throw ERROR("BAD_CALLBACK");
-  return io.withExclusive(async()=>{
+  return io.withExclusive(()=>{
    const state=decode(io.readRows());
    const changes=[],pendingEvents=[];
    const result=fn(safeReader(state,false,changes,pendingEvents));
@@ -853,7 +853,7 @@ function v2BatchCalendarQA_(){
  * LINE attendance V2 BATCH — TEST001 QA protected operation router.
  *
  * NOT DEPLOYED. THERE IS NO PUBLIC doPost/doGet.
- * This is an async implementation candidate, not a Web App entrypoint:
+ * The original router was async; this bundle is synchronously adapted:
  * Google's Web App handlers must return HtmlOutput/TextOutput directly;
  * async Promise-to-HtmlOutput delivery needs independent runtime testing.
  *
@@ -966,8 +966,8 @@ function v2BatchQAIdentity_(settings){
  }};
 }
 /**
- * This method returns a Promise for tests/QA editor use ONLY.
- * Do not publish it as a public Web App handler until a separate, tested
+ * This method returns a synchronous result in this QA-only bundle.
+ * Do not publish or enable this standalone Web App until a separate, tested
  * synchronous HtmlOutput bridge is available. The async runtime is not a
  * guarantee that an Apps Script doPost will a Promise.
  */
