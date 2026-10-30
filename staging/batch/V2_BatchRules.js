@@ -38,7 +38,7 @@
   let first=date(a),last=date(b);if(!first||!last||first>last)return null;
   let out=[];
   for(let t=first.getTime();t<=last.getTime();t+=86400000){
-   if(out.length>31)return null;
+   if(out.length>=31)return null;
    out.push(new Date(t).toISOString().slice(0,10));
   }
   return out;
