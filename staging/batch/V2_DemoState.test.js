@@ -8,7 +8,16 @@ const tests=[
  ["initial leave and missed queues empty",()=>{assert.equal(db.snapshot().leave.length,0);assert.equal(db.snapshot().missed.length,0)}],
  ["invalid ID blocked",()=>assert.equal(row("leave","X").code,"INVALID_ID")],
  ["first leave recorded pending",()=>{const r=row("leave","SIML-20261030",{employeeId:"TEST001"});assert.equal(r.item.status,"PENDING");assert.equal(r.duplicate,false)}],
- ["same leave ID idempotent",()=>{const r=row("leave","SIML-20261030");assert.equal(r.duplicate,true);assert.equal(db.snapshot().leave.length,1)}],
+ ["same leave ID idempotent",()=>{const r=row("leave","SIML-20261030",{employeeId:"TEST001"});assert.equal(r.duplicate,true);assert.equal(db.snapshot().leave.length,1)}],
+ ["same requestId with modified payload is rejected",()=>{
+  const r=row("leave","SIML-20261030",{employeeId:"TEST002"});
+  assert.equal(r.code,"REQUEST_ID_CONFLICT");
+  assert.equal(db.snapshot().leave.length,1);
+ }],
+ ["same requestId cannot be reused across form kinds",()=>{
+  const r=row("missed","SIML-20261030",{employeeId:"TEST001"});
+  assert.equal(r.code,"REQUEST_ID_CONFLICT");
+ }],
  ["another synthetic leave allowed",()=>{row("leave","SIML-20261031");assert.equal(db.snapshot().leave.length,2)}],
  ["synthetic missed punch recorded",()=>{const r=row("missed","SIMM-20261030");assert.equal(r.ok,true);assert.equal(db.snapshot().missed.length,1)}],
  ["synthetic clock supports one record only per fake ID",()=>{row("clock","MOCKCLOCK-上班");assert.equal(row("clock","MOCKCLOCK-上班").duplicate,true)}],
