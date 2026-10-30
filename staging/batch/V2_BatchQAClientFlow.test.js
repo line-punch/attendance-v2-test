@@ -167,8 +167,8 @@ const tests=[
   x.results.push({ok:true,result:{request:{requestId:x.dom.hrRequestId.value,status:"APPROVED"}}});
   await x.click("hrStatus");await x.click("hrApprove");assert.equal(x.posts.length,2);
  }],
- ["page is clearly isolated QA and not deployed",async()=>{
-  assert(html.includes("未部署"));
+ ["page is clearly isolated QA without automatic form submission",async()=>{
+  assert(html.includes("獨立 QA 測試頁"));
   assert(!html.includes('action="https://script.google.com'));
  }],
  ["no requests made on page initialization",async()=>{

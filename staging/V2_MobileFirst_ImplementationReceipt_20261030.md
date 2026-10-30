@@ -34,3 +34,11 @@
 
 本機 Edge 實際確認四入口切換與人資查詢建置中頁；未向後端送件。尚待獨立 QA LIFF、可由 LINE 存取的 QA 部署、真實手機定位與三介面完整送件回查。下載供 Excel 的資料格式亦須驗證，尚不宣稱已完成。
 
+## GitHub 與登入串接準備
+
+- feature 分支提交：`a8ba7c39ec568fe48501c22b81191fb89b0cca5b`。
+- 獨立靜態 QA 倉庫提交：`3a2ef18d7b7ef94887d491d0c6012a56e7f35bde`；Edge 已實際開啟網站核對四入口。這是頁面發布，不代表新版 GAS 已發布或手機端整合完成。
+- LINE Developers 的新 QA LIFF 表單已填妥，尚未提交：名稱「打卡V2獨立整批QA_20261030」，Full，僅 openid，profile／chat_message.write 未選，Add friend Off，Scan QR／Module mode Off。
+- 新 QA LIFF 建立與 QA Web App 對 LINE 開放連線，涉及持續登入連線及存取權限變更，需操作當下確認。原 GPS LIFF 保留。
+- 證據：`evidence/qa-mobile-four-pages.png`、`evidence/qa-liff-create-review-full.png`。
+
