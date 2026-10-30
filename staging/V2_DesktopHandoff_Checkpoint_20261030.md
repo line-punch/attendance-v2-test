@@ -56,3 +56,7 @@ E. iPhone／Android、不同 Google 帳號、斷線逾時、重試、NFC 實體�
 本輪新增 `staging/batch/V2_BatchQAOwnerPreflight_READONLY_NOT_DEPLOYED.gs`／`.test.js`：未安裝、不會寫入，未來只有選對 TEST001 技術 QA 的 Google 帳號、feature flag disabled 和正確 8 欄技術流水時才顯示預檢通過，避免網站多個 Google 帳號切換而誤操作。若 QA 技術工作簿未建立，函式會安全報未配置，不能拿其他同名帳本代替。
 
 開始桌面／Work 接手時，先唯讀查核 GitHub 分支、正確 Google 帳號、QA 工作簿身分、既有 TEST001 GPS 第 2 版與 V4 disabled，再按 A～E 驗收。原正式資料禁止修改、原測試資料禁止刪除，寫入不明時先查原單號。
+
+## 桌面接手補充：2026-10-30 跨公司重複申請漏洞修正及工期
+
+GitHub 批次分支已補強 `V2_BatchWorkflowCore.js`：同一申請 ID 的指紋與重送核對加入 `company`，預防不同公司共用員工 ID 時的越權重用。新增 3 項核心測試及 1 項 journal E2E，更新後核心 34／34、journal E2E 10／10 離線 PASS。這不是正式 GAS 實機。每天 4 小時、預計主要功能可供集中實機驗收 10–15 天，完整上線與 NFC/備份/薪資核對 18–26 天；詳 `staging/V2_Estimate_4hPerDay_20261030.md`。
