@@ -118,6 +118,11 @@ function make(opts={}){
  return {api,post,qaRows,counts:()=>({fetches,reads,writes,locked})};
 }
 const tests=[
+ ["invalid multi-day hourly leave gives a safe actionable reason without writing",()=>{
+  const x=make();const r=x.post("LEAVE_PREVIEW",{...request,unit:"HOURS",fromTime:"09:00",toTime:"11:00"}).reply;
+  assert.equal(r.ok,false);assert.equal(r.reason,"LEAVE_HOURS_INVALID");
+  assert.equal(r.persisted,false);assert.equal(x.counts().writes,0);
+ }],
  ["synchronous monthly missed query includes approved requests and excludes leave",()=>{
   const x=make({writeEnabled:"enabled"});
   const id="QA_MISSING_MONTH_20261030";

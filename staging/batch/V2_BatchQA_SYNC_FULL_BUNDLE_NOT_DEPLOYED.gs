@@ -1029,6 +1029,9 @@ function v2BatchQAHandleCandidate_(params){
   return {bridge:"YC_V2_BATCH_QA_V1",nonce:request.nonce,
     ok:false,code:result&&result.code==="AUTH_REQUIRED"?"AUTH":
       result&&result.code==="FEATURE_DISABLED"?"DISABLED":"REJECTED",
+    reason:result&&["ALREADY_CLOCKED","OUT_OF_RANGE","GPS_ACCURACY","GPS_EXPIRED",
+      "GPS_INVALID","NOT_FOUND","REQUEST_ID_CONFLICT","NON_WORKDAY_IN_RANGE",
+      "CALENDAR_OR_EVENT_REVIEW_REQUIRED","LEAVE_HOURS_INVALID","LEAVE_DATES_INVALID"].indexOf(result.code)>=0?result.code:"",
     persisted:false};
  }catch(_){
   // In particular, the write may already have committed before an exception.

@@ -90,6 +90,11 @@ function make(options={}){
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["confirmed duplicate GPS rejection explains existing attendance and releases pending lock",async()=>{
+  const x=make();await x.authReady();x.results.push({ok:false,code:"REJECTED",reason:"ALREADY_CLOCKED",persisted:false});
+  await x.click("clockIn");assert(x.dom.result.textContent.includes("今天已有同類型"));
+  assert.equal(x.stored.get("v2_batch_qa_pending_write"),"null");assert.equal(x.posts.length,1);
+ }],
  ["GPS failed positioning sends no request and leaves no pending write",async()=>{
   const x=make({gpsFailure:true});await x.authReady();await x.click("clockIn");
   assert.equal(x.posts.length,0);assert(!x.stored.get("v2_batch_qa_pending_write"));

@@ -233,8 +233,20 @@ async function execute(op,{write=false,decision=null}={}){
    if(write&&(response.code==="UNKNOWN"||response.persisted===null))
     unknownWrite=true;
    else if(write&&response.persisted===false)rememberWrite(null);
+   const messages={ALREADY_CLOCKED:"今天已有同類型的正常打卡，請查看當月紀錄。",
+    OUT_OF_RANGE:"目前定位超出打卡地點 50 公尺範圍，本次未寫入。",
+    GPS_ACCURACY:"定位精度不足，本次未寫入，請確認精確位置與定位訊號。",
+    GPS_EXPIRED:"定位已過期，本次未寫入，請重新取得定位。",
+    GPS_INVALID:"定位資料無效，本次未寫入。",
+    NOT_FOUND:"尚未查到原申請，不能因此判定先前寫入失敗；請保留原編號。",
+    REQUEST_ID_CONFLICT:"此申請編號與原資料不一致，請保留編號交由管理者核對。",
+    NON_WORKDAY_IN_RANGE:"申請範圍包含非工作日，請依工作日分開申請。",
+    CALENDAR_OR_EVENT_REVIEW_REQUIRED:"該日期的行事曆或停班事件仍須人資核對，暫不能送件。",
+    LEAVE_HOURS_INVALID:"指定時數只能申請單日，且結束時間須晚於開始時間。",
+    LEAVE_DATES_INVALID:"請檢查開始與結束日期，結束日期不可早於開始日期。"};
    status("QA 回覆："+String(response.code||"UNKNOWN")+
-    "\n"+(response.persisted===null?"結果不明，請保留原編號查詢。":"本次未確認成功。")+
+    "\n"+(response.persisted===null?"結果不明，請保留原編號查詢。":
+      messages[response.reason]||(response.code==="DISABLED"?"QA 寫入尚未開放，本次未寫入。":"本次未確認成功。"))+
     "\n原申請編號："+(args.requestId||"無"));
    return;
   }
