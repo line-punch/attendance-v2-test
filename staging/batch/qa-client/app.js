@@ -4,6 +4,7 @@
 const LIFF_ID=String(window.V2_QA_LIFF_ID||"");
 const BRIDGE="YC_V2_BATCH_QA_V1";
 const $=id=>document.getElementById(id);
+if(window.V2_QA_ENDPOINT){$("endpoint").value=window.V2_QA_ENDPOINT;$("endpoint").readOnly=true;}
 let loggedIn=false,busy=false,pendingWrite=null;
 try{
  const saved=sessionStorage.getItem("v2_batch_qa_pending_write");
@@ -56,6 +57,8 @@ function validatedEndpoint(raw){
     !/^\/macros\/s\/[A-Za-z0-9_-]+\/exec\/?$/.test(u.pathname)||
     u.search||u.hash||u.username||u.password)
   throw Error("不可使用非 Apps Script /exec 的網址");
+ if(window.V2_QA_ENDPOINT&&u.href!==window.V2_QA_ENDPOINT)
+  throw Error("只能連線到已核對的獨立 QA 後端");
  return u.href;
 }
 function googleOrigin(input){
