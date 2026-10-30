@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V2 整批整合預覽｜純模擬</title><link rel="stylesheet" href="./style.css"></head><body><main>
+<header class="panel"><h1>LINE 打卡 V2｜整批整合預覽</h1>
+<p class="note">本頁只使用 TEST001 虛構資料；沒有連線 LINE、GPS、Google 試算表或人資後端。先整套建立，再分批測試。</p>
+<nav id="tabs"><button data-tab="clock">我要打卡</button><button data-tab="missing">忘記打卡</button><button data-tab="history">人資查詢</button><button data-tab="leave">我要請假</button></nav></header>
+<section id="clock" class="panel"><h2>我要打卡</h2><p>每日上班／下班各一次，原 GPS 50 公尺設定保留；這裡只是模擬操作。</p>
+<button id="clockIn">模擬上班</button><button id="clockOut">模擬下班</button><button id="clockCheck">查詢模擬紀錄</button><button disabled>NFC 備援尚待實體驗證</button><output id="clockResult">尚未操作</output></section>
+<section id="missing" class="panel" hidden><h2>忘記打卡</h2><label>日期<input type="date" id="missDate" value="2026-10-30"></label><label>時間<input type="time" id="missTime" value="08:30"></label><label>類型<select id="missType"><option>上班</option><option>下班</option></select></label><label>原因<textarea id="missReason"></textarea></label><button id="missSend">模擬送出補打卡</button><output id="missResult">尚未申請</output></section>
+<section id="history" class="panel" hidden><h2>人資查詢｜本人近三個月</h2>
+<label>月份<select id="month"><option value="2026-10">2026/10</option><option value="2026-09">2026/09</option><option value="2026-08">2026/08</option></select></label>
+<button id="historyRefresh">重新整理模擬紀錄</button><output id="historyResult">尚未查詢</output></section>
+<section id="leave" class="panel" hidden><h2>我要請假</h2><label>開始日期<input id="leaveFrom" type="date" value="2026-11-09"></label><label>結束日期<input id="leaveTo" type="date" value="2026-11-10"></label><label>假別<select id="leaveType"><option>事假</option><option>病假</option><option>特休</option><option>公假</option><option>婚假</option><option>喪假</option></select></label>
+<label>類型<select id="leaveUnit"><option value="DAY">全天／連續工作日</option><option value="HOURS">單日指定時段</option></select></label><label>開始時間<input id="fromTime" type="time" value="09:00"></label><label>結束時間<input id="toTime" type="time" value="11:00"></label><label>原因<textarea id="leaveReason"></textarea></label><button id="leaveCheck">預檢請假</button><button id="leaveSend">模擬送出請假</button><output id="leaveResult">尚未送出</output></section>
+<section class="panel"><h2>人資測試工作台</h2><p>只有虛構人資審核；核准、駁回不會通知任何人。</p><button id="hrRefresh">重新整理待審核</button><div id="hrItems">尚無測試申請</div><p class="note">虛構工作日曆：11/11 休假，11/12 停班。真正天災、年度日曆與月結需再核對。</p></section>
+<footer>批次整合預覽｜不影響正式打卡、不會寫入或推播。</footer>
+<script src="../V2_BatchRules.js"></script><script src="../V2_DemoState.js"></script><script src="./app.js"></script></main></body></html>
