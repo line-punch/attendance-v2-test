@@ -199,3 +199,17 @@ V3 原模擬回歸及新增安全記錄驗證 `AttendanceV2_StandaloneLeaveStatu
 重要區別：`UNKNOWN`＋執行完成證明 HTTP POST 到達 V3 部署並回覆拒絕，但**不等於**後端已成功讀取假單。下一步需在「執行項目」點選 **12:11:29、版本 3、網頁應用程式、doPost** 那一列，查看詳細記錄是否有 `V2HR_DIAGNOSTIC=SETTINGS`（預期當旗標 disabled）；只貼代碼，不需上傳 deployment ID、LINE ID、Token、試算表 ID 或其他敏感資訊。
 
 在觀察診斷記錄前**不應**更改安全旗標、重試 POST 或重新部署。原 TEST001 GPS 部署及正式系統保持不動。
+
+## 2026-10-30 後續：V4 短效快取診斷，避免反覆尋找 Cloud Logging
+
+擁有人已展示新獨立 GAS 的「執行項目」清單（版本 3、2026-10-30 12:11:29 的 doPost 已完成），但三點選單的「專案詳細資料」只顯示統計圖與專案 OAuth 權限，不是 `Logger.log` 的階段紀錄。Google 官方說明基本 Execution Log 與 Cloud Logging 保存與展示方式不同，並非所有已部署 Web App 記錄都能從該清單直接查看；因此不再讓使用者找同一筆記錄。
+
+新增候選 `staging/AttendanceV2_StandaloneLeaveStatus_DIAGNOSTIC_V4.gs`：完整取代新**獨立唯讀**專案的 V3 `程式碼.gs`，保留既有 `doPost`、`doGet`、LINE ID Token 驗證、TEST001 綁定及固定模擬假單。不同點是 `CacheService.getScriptCache()` 只儲存最後一次允許的安全階段代碼（例如 `SETTINGS`, `LINE_VERIFY`, `IDENTITY_BOUND_ACCOUNT_DENIED`, `MOCK_LEAVE`, `MOCK_FOUND`）和 UTC ISO 時間，TTL 600 秒。沒有寫入 Google Sheets、Script Properties、真正員工資料或 token。
+
+新 owner editor 函式 `v2hrReadLastSafeStage_TEST_ONLY` 只有在 `V2HR_READONLY_TEST_ENABLED=disabled`，而 `Session.getActiveUser().getEmail()` **非空且等於** `Session.getEffectiveUser().getEmail()` 時才會讀快取；只輸出 `{found,stage,at,cacheOnly,expiresInMinutes}` 等安全摘要。這是編輯器診斷，不把原始錯誤原因對外顯示。注意 Apps Script Web App「以我身分執行／所有人」的 `google.script.run` 可觸及非底線結尾伺服器函式，因此該函式**必須依賴上述 owner 身分 + disabled 欄位檢查**，不可省略。快取最後一筆結果可能被其他請求覆寫，需和實測時間核對；若過期沒有紀錄，不可認定假單不存在。
+
+`AttendanceV2_StandaloneLeaveStatus_DIAGNOSTIC_V4.test.js` 已實行 **40／40 項模擬測試**，涵蓋 V3 既有 32 項與 V4 新增快取、擁有人檢查、無訊息洩漏、未開啟 flag 拒絕、無 Sheet 寫入等驗證。**新 V4 尚未安裝、部署或實機測試**，不能當作已查明先前手機 `UNKNOWN`。
+
+接續順序：第一步由使用者確認新專案 `V2HR_READONLY_TEST_ENABLED=disabled`，僅在**新獨立**專案將 `程式碼.gs` 全部替換為 V4，儲存，先不部署。下一步再建立 V4 **新增部署**（不覆蓋 V3），先用 disabled 匿名測試確認；最後僅一次手機查詢，恢復 disabled 後 **10 分鐘內**在新專案編輯器選 `v2hrReadLastSafeStage_TEST_ONLY` 執行，回傳最末 stage code 與時間，不用 Cloud Logging。
+
+安全界線：不要修改原 TEST001 DATA_TEST GPS 第 2 版、正式 LINE 打卡、LINE OA 選單、GitHub Pages GPS 首頁，也不要提供 Web App 完整 URL、LINE Token 或測試 Sheet ID。
