@@ -80,3 +80,15 @@
 **尚未建成、不能宣稱可實際使用的部分**：安全的真正 GAS Sheet 寫入適配及可靠持久 outbox、HR 權限清單與訊息發送、原 Excel 薪資/封存備份、NFC 密碼學 SUN 實體驗證，以及上線前的 iOS/Android 端到端實測。這些仍需在 TEST001 隔離環境建置和整批測試後才能接正式版。
 
 目前使用者不需操作；新獨立 V4 查詢服務安全屬性維持 `disabled`，正式打卡與 TEST001 GPS 都不修改。
+
+## 2026-10-30 接續：完整離線回歸與 NFC、帳號預檢
+
+本次接續已將原有 11 組測試逐組重新執行，累計 **223／223 PASS**；新增 NTAG424 DNA SUN 伺服器驗證入口候選 **20／20 PASS**、Google 多帳號及 QA 帳本唯讀預檢 **13／13 PASS**，現有 **13 組共 256／256 項離線測試通過**。此為工具內執行同套 JavaScript 測試與 GAS 模擬，並非真實 Node npm test 工作流或 GAS 連線實測。
+
+新增 `staging/batch/V2_BatchNFCDynamicGate.js`：預設關閉 NFC；只信任後端 AES/SDM 驗證器的證明，檢查已綁定員工、公司、允許地點、24-bit counter 並委派**同一持久交易內**防重播與打卡；沒有私鑰或真實 AES 實作。未用過的 SUN 網址仍可能被即時轉傳，不能單憑 Ntag424 DNA 宣稱完全防遠端代打。實體標籤與真實 AES/SUN 驗證**仍未完成**。
+
+新增 `staging/batch/V2_BatchQAOwnerPreflight_READONLY_NOT_DEPLOYED.gs`：在新的獨立 QA GAS 中、功能停用時，由編輯器帳號只讀核對帳號一致、工作簿名稱、試算表 ID 與 8 欄技術流水，帳號 email/Sheet ID 不輸出。此函式**尚未安裝、未實機執行**；也不等於確認法律或專案所有權。使用者網頁端多帳號，在桌面版操作前必須先辨認正確授權帳號。
+
+已新增／更新 `staging/V2_DesktopHandoff_Checkpoint_20261030.md` 和 `staging/batch/package.json`，後者以 `npm test` 一次呼叫 13 組離線測試；本對話未直接執行 npm 指令。
+
+所有正式、GPS 第 2 版及 V4 查詢部署均保持不變，V4 安全開關維持 `disabled`。目前沒有任何真正 Google Sheets 寫入、LINE 通知、薪資封存、本地備份或 NFC 實體驗證。
