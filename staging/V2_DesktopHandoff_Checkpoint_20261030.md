@@ -60,3 +60,7 @@ E. iPhone／Android、不同 Google 帳號、斷線逾時、重試、NFC 實體�
 ## 桌面接手補充：2026-10-30 跨公司重複申請漏洞修正及工期
 
 GitHub 批次分支已補強 `V2_BatchWorkflowCore.js`：同一申請 ID 的指紋與重送核對加入 `company`，預防不同公司共用員工 ID 時的越權重用。新增 3 項核心測試及 1 項 journal E2E，更新後核心 34／34、journal E2E 10／10 離線 PASS。這不是正式 GAS 實機。每天 4 小時、預計主要功能可供集中實機驗收 10–15 天，完整上線與 NFC/備份/薪資核對 18–26 天；詳 `staging/V2_Estimate_4hPerDay_20261030.md`。
+
+## 2026-10-30 7 日衝刺桌面接手：同步 QA 整包
+
+最新 GitHub 分支 `feature/v2-batch-build-20261030` 中，已新增 `staging/batch/V2_BatchQA_SYNC_FULL_BUNDLE_NOT_DEPLOYED.gs`：**約 5 萬字元、只有一個 doPost/doGet 的同步 Apps Script QA 整合候選**，須在全新獨立 QA GAS 專案、不同 TEST001／QA 技術活頁簿，先保持 `V2_BATCH_QA_ENABLED=disabled`、`V2_BATCH_QA_WRITE_ENABLED=disabled`。另有 `staging/batch/qa-client/index.html` 及 `app.js`，須先建立獨立 LIFF QA 頁面，**目前未部署**。整包 13／13、手機候選 16／16、真格式 QA 工作日曆 21／21、受保護路由 17／17 離線測試通過。本分支連同前次累積 17 套 **327／327** 個離線案例，**不是實機測試**。一律先核對正確 Google 帳號、既有 GPS 第 2 版與 V4 disabled，不得把此整包貼到正式打卡/GPS/V4。進度與 7 日衝刺詳 `staging/V2_7DaySprint_IntegratedQACheckpoint_20261030.md`。
