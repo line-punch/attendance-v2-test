@@ -115,7 +115,7 @@ const tests=[
  }],
  ["oversized cell rejected without writing",async()=>{
   const x=create(),p=x.createPort();
-  const cells=headings.slice();cells[1]="A".repeat(31000);
+  const cells=["TX_ID_TEST_1234","REQUEST_TEST_1234",1,"A".repeat(31000),"{}","2026-10-30T04:30:00.000Z","ROOT","01234567"];
   await assert.rejects(()=>p.withExclusive(()=>p.appendRow(cells)),/CELL_TOO_LONG/);
   assert.equal(x.counts().setCalls,0);
  }],
