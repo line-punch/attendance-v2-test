@@ -9,12 +9,13 @@ let loggedIn=false,busy=false,uiBusy=false,pendingWrite=null,draftOperation=null
 const writeButtons=new Set(["clockIn","clockOut","submitLeave","submitMissing","hrApprove","hrReject","newId","newLeave","newMissing"]);
 let confirmedForms={};
 try{confirmedForms=JSON.parse(sessionStorage.getItem("v2_batch_qa_confirmed_forms")||"{}")||{};}catch(_){}
-const formConfig={LEAVE_REQUEST:["submitLeave","leaveReceipt"],MISSING_REQUEST:["submitMissing","missingReceipt"]};
+const formConfig={LEAVE_REQUEST:["submitLeave","leaveReceipt","leaveFields"],MISSING_REQUEST:["submitMissing","missingReceipt","missingFields"]};
 function confirmForm(op,id){
  if(!formConfig[op]||!/^[A-Za-z0-9_-]{12,80}$/.test(String(id||"")))return;
  confirmedForms[op]=id;
  try{sessionStorage.setItem("v2_batch_qa_confirmed_forms",JSON.stringify(confirmedForms));}catch(_){}
- const [button,receipt]=formConfig[op];
+ const [button,receipt,fields]=formConfig[op];
+ $(fields).hidden=true;
  $(button).setAttribute("data-confirmed","true");
  $(button).setAttribute("data-unavailable","true");$(button).disabled=true;
  $(button).textContent="已送出（請查看紀錄）";
@@ -434,6 +435,7 @@ for(const [id,op] of [["newLeave","LEAVE_REQUEST"],["newMissing","MISSING_REQUES
   $(formConfig[op][0]).setAttribute("data-unavailable","false");
   $(formConfig[op][0]).textContent=op==="LEAVE_REQUEST"?"送出請假申請":"送出補打卡申請";
   $(formConfig[op][1]).textContent="填好內容後再送出；目前尚未送件。";
+  $(formConfig[op][2]).hidden=false;
   status("已準備新的申請，尚未送出。");
  });
 }

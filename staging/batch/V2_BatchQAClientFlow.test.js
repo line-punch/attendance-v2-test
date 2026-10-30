@@ -37,7 +37,7 @@ function make(options={}){
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
  "hrApprove","hrReject","hrStatus","writeConsent","result","myMissing","missingHistory","leaveHistory",
  "currentLeaves","navClock","navLeave","navMissing","navHr","pageClock","pageLeave","pageMissing","pageHr",
- "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth","newLeave","newMissing","leaveReceipt","missingReceipt","hourFields"];
+ "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth","newLeave","newMissing","leaveReceipt","missingReceipt","hourFields","leaveFields","missingFields"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});
@@ -124,10 +124,10 @@ const tests=[
   for(let i=0;i<10&&x.posts.length<2;i++)await Promise.resolve();
   assert.equal(x.posts[1].operation,"MY_MISSING");
   x.results.push({ok:true,result:{month:"2026-10",requests:[]}});x.release();await submit;
-  assert.equal(x.dom.submitMissing.disabled,true);assert(x.dom.missingReceipt.textContent.includes(id));
+  assert.equal(x.dom.submitMissing.disabled,true);assert(x.dom.missingReceipt.textContent.includes(id));assert.equal(x.dom.missingFields.hidden,true);
   await x.click("submitMissing");assert.equal(x.posts.length,2);
   const y=make({stored:x.stored});await y.authReady();await y.click("submitMissing");assert.equal(y.posts.length,0);
-  await y.click("newMissing");assert.equal(y.dom.submitMissing.disabled,false);
+  assert.equal(y.dom.missingFields.hidden,true);await y.click("newMissing");assert.equal(y.dom.submitMissing.disabled,false);assert.equal(y.dom.missingFields.hidden,false);
   assert.notEqual(y.dom.requestId.value,id);
  }],
  ["failed history refresh never turns a confirmed write into unknown or repeats it",async()=>{

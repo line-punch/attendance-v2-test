@@ -63,7 +63,7 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <button id="myClocks" type="button">重新整理當月正常打卡紀錄</button>
 </section>
 <section class="panel" id="pageLeave" hidden><h2>請假申請</h2><p class="small">不限地點，不需要定位。送出後可在下方查詢當月紀錄與狀態。</p>
-<div class="pair">
+<div id="leaveFields"><div class="pair">
 <label>開始日期<input id="start" type="date" value="2026-11-09"></label>
 <label>結束日期<input id="end" type="date" value="2026-11-10"></label>
 </div>
@@ -74,7 +74,7 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <label>結束時間<input id="toTime" type="time" value="11:00"></label>
 </div>
 <label>請假原因<textarea id="reason"></textarea></label>
-<button id="preview" type="button">請假日期預檢（唯讀）</button>
+<button id="preview" type="button">請假日期預檢（唯讀）</button></div>
 <button id="leaveStatus" type="button">查原請假單（唯讀）</button>
 <button id="submitLeave" type="button">送出請假申請</button>
 <button id="newLeave" type="button">新增申請</button><p id="leaveReceipt" role="status"></p>
@@ -83,10 +83,10 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div>
 </section>
 <section class="panel" id="pageMissing" hidden><h2>補打卡申請</h2><p class="small">不限地點，不需要定位。補打卡只列於此處，不合併正常打卡。</p>
-<div class="pair"><label>日期<input id="missingDate" type="date" value="2026-10-30"></label>
+<div id="missingFields"><div class="pair"><label>日期<input id="missingDate" type="date" value="2026-10-30"></label>
 <label>時間<input id="missingTime" type="time" value="08:30"></label></div>
 <label>上班／下班<select id="missingType"><option>上班</option><option>下班</option></select></label>
-<label>原因<input id="missingReason" value=""></label>
+<label>原因<input id="missingReason" value=""></label></div>
 <button id="submitMissing" type="button">送出補打卡申請</button>
 <button id="newMissing" type="button">新增申請</button><p id="missingReceipt" role="status"></p>
 <button id="missingStatus" type="button">查原補打卡單（唯讀）</button>
@@ -112,6 +112,6 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 <details><summary>詳細執行回覆（QA）</summary><pre id="result">未發送任何請求。</pre></details>
 </section>
 </main>
-<script src="./config.js?v=20261030h"></script>
-<script src="./app.js?v=20261030h"></script></body></html>
+<script src="./config.js?v=20261030i"></script>
+<script src="./app.js?v=20261030i"></script></body></html>
 
