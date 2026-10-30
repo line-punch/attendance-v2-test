@@ -1,6 +1,7 @@
 /**
  * LINE V2 / TEST001 — STANDALONE LEAVE-STATUS-ONLY DIAGNOSTIC V3 CANDIDATE.
- * NOT DEPLOYED. Logs only safe stage labels on every POST, never real values.\n * Do NOT paste into production "打卡系統" or existing
+ * NOT DEPLOYED. Logs only safe stage labels on every POST, never real values.
+ * Do NOT paste into production "打卡系統" or existing
  * YC_ATTENDANCE_V2_DATA_TEST_ONLY. Intended for a NEW standalone Apps Script
  * project only, with no employee write / invitation / payroll functions.
  *
