@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(__dirname,"qa-client/index.html"),"utf8");
 const TOKEN="QA_FAKE_LINE_ID_TOKEN_NEVER_REAL";
 function make(options={}){
  const params={login:true,origin:"https://script.googleusercontent.com",...options};
- let events=new Map(),posts=[],results=[],pendingResponses=[],timerCalls=0;
+ let events=new Map(),posts=[],results=[],pendingResponses=[],timerCalls=0,randomSeed=options.stored?64:0;
  let stored=options.stored||new Map();
  function elem(id){
   return {id,value:"",checked:false,disabled:false,textContent:"",
@@ -27,7 +27,8 @@ function make(options={}){
     };
     if(params.defer)pendingResponses.push(deliver);else Promise.resolve().then(deliver);
    },
-   attributes:{},setAttribute(key,value){this.attributes[key]=value;}
+   dataset:{},attributes:{},setAttribute(key,value){this.attributes[key]=value;if(key.startsWith("data-"))this.dataset[key.slice(5)]=value;},
+   getAttribute(key){return this.attributes[key]??null;}
   };
  }
  const ids=["login","identity","endpoint","confirmed","start","end","leaveType",
@@ -36,7 +37,7 @@ function make(options={}){
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
  "hrApprove","hrReject","hrStatus","writeConsent","result","myMissing","missingHistory","leaveHistory",
  "currentLeaves","navClock","navLeave","navMissing","navHr","pageClock","pageLeave","pageMissing","pageHr",
- "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth"];
+ "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth","newLeave","newMissing","leaveReceipt","missingReceipt","hourFields"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});
@@ -58,11 +59,11 @@ function make(options={}){
   querySelectorAll:()=>ids.filter(id=>["login","newId","preview","leaveStatus",
    "submitLeave","submitMissing","missingStatus","myLeaves","hrPending",
    "hrApprove","hrReject","hrStatus","clockIn","clockOut","clockStatus","myClocks",
-   "currentLeaves","myMissing","navClock","navLeave","navMissing","navHr","viewSubmittedMonth"].includes(id)).map(id=>dom[id]),
+   "currentLeaves","myMissing","navClock","navLeave","navMissing","navHr","viewSubmittedMonth","newLeave","newMissing"].includes(id)).map(id=>dom[id]),
   createElement:tag=>elem(tag),
   body:{appendChild(){}}
  };
- const win={V2_QA_LIFF_ID:options.liffId??"2012136707-QAOFFLINETEST",crypto:{getRandomValues:arr=>{for(let i=0;i<arr.length;i++)arr[i]=i+1;return arr}},
+ const win={V2_QA_LIFF_ID:options.liffId??"2012136707-QAOFFLINETEST",crypto:{getRandomValues:arr=>{randomSeed++;for(let i=0;i<arr.length;i++)arr[i]=(i+randomSeed)%256;return arr}},
   addEventListener:(ev,fn)=>{events.set(ev,[...(events.get(ev)||[]),fn])},
   removeEventListener:(ev,fn)=>{events.set(ev,(events.get(ev)||[]).filter(f=>f!==fn))}};
  const liff={init:async()=>{},isLoggedIn:()=>params.login,
@@ -92,6 +93,47 @@ function make(options={}){
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["an old saved ID is not reused for a new form and switching workflows gets a separate draft",async()=>{
+  const old="QA_OLDER_CONFIRMED_REQUEST_0001";
+  const x=make({stored:new Map([["v2_batch_qa_request_id",old]])});await x.authReady();
+  await x.click("preview");const leaveId=JSON.parse(x.posts[0].payload).args.requestId;
+  assert.notEqual(leaveId,old);await x.click("submitMissing");
+  const missingId=JSON.parse(x.posts[1].payload).args.requestId;
+  assert.notEqual(missingId,leaveId);
+ }],
+ ["first employee submit creates its ID automatically, refreshes history, and blocks resending after reload",async()=>{
+  const x=make({defer:true});await x.authReady();
+  const submit=x.click("submitMissing");await Promise.resolve();
+  const id=JSON.parse(x.posts[0].payload).args.requestId;assert.match(id,/^QA_[a-f0-9]{32}$/);
+  x.results.push({ok:true,result:{request:{requestId:id,date:"2026-10-30",status:"PENDING"}}});
+  x.release();await Promise.resolve();await Promise.resolve();await Promise.resolve();
+  // Await the sequential read-only refresh without issuing another submission.
+  for(let i=0;i<10&&x.posts.length<2;i++)await Promise.resolve();
+  assert.equal(x.posts[1].operation,"MY_MISSING");
+  x.results.push({ok:true,result:{month:"2026-10",requests:[]}});x.release();await submit;
+  assert.equal(x.dom.submitMissing.disabled,true);assert(x.dom.missingReceipt.textContent.includes(id));
+  await x.click("submitMissing");assert.equal(x.posts.length,2);
+  const y=make({stored:x.stored});await y.authReady();await y.click("submitMissing");assert.equal(y.posts.length,0);
+  await y.click("newMissing");assert.equal(y.dom.submitMissing.disabled,false);
+  assert.notEqual(y.dom.requestId.value,id);
+ }],
+ ["failed history refresh never turns a confirmed write into unknown or repeats it",async()=>{
+  const x=make();await x.authReady();await x.click("newId");const id=x.dom.requestId.value;
+  x.results.push({ok:true,result:{request:{requestId:id,startDate:"2026-11-09",endDate:"2026-11-10"}}},
+   {ok:false,code:"AUTH",persisted:false});
+  await x.click("submitLeave");assert.equal(x.posts.length,2);
+  assert.equal(x.posts[1].operation,"MY_LEAVES");
+  assert.equal(x.stored.get("v2_batch_qa_pending_write"),"null");
+  assert(x.dom.feedback.textContent.includes("已送出"));assert(x.dom.result.textContent.includes("請勿重送"));
+  await x.click("submitLeave");assert.equal(x.posts.length,2);
+ }],
+ ["all-day hides time fields and hourly mode enables them without GPS or a request",async()=>{
+  const x=make();await x.authReady();assert.equal(x.dom.hourFields.hidden,true);
+  assert.equal(x.dom.fromTime.disabled,true);x.dom.unit.value="HOURS";
+  x.dom.unit.listeners.change();assert.equal(x.dom.hourFields.hidden,false);assert.equal(x.dom.toTime.disabled,false);
+  x.dom.unit.value="DAY";x.dom.unit.listeners.change();assert.equal(x.dom.hourFields.hidden,true);
+  assert.equal(x.posts.length,0);
+ }],
  ["selected months are sent as read-only queries and successful future leave links to that month",async()=>{
   const x=make();await x.authReady();await x.click("newId");
   x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,startDate:"2026-11-09",endDate:"2026-11-10"}}});
@@ -100,9 +142,9 @@ const tests=[
   await x.click("viewSubmittedMonth");assert.equal(x.posts[1].operation,"MY_LEAVES");
   assert.equal(JSON.parse(x.posts[1].payload).args.month,"2026-11");
   x.dom.month.value="2026-09";await x.click("currentLeaves");
-  assert.equal(JSON.parse(x.posts[2].payload).args.month,"2026-09");
+  assert.equal(JSON.parse(x.posts[3].payload).args.month,"2026-09");
   x.dom.missingMonth.value="2026-08";await x.click("myMissing");
-  assert.equal(JSON.parse(x.posts[3].payload).args.month,"2026-08");
+  assert.equal(JSON.parse(x.posts[4].payload).args.month,"2026-08");
  }],
  ["all actions show busy feedback, block double clicks and restore their labels",async()=>{
   const x=make({defer:true});await x.authReady();await x.click("newId");x.dom.preview.textContent="日期預檢";
@@ -121,7 +163,8 @@ const tests=[
   assert.equal(x.dom.submitLeave.disabled,true);assert.equal(x.dom.clockOut.disabled,true);
   assert.equal(x.dom.leaveStatus.disabled,false);assert.equal(x.dom.feedback.attributes["data-phase"],"unknown");
   x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,status:"PENDING"}}});
-  await x.click("leaveStatus");assert.equal(x.dom.submitLeave.disabled,false);assert.equal(x.dom.clockOut.disabled,false);
+  await x.click("leaveStatus");assert.equal(x.dom.submitLeave.disabled,true);assert.equal(x.dom.clockOut.disabled,false);
+  assert.equal(x.dom.newLeave.disabled,false);
  }],
  ["empty normal month shows a clear empty message without generating dates",async()=>{
   const x=make();await x.authReady();x.results.push({ok:true,result:{month:"2026-10",days:[]}});
@@ -288,14 +331,15 @@ const tests=[
   await x.click("newId");assert.equal(x.dom.requestId.value,original);
   await x.click("submitLeave");assert.equal(x.posts.length,1);
  }],
- ["original request readback releases unknown write lock",async()=>{
+ ["original readback confirms receipt and permits an explicit new application without resending original",async()=>{
   const x=make();await x.authReady();await x.click("newId");
   x.results.push({ok:false,code:"UNKNOWN",persisted:null});
   await x.click("submitLeave");
   x.results.push({ok:true,result:{request:{requestId:x.dom.requestId.value,status:"PENDING"}}});
   await x.click("leaveStatus");
   await x.click("submitLeave");
-  assert.equal(x.posts.length,3);
+  assert.equal(x.posts.length,2);
+  await x.click("newLeave");await x.click("submitLeave");assert.equal(x.posts.length,3);
  }],
  ["unknown write remains locked after page reload",async()=>{
   const x=make();await x.authReady();await x.click("newId");

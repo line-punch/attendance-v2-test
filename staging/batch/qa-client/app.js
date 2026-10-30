@@ -5,8 +5,21 @@ const LIFF_ID=String(window.V2_QA_LIFF_ID||"");
 const BRIDGE="YC_V2_BATCH_QA_V1";
 const $=id=>document.getElementById(id);
 if(window.V2_QA_ENDPOINT){$("endpoint").value=window.V2_QA_ENDPOINT;$("endpoint").readOnly=true;}
-let loggedIn=false,busy=false,uiBusy=false,pendingWrite=null;
-const writeButtons=new Set(["clockIn","clockOut","submitLeave","submitMissing","hrApprove","hrReject","newId"]);
+let loggedIn=false,busy=false,uiBusy=false,pendingWrite=null,draftOperation=null;
+const writeButtons=new Set(["clockIn","clockOut","submitLeave","submitMissing","hrApprove","hrReject","newId","newLeave","newMissing"]);
+let confirmedForms={};
+try{confirmedForms=JSON.parse(sessionStorage.getItem("v2_batch_qa_confirmed_forms")||"{}")||{};}catch(_){}
+const formConfig={LEAVE_REQUEST:["submitLeave","leaveReceipt"],MISSING_REQUEST:["submitMissing","missingReceipt"]};
+function confirmForm(op,id){
+ if(!formConfig[op]||!/^[A-Za-z0-9_-]{12,80}$/.test(String(id||"")))return;
+ confirmedForms[op]=id;
+ try{sessionStorage.setItem("v2_batch_qa_confirmed_forms",JSON.stringify(confirmedForms));}catch(_){}
+ const [button,receipt]=formConfig[op];
+ $(button).setAttribute("data-confirmed","true");
+ $(button).setAttribute("data-unavailable","true");$(button).disabled=true;
+ $(button).textContent="已送出（請查看紀錄）";
+ $(receipt).textContent="這筆申請已送出。編號："+id+"。另填一筆請按「新增申請」。";
+}
 function onAction(id,handler){
  const button=$(id);
  button.addEventListener("click",async()=>{
@@ -25,6 +38,7 @@ function onAction(id,handler){
   catch(e){status("⚠️ "+String(e&&e.message||e),"error");}
   finally{
    uiBusy=false;button.textContent=label;
+   if(button.getAttribute&&button.getAttribute("data-confirmed")==="true")button.textContent="已送出（請查看紀錄）";
    button.setAttribute("aria-busy","false");button.setAttribute("data-state","idle");
    buttons.forEach((b,i)=>{b.disabled=(!writeButtons.has(b.id)&&previous[i])||!!(b.dataset&&b.dataset.unavailable==="true")||
     (unknownWrite&&writeButtons.has(b.id));});
@@ -74,6 +88,13 @@ for(const field of ["start","end","missingDate"])$(field).value=today;
 $("month").value=today.slice(0,7);
 $("missingMonth").value=today.slice(0,7);
 let submittedMonth=null;
+for(const op of Object.keys(formConfig))if(confirmedForms[op])confirmForm(op,confirmedForms[op]);
+function updateLeaveUnit(){
+ const hours=$("unit").value==="HOURS";
+ $("hourFields").hidden=!hours;
+ $("fromTime").disabled=!hours;$("toTime").disabled=!hours;
+}
+$("unit").addEventListener("change",updateLeaveUnit);updateLeaveUnit();
 if(pendingWrite){
  if(pendingWrite.operation==="HR_REVIEW")
   $("hrRequestId").value=pendingWrite.requestId||"";
@@ -254,6 +275,16 @@ async function execute(op,{write=false,decision=null}={}){
   if(write&&!$("writeConsent").checked)
    throw Error("請確認 QA 寫入開關及獨立測試資料庫");
   if(write&&unknownWrite)throw Error("前一筆寫入結果不明，先用原單號查詢，不能再送出");
+  if(write&&formConfig[op]&&confirmedForms[op])
+   throw Error("這筆申請已送出，請查看紀錄；另填一筆請按「新增申請」。");
+  if(op==="LEAVE_PREVIEW"||formConfig[op]){
+   const draft=op==="LEAVE_PREVIEW"?"LEAVE_REQUEST":op;
+   if(!$("requestId").value.trim()||Object.values(confirmedForms).includes($("requestId").value.trim())||
+      (draftOperation!==draft&&draftOperation!=="MANUAL")){
+    const id="QA_"+freshHex(16);$("requestId").value=id;preserveId(id);
+   }
+   draftOperation=draft;
+  }
   const endpoint=validatedEndpoint($("endpoint").value);
   const token=verifiedToken();
   let args=op==="HR_REVIEW"?{
@@ -304,7 +335,9 @@ async function execute(op,{write=false,decision=null}={}){
       (op==="MISSING_STATUS"&&pendingWrite.operation==="MISSING_REQUEST")||
       (op==="GPS_STATUS"&&pendingWrite.operation==="GPS_CLOCK")||
       (op==="HR_STATUS"&&pendingWrite.operation==="HR_REVIEW")))
-   rememberWrite(null);
+  {
+   confirmForm(pendingWrite.operation,found.requestId);rememberWrite(null);writeStarted=false;
+  }
   const summaries={MY_CLOCKS:"當月正常打卡紀錄已更新。",MY_LEAVES:"當月請假紀錄已更新。",
    MY_MISSING:"當月補打卡紀錄已更新。",LEAVE_REQUEST:"請假申請已送出。",MISSING_REQUEST:"補打卡申請已送出。",
    GPS_CLOCK:"打卡成功。",LEAVE_PREVIEW:"請假日期檢查完成。"};
@@ -321,6 +354,7 @@ async function execute(op,{write=false,decision=null}={}){
   if(op==="MY_LEAVES"||op==="MY_MISSING")summaries[op]=response.result.month+" 紀錄已更新。";
   status((summaries[op]||"查詢完成。")+"（獨立 QA）\n"+
    JSON.stringify(response.result,null,2),"success");
+  return response;
  }catch(e){
   if(writeStarted)unknownWrite=true;
   status("⚠️ "+String(e&&e.message||e)+
@@ -351,6 +385,7 @@ onAction("login",async()=>{
 onAction("newId",()=>{
  if(unknownWrite){status("上次寫入結果不明，先用原單號查詢；暫不能換新編號");return}
  try{const id="QA_"+freshHex(16);$("requestId").value=id;preserveId(id);
+  draftOperation="MANUAL";
   status("已建立新測試申請編號："+id+"\n不會自動送出");}
  catch(e){status(e.message)}
 });
@@ -368,7 +403,32 @@ const binds=[
  ["hrStatus","HR_STATUS",false]
 ];
 for(const [id,op,write] of binds)
- onAction(id,()=>execute(op,{write}));
+ onAction(id,async()=>{
+  const response=await execute(op,{write});
+  if(!write||!formConfig[op]||!response||!response.result||!response.result.request)return;
+  const date=response.result.request.startDate||response.result.request.date;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||"")))return;
+  const receipt=$("result").textContent;
+  const leave=op==="LEAVE_REQUEST";
+  $(leave?"month":"missingMonth").value=date.slice(0,7);
+  const history=await execute(leave?"MY_LEAVES":"MY_MISSING");
+  status(receipt+(history?"\n對應月份紀錄已自動更新。":"\n申請已成功送出；紀錄暫未更新，可稍後重新查詢，請勿重送。"),"success");
+ });
+for(const [id,op] of [["newLeave","LEAVE_REQUEST"],["newMissing","MISSING_REQUEST"]]){
+ onAction(id,()=>{
+  if(unknownWrite)throw Error("前一筆結果未確認，請先用原編號查詢。");
+  const value="QA_"+freshHex(16);
+  delete confirmedForms[op];
+  sessionStorage.setItem("v2_batch_qa_confirmed_forms",JSON.stringify(confirmedForms));
+  $("requestId").value=value;preserveId(value);
+  draftOperation=op;
+  $(formConfig[op][0]).setAttribute("data-confirmed","false");
+  $(formConfig[op][0]).setAttribute("data-unavailable","false");
+  $(formConfig[op][0]).textContent=op==="LEAVE_REQUEST"?"送出請假申請":"送出補打卡申請";
+  $(formConfig[op][1]).textContent="填好內容後再送出；目前尚未送件。";
+  status("已準備新的申請，尚未送出。");
+ });
+}
 onAction("hrApprove",()=>execute("HR_REVIEW",{write:true,decision:"APPROVE"}));
 onAction("hrReject",()=>execute("HR_REVIEW",{write:true,decision:"REJECT"}));
 onAction("currentLeaves",()=>{
