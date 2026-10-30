@@ -13,6 +13,7 @@ const verified={
 };
 const reviewer={...verified,employeeId:"HR_TEST",role:"HR_OWNER",displayName:"虛構人資"};
 const other={...verified,employeeId:"TEST002",displayName:"其他測試員工"};
+const otherCoSameId={...verified,company:"OTHER_CO",displayName:"其他公司測試員工"};
 const TEST_DATE="2026-10-30";
 const leave={requestId:"TEST_BATCH_LEAVE_20261030_001",leaveType:"事假",
  startDate:"2026-11-09",endDate:"2026-11-10",unit:"DAY",reason:"純模擬原因"};
@@ -37,6 +38,7 @@ function build(){
  const core=Core.create({
    identity:{verify:async credential=>credential==="STAFF"?verified:
      credential==="HR"?reviewer:credential==="OTHER"?other:
+     credential==="OTHER_CO_SAME_ID"?otherCoSameId:
        Promise.reject(Error("NOT_AUTHENTICATED"))},
    store,
    calendar:{validateLeave:async data=>{
@@ -99,6 +101,17 @@ const checks=[
   assert.equal(found.ok,true);
   const again=await f.call("LEAVE_REQUEST",leave);
   assert.equal(again.duplicate,true);assert.equal(f.rows.length,1);
+ }],
+ ["journal prevents cross-company replay using identical employee ID and request ID",async()=>{
+  const f=build();await f.call("LEAVE_REQUEST",leave);
+  const attempt=await f.call("LEAVE_REQUEST",leave,"OTHER_CO_SAME_ID");
+  assert.equal(attempt.code,"REQUEST_ID_CONFLICT");
+  assert.equal(f.rows.length,1);
+  const original=await f.call("LEAVE_STATUS",{requestId:leave.requestId});
+  const foreign=await f.call("LEAVE_STATUS",{requestId:leave.requestId},
+    "OTHER_CO_SAME_ID");
+  assert.equal(original.ok,true);
+  assert.equal(foreign.code,"NOT_FOUND");
  }],
  ["changed leave data with same ID cannot overwrite original",async()=>{
   const f=build();await f.call("LEAVE_REQUEST",leave);
