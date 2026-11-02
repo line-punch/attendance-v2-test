@@ -25,3 +25,17 @@
 
 下一項技術工作應優先讓管理者資料下載流程可重複操作，並釐清現有人資審核流程的接續方式；不得擴展成薪資系統重寫。
 
+## 本機重複匯出已完成
+
+新增 staging/batch/export_qa_download.py：指定完整下載的 QA xlsx、已核對姓名對照 JSON、輸出根目錄，一次產生三個中文欄位 CSV、audit 完整欄位 CSV、原始 xlsx 備份、SHA-256 清單與 ZIP。資料先通過既有流水／隔離範圍驗證才產生結果；輸出目錄使用台北時間含微秒的新名稱，不覆蓋舊備份。仍是本機操作，不是雲端一鍵下載。
+
+管理者操作範例（需本機 Python/openpyxl 與 Node；本工作環境已具備）：
+
+```powershell
+python staging/batch/export_qa_download.py "下載的QA備份.xlsx" --names evidence/qa-verified-export-names.json --output-root evidence/repeatable-exports
+```
+
+姓名檔只使用先前實際核對的 TEST001 合成姓名；若後續有已審核單，必須先核對審核人姓名對照，工具不會猜測。此工具嚴格只接受 TEST001／TEST_CO，不能用於正式員工。
+
+2026-11-02 用先前 10/30 的 AfterGuards 原始備份實際跑通，產出正常 2／請假 3／補卡 2，ZIP CRC 與檔案雜湊讀回通過。這不是 11/02 新增或新下載的雲端紀錄。另 3 項本機整合檢查通過：連跑兩次保留舊結果、外部員工被拒絕、不明姓名不產出交付檔；原始 xlsx 雜湊未變。
+
