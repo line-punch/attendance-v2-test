@@ -9,8 +9,8 @@ function compile(data){
  const employees=new Map(),staffBySub=new Map(),reviewers=new Map(),reviewerIds=new Set(),assignments=new Map();
  for(const raw of data.employees){
   const e={...raw};
-  if(!ID.test(e.employeeId||'')||typeof e.company!=='string'||!e.company.trim()||!SUB.test(e.lineSub||'')||typeof e.active!=='boolean'||employees.has(e.employeeId)||staffBySub.has(e.lineSub))throw Error('EMPLOYEE_BINDING_INVALID');
-  employees.set(e.employeeId,e);staffBySub.set(e.lineSub,e);
+  if(!ID.test(e.employeeId||'')||typeof e.company!=='string'||!e.company.trim()||typeof e.lineSub!=='string'||e.lineSub!==''&&!SUB.test(e.lineSub)||typeof e.active!=='boolean'||employees.has(e.employeeId)||e.lineSub&&staffBySub.has(e.lineSub))throw Error('EMPLOYEE_BINDING_INVALID');
+  employees.set(e.employeeId,e);if(e.lineSub)staffBySub.set(e.lineSub,e);
  }
  for(const raw of data.reviewers){
   const r={...raw};

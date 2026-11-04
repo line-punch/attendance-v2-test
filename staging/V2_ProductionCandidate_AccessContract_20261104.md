@@ -43,3 +43,5 @@ loadBindings() 回傳私有 employees、reviewers、assignments。
 
 狀態實際字串、未綁定 LINE 的既有員工及管理者權限等級語意仍需從既有正式程式唯讀核對，不以 QA 的值猜測。候選 adapter 尚未讀入正式資料或授予正式存取。
 
+後續更新：已唯讀核對舊程式在職／空白狀態與地點判斷，並新增未部署的純表格及 GPS 候選服務。未綁定 LINE 的員工保留唯一性檢查、但不提供登入。詳見 V2_ProductionCandidate_DataGPS_20261104.md；Google 實際 adapter 與多員工實機仍未完成。
+
