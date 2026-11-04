@@ -9,5 +9,7 @@ assert.ok(files['index.html'].includes('畫面顯示管理者合成資料'));ass
 assert.ok(files['app.js'].includes('liff.login({redirectUri:window.location.href})'));
 const old=require('node:fs').readFileSync(require('node:path').join(__dirname,'qa-client/config.js'),'utf8').match(/window.V2_QA_ENDPOINT="([^"]+)"/)[1];
 assert.throws(()=>build(old),/DISTINCT/);
+const writable=build('https://script.google.com/macros/s/QA_CANDIDATE_SYNTHETIC_ENDPOINT_123456/exec',{allowWrites:true});
+assert.ok(writable['app.js'].includes('candidateRoute:"v1"'));assert.ok(!writable['app.js'].includes('if(write){status("候選版目前只開放登入與查詢'));
+assert.ok(writable['index.html'].includes('僅在管理者開啟本次測試窗口後'));assert.ok(!writable['config.js'].includes('c.disabled=true'));
 console.log('PASS offline candidate routing, distinct storage, readonly buttons and original endpoint protection; no browser or LINE calls');
-

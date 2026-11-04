@@ -9,7 +9,7 @@ function make(){
  Object.assign(f.props,{LINE_LOGIN_CHANNEL_ID:'2012136707',V2_BATCH_QA_ENABLED:'enabled',V2_BATCH_QA_SOURCE_BOOK_ID:'SYN_SOURCE_BOOK_12345678901234567890',V2_BATCH_QA_BOOK_ID:'SYN_PHONE_BOOK_12345678901234567890',V2_BATCH_QA_HR_LINE_SUB:sub(3),V2_CANDIDATE_PHONE_ENABLED:'enabled'});
  let staffSub=sub(4),verifies=0,opens=0;
  const open=f.context.SpreadsheetApp.openById;
- f.context.SpreadsheetApp.openById=id=>{opens++;if(id===f.props.V2_BATCH_QA_SOURCE_BOOK_ID)return {getName:()=> 'YC_ATTENDANCE_V2_TEST_ONLY',getSheetByName:()=>({getLastRow:()=>2,getRange:()=>({getValues:()=>[['TEST001','synthetic','',staffSub,'TEST_CO','','在職','TESTSITE']]})})};return open(id);};
+ f.context.SpreadsheetApp.openById=id=>{opens++;if(id===f.props.V2_BATCH_QA_SOURCE_BOOK_ID)return {getName:()=> 'YC_ATTENDANCE_V2_TEST_ONLY',getSheetByName:name=>name==='上班地點'?f.sheets.get('上班地點_候選文字'):({getLastRow:()=>2,getRange:()=>({getValues:()=>[['TEST001','synthetic','',staffSub,'TEST_CO','','在職','TESTSITE']]})})};return open(id);};
  f.context.UrlFetchApp={fetch:(url,options)=>{verifies++;assert.equal(url,'https://api.line.me/oauth2/v2.1/verify');assert.equal(options.payload.client_id,'2012136707');const match=[3,4,5].find(n=>options.payload.id_token===token(n));return {getResponseCode:()=>match?200:401,getContentText:()=>JSON.stringify({iss:'https://access.line.me',aud:'2012136707',sub:sub(match),iat:Math.floor(Date.now()/1000)-30,exp:Math.floor(Date.now()/1000)+600})};}};
  f.context.HtmlService={XFrameOptionsMode:{ALLOWALL:'ALLOWALL'},createHtmlOutput:html=>({html,setXFrameOptionsMode(){return this;}})};
  vm.runInContext(legacy,f.context);vm.runInContext(phone,f.context);
@@ -21,6 +21,7 @@ function make(){
  }
  return {...f,post,counts:()=>({verifies,opens,writes:f.writes()}),changeStaff:s=>{staffSub=s;}};
 }
+if(require.main===module){
 let passed=0;function test(name,fn){fn();console.log('PASS '+name);passed++;}
 test('phone runtime contains no public admin initializer and no write or LINE push path',()=>{
  assert.ok(!/function desktopMultiUserQa/.test(phone));assert.ok(!/UrlFetchApp\.fetch|message\/push|setValues\(|setProperty\(/.test(phone));
@@ -51,4 +52,5 @@ test('LINE identity remains its verified subject after a binding changes during 
  assert.equal(f.post('MY_LEAVES',{month:'2026-11'},4).code,'AUTH');
 });
 console.log(passed+'/'+passed+' offline candidate phone bridge checks; fake LINE and Sheets only');
-
+}
+module.exports={make,sub,token};

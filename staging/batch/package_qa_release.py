@@ -33,6 +33,13 @@ for name, source in list(files.items()):
     if name.startswith('apps-script/'):
         files['candidate-readonly-webapp/' + name.split('/', 1)[1]] = source
 files['candidate-readonly-webapp/V2_ProductionQA_Runtime.gs'] = batch / 'V2_CandidatePhone_Runtime_GENERATED.gs'
+for name, source in list(files.items()):
+    if name.startswith('apps-script/'):
+        files['candidate-workflow-webapp/' + name.split('/', 1)[1]] = source
+files['candidate-workflow-webapp/V2_ProductionQA_Runtime.gs'] = batch / 'V2_CandidatePhone_Workflow_Runtime_GENERATED.gs'
+for file in (batch / 'qa-candidate-workflow-client').iterdir():
+    if file.is_file() and file.suffix in ('.js', '.html'):
+        files['qa-candidate-workflow-client/' + file.name] = file
 if (batch / 'qa-candidate-client').exists():
     for file in (batch / 'qa-candidate-client').iterdir():
         if file.is_file() and file.suffix in ('.js', '.html'):
@@ -54,6 +61,8 @@ final-activation 中的排程安裝程式目前未安裝，最後核對及授權
 admin-only-not-for-webapp 為合成副本管理者測試，不可併入公開 Web App 部署。
 candidate-readonly-webapp 為另一個部署組合，使用同名但僅唯讀的候選 runtime；不可把管理者 runtime 同時安裝。
 qa-candidate-client 只對應獨立候選部署，送件／審核／通知均未開放，不能當正式版。
+candidate-workflow-webapp 為候選 v6 整合接線，獨立寫入及通知開關預設關閉。
+qa-candidate-workflow-client 是尚未發布的整合送件頁，不能誤稱已完成手機送件驗收。
 
 本包只含程式與說明，不含員工資料、LINE token、私有身分或姓名對照。
 原始 QA 資料與匯出備份留在 evidence，沒有被本包取代或刪除。
@@ -83,4 +92,3 @@ with zipfile.ZipFile(archive) as check:
         if hashlib.sha256(check.read(name)).hexdigest() != digest:
             raise ValueError('Hash mismatch: ' + name)
 print(json.dumps({'archive': str(archive.resolve()), 'files': len(payload), 'verified': True}, ensure_ascii=True))
-
