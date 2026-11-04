@@ -84,3 +84,9 @@ V2_QANotificationSchedule_SETUP_ONLY.gs 已備妥但未安裝，避免現在增�
 
 通知離線套件現為 27 項（7＋2＋8＋4＋6），前端 48 項，仍與實機驗收分開。新增 package_qa_release.py，明確選取程式／說明、保留 manifest SHA-256 並驗證 ZIP，排除 evidence、私有姓名對照、資料及憑證。交付包中 apps-script 為目前六個檔案組合，source 供重建而不可全部重複貼入同一專案，final-activation 的排程仍待最後同意及 Google 權限確認。保留原資料與所有舊備份，不執行刪除。
 
+## YC-Eddy 測試身分已綁定
+
+使用者提供 YC-Eddy 的系統 user ID；已先唯讀核對 TEST001 員工綁定與其不同，再將 V2_BATCH_QA_HR_LINE_SUB 存入獨立 QA 私有 Script Properties，並讀回確認一致。未將完整 user ID 放進本文件、前端、原始碼或公開 GitHub。LINE Developers 名單已實際核對 YC-Eddy 為 TESTER。
+
+QA 寫入仍 disabled，通知仍未啟用；沒有修改正式名單、沒有發送 LINE 訊息、沒有執行審核。現有 QA Web App 每次讀私有設定，這次身分綁定不需要換部署。尚待 YC-Eddy 本人透過 QA LIFF 審核連結登入並查詢原合成單，以驗證實際 LINE token 與此綁定相符；不能只因設定保存成功就稱為真人審核驗收通過。
+
