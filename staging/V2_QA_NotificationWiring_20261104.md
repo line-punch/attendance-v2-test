@@ -90,3 +90,25 @@ V2_QANotificationSchedule_SETUP_ONLY.gs 已備妥但未安裝，避免現在增�
 
 QA 寫入仍 disabled，通知仍未啟用；沒有修改正式名單、沒有發送 LINE 訊息、沒有執行審核。現有 QA Web App 每次讀私有設定，這次身分綁定不需要換部署。尚待 YC-Eddy 本人透過 QA LIFF 審核連結登入並查詢原合成單，以驗證實際 LINE token 與此綁定相符；不能只因設定保存成功就稱為真人審核驗收通過。
 
+## YC-Eddy 真人核准已實測
+
+使用者確認 YC-Eddy 的 iPhone LINE 可查到原合成假單待審核。僅於獨立 QA 暫時開寫入、通知保持關閉；先生按一次確認核准並查回，使用者回覆狀態已變成核准。收到回覆後即保存 QA 寫入 disabled 並讀回確認，通知未開啟。
+
+實際重新下載 QA_CloudRecords_AfterEddyApproval_20261104.xlsx，經既有流水雜湊／版本解碼核對：原單 QA_145bd0c4413423adec068832ecdc2a93 由 PENDING 變 APPROVED，版本2，reviewedBy=QA_HR_TEST；新增審核事件恰好1筆，流水由5變6。前5筆流水逐值未變、其他原單逐值未變、正常打卡2筆逐值未變。沒有再送此原單，也沒有刪除測試資料。
+
+這是使用者／YC-Eddy 手機操作加真正 QA GAS／Sheets 寫回與原單核對成功，不是離線模擬。仍未測駁回、通知發送／送達與自動排程，不將 QUEUED 當作實際通知。證據為 evidence/qa-eddy-approval-verification-20261104.json；完整 user ID、信箱不寫入公開紀錄。
+
+### 2026-11-04 實際 LINE 駁回驗收
+- YC-Eddy 於手機 LINE 查詢原補打卡單後駁回；下載隔離 QA 原始試算表核對，10/29 下班 17:31 原單由 PENDING 變成 REJECTED，版本 2，審核別名 QA_HR_TEST。
+- 交易流水由 6 增為 7，僅一次駁回事件；先前 6 筆流水、其他原單及 2 筆正常打卡完全相同。補打卡未混入正常打卡。
+- QA 寫入已關回 disabled。通知仍關閉，尚未驗證 LINE 推播送達；不能把本次連結內審核稱為通知送達。
+- 最新原始備份及三類匯出已保存於本機 evidence；私人帳號識別資料不放入程式倉庫。
+
+### 2026-11-04 通知實際 API 驗收
+- 使用者同意獨立 QA 借用既有 YC/YT員工系統 OA，僅向 TEST001 與 YC-Eddy 發送合成測試通知；既有發訊憑證僅放 QA 私有屬性，沒有重新簽發、公開或寫入程式碼。
+- 準備檢查 9 項通過。手動兩批分別嘗試 5、3 筆，共 8 筆 HTTP 200 / ACCEPTED：主管通知 3、審核卡片 3、員工結果 2。只有兩位測試收件人。
+- 每筆流水恰有一次 SENDING 與一次 ACCEPTED，原 retryKey / body / 收件人一致並保存 LINE request ID，沒有重複嘗試、UNKNOWN 或 REJECTED。
+- 通知後交易流水仍 7 筆、正常打卡仍 2 筆，與通知前原始快照完全相同。
+- 已關閉 QA 寫入與通知；未開自動觸發、未更改正式 webhook／正式名單／正式資料。手機實際收到尚待兩位測試者確認；API 接受不能視為手機送達。
+- 私有原始回執備份：本機 evidence/QA_Notification_AllReceipts_20261104.xlsx。安全彙整：qa-notification-api-verification-20261104.json。原始收件識別值不公開。
+
