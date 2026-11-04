@@ -1023,9 +1023,13 @@ function v2BatchQAHandleCandidate_(params){
     operation:request.operation,payload:request.args,credential:request.token
   });
   }
-  if(result&&result.ok===true)
+  if(result&&result.ok===true){
+    // The original is already durable. Notification failure must never turn
+    // a committed application into an ambiguous application failure.
+    v2BatchQANotifyCommitted_(request);
     return {bridge:"YC_V2_BATCH_QA_V1",nonce:request.nonce,
       ok:true,result:result};
+  }
   return {bridge:"YC_V2_BATCH_QA_V1",nonce:request.nonce,
     ok:false,code:result&&result.code==="AUTH_REQUIRED"?"AUTH":
       result&&result.code==="FEATURE_DISABLED"?"DISABLED":"REJECTED",
@@ -1039,6 +1043,15 @@ function v2BatchQAHandleCandidate_(params){
   return {bridge:"YC_V2_BATCH_QA_V1",nonce:/^[0-9a-f]{40}$/.test(nonce)?nonce:"",
     ok:false,code:"UNKNOWN",persisted:null};
  }
+}
+
+function v2BatchQANotifyCommitted_(request){
+ if(!request||["LEAVE_REQUEST","MISSING_REQUEST","HR_REVIEW"].indexOf(request.operation)<0)return;
+ var id=request.args&&request.args.requestId;
+ if(!/^QA_[A-Za-z0-9_-]{8,100}$/.test(id||""))return;
+ // Optional adapter; all private send gates and durable delivery guards apply.
+ try{if(typeof desktopQaNotificationDrain==="function")desktopQaNotificationDrain(id);}
+ catch(_){/* Original outbox remains durable for original-key inspection. */}
 }
 
 /**

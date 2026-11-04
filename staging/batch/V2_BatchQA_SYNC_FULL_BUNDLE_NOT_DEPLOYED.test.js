@@ -81,6 +81,7 @@ function make(opts={}){
   V2_BATCH_QA_HR_LINE_SUB:config.hrSub
  };
  const deps={
+  desktopQaNotificationDrain:opts.notificationDrain,
   PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]??""})},
   SpreadsheetApp:{openById:id=>id===sourceId?source:id===qaId?qa:(()=>{throw Error("bad ID")})(),
     flush:()=>{}},
@@ -118,6 +119,19 @@ function make(opts={}){
  return {api,post,qaRows,counts:()=>({fetches,reads,writes,locked})};
 }
 const tests=[
+ ["post-commit notification failure preserves success and one durable original",()=>{
+  let attempts=0;const id="QA_EVENT_NOTICE_20261104";
+  const x=make({writeEnabled:"enabled",notificationDrain:key=>{assert.equal(key,id);attempts++;throw Error('SYNTHETIC_NOTICE_FAILURE');}});
+  const sent=x.post("LEAVE_REQUEST",{...request,requestId:id}).reply;
+  assert.equal(sent.ok,true);assert.equal(x.qaRows.length,2);assert.equal(attempts,1);
+  assert.equal(x.post("LEAVE_STATUS",{requestId:id}).reply.ok,true);
+  assert.equal(attempts,1);assert.equal(x.qaRows.length,2);
+ }],
+ ["rejected writes and read queries never invoke notification sender",()=>{
+  let attempts=0;const x=make({notificationDrain:()=>{attempts++;}});
+  assert.equal(x.post("LEAVE_REQUEST",{...request,requestId:"QA_NOTICE_DISABLED_20261104"}).reply.ok,false);
+  x.post("MY_LEAVES",{month:"2026-11"});assert.equal(attempts,0);
+ }],
  ["future and cross-month leave reads keep one original and expose server submission date",()=>{
   const x=make({writeEnabled:"enabled"});
   const sent=x.post("LEAVE_REQUEST",{...request,startDate:"2026-11-30",endDate:"2026-12-01"}).reply;

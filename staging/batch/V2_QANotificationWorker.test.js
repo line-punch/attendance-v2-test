@@ -44,6 +44,16 @@ test('changed plan or changed manager is rejected before send',()=>{
  assert.throws(()=>f.ctx.v2QANotificationCurrentEntry_({...entry,message:{type:'text',text:'changed'}}),/STALE_OR_CHANGED/);
  f.props.V2_QA_NOTIFY_MANAGERS='[]';assert.throws(()=>f.ctx.v2QANotificationCurrentEntry_(entry),/STALE_OR_CHANGED/);assert.equal(f.network(),0);
 });
+
+test('event-driven drain never sends another original and rejects malformed selectors',()=>{
+ const f=fixture();f.ctx.desktopQaNotificationInitializeLedger();
+ f.props.V2_QA_NOTIFY_ENABLED='enabled';f.props.V2_BATCH_QA_WRITE_ENABLED='enabled';
+ assert.equal(f.ctx.desktopQaNotificationDrain('QA_DIFFERENT_ORIGINAL_0001').attempted,0);
+ assert.equal(f.network(),0);
+ assert.throws(()=>f.ctx.desktopQaNotificationDrain('bad-selector'),/ORIGINAL_REQUIRED/);
+ assert.equal(f.ctx.desktopQaNotificationDrain('QA_WORKER_TEST_0001').attempted,2);
+ assert.equal(f.network(),2);
+});
 test('read-only queue status remains useful before reviewer or recipients are configured',()=>{
  const f=fixture();delete f.props.V2_BATCH_QA_HR_LINE_SUB;delete f.props.V2_QA_NOTIFY_TEST_RECIPIENTS;
  const status=f.ctx.desktopQaNotificationQueueStatus();assert.equal(status.pendingApplications,1);assert.equal(status.reviewerConfigured,false);assert.equal(status.notificationEnabled,false);assert.equal(f.network(),0);

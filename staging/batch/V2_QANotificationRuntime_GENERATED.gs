@@ -171,11 +171,15 @@ function desktopQaNotificationInitializeLedger() {
   console.log("QA_NOTIFY_LEDGER_READY_NO_MESSAGES_SENT");return {ready:true,messagesSent:0};
  }finally{lock.releaseLock();}
 }
-function desktopQaNotificationDrain() {
+function desktopQaNotificationDrain(requestId) {
+ // Public successful writes may drain only their own committed original.
+ // Editor calls without an argument retain the bounded admin queue operation.
+ if(requestId!==undefined&&!/^QA_[A-Za-z0-9_-]{8,100}$/.test(requestId||""))throw Error("QA_NOTIFY_ORIGINAL_REQUIRED");
  var p=PropertiesService.getScriptProperties();
  if(p.getProperty("V2_QA_NOTIFY_ENABLED")!=="enabled"||p.getProperty("V2_BATCH_QA_WRITE_ENABLED")!=="enabled")
   return {status:"DISABLED",attempted:0};
  var ctx=v2QANotificationContext_(),entries=v2QANotificationPlans_(ctx);
+ if(requestId!==undefined)entries=entries.filter(function(entry){return entry.deliveryKey.indexOf(requestId+"__V")===0;});
  var sheet=ctx.book.getSheetByName("V2_通知流水_QA"),states={};
  if(!sheet||sheet.getLastRow()>10001)throw Error("QA_NOTIFY_LEDGER_UNCONFIGURED");
  var history=sheet.getDataRange().getValues();
