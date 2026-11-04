@@ -48,5 +48,12 @@ test('read-only queue status remains useful before reviewer or recipients are co
  const f=fixture();delete f.props.V2_BATCH_QA_HR_LINE_SUB;delete f.props.V2_QA_NOTIFY_TEST_RECIPIENTS;
  const status=f.ctx.desktopQaNotificationQueueStatus();assert.equal(status.pendingApplications,1);assert.equal(status.reviewerConfigured,false);assert.equal(status.notificationEnabled,false);assert.equal(f.network(),0);
 });
+test('readiness reports missing final setup without exposing user IDs or sending anything',()=>{
+ const f=fixture();delete f.props.V2_BATCH_QA_HR_LINE_SUB;
+ const result=f.ctx.desktopQaReadinessReport();assert.equal(result.readyToEnableQA,false);assert.equal(result.modified,false);
+ assert.equal(result.messagesSent,0);assert.equal(result.productionSwitched,false);
+ assert.ok(result.checks.some(x=>x.item==='測試審核身分'&&!x.passed));
+ assert.equal(JSON.stringify(result).includes(employee),false);assert.equal(JSON.stringify(result).includes(reviewer),false);assert.equal(f.network(),0);
+});
 console.log(pass+'/'+pass+' offline generated-worker checks passed');
 

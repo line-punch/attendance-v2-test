@@ -9,7 +9,7 @@ const plan=read('V2_QANotificationPlan.js')
 if(/require\(|module\.exports/.test(plan))throw Error('UNRESOLVED_NOTIFICATION_IMPORT');
 const output='/** GENERATED QA-only notification helpers. No public route or auto sending. */\n'+
  read('qa-client/review-entry.js')+'\nvar V2QANotificationPlan=(function(){\n'+plan+'\n})();\n'+
- read('V2_QANotificationWorker_NOT_DEPLOYED.gs');
+ read('V2_QANotificationWorker_NOT_DEPLOYED.gs')+'\n'+read('V2_QAReadinessReport_NOT_DEPLOYED.gs');
 fs.writeFileSync(path.join(folder,'V2_QANotificationRuntime_GENERATED.gs'),output,'utf8');
 console.log('Built QA notification helper runtime; no deployment or messages');
 

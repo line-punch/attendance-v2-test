@@ -76,3 +76,11 @@ V2_QANotificationSchedule_SETUP_ONLY.gs 已備妥但未安裝，避免現在增�
 
 20261104l 已由 Pages 成功發布（ab771fdf1ba1688a7e1e1853b2affa37e7b05ec7）。Edge 實際核對三個新版 script 標記、主管審核區、只讀原單、查詢這張申請／確認核准／確認駁回按鈕，沒有登入、查單或送件。畫面保存 evidence/qa-supervisor-ready-20261104.png。QA 程式、原單通知處理器與空通知資料表已備妥；私有測試審核身分、Bot／白名單設定、排程安裝與實際發送刻意保留到最後集中設定與驗收，不能稱為通知全程已實測。
 
+## 最後收尾：管理者總檢查與程式交付包
+
+已新增 desktopQaReadinessReport 並更新 QA Runtime。2026-11-04 台北 14:30:55～14:30:59 實際執行唯讀盤點成功：三介面後端、主管通知與審核計畫、通知流水表、正常打卡獨立表均存在。原申請 5、流水 5、正常打卡 2，通知／寫入／排程批准均為 false，messagesSent=0、modified=false、productionSwitched=false。
+
+仍待最後集中設定的五項為測試審核身分、通知白名單、通知主管對應、確認的通知 OA、私有傳送憑證；因此 readyToEnableQA=false，不能把程式已備妥寫成已啟用。結果保存 evidence/qa-readiness-20261104.json／png；不含姓名、LINE sub 或 token。
+
+通知離線套件現為 27 項（7＋2＋8＋4＋6），前端 48 項，仍與實機驗收分開。新增 package_qa_release.py，明確選取程式／說明、保留 manifest SHA-256 並驗證 ZIP，排除 evidence、私有姓名對照、資料及憑證。交付包中 apps-script 為目前六個檔案組合，source 供重建而不可全部重複貼入同一專案，final-activation 的排程仍待最後同意及 Google 權限確認。保留原資料與所有舊備份，不執行刪除。
+
