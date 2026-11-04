@@ -20,6 +20,7 @@ files = {
     '目前整合紀錄.md': root / 'staging/V2_QA_NotificationWiring_20261104.md',
     'A至E驗收現況.md': root / 'staging/V2_AtoE_Acceptance_20261104.md',
     '正式切換準備.md': root / 'staging/V2_ProductionCutover_Plan_20261104.md',
+    '正式候選權限說明_未部署.md': root / 'staging/V2_ProductionCandidate_AccessContract_20261104.md',
 }
 for file in (batch / 'qa-client').iterdir():
     if file.is_file() and file.suffix in ('.js', '.html'):
