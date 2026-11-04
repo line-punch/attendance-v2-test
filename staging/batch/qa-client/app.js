@@ -15,6 +15,11 @@ function prepareReviewEntry(){
    throw Error("尚有另一筆審核結果待核對，請先查原單，不能切換新審核。");
   reviewEntry=target;$("hrRequestId").value=target.requestId;$("hrRequestId").readOnly=true;
   $("reviewPanel").open=true;
+  $("reviewTitle").textContent="主管審核（獨立 QA）";
+  $("myLeaves").hidden=true;$("hrPending").hidden=true;
+  $("hrStatus").textContent="查詢這張申請";
+  $("hrApprove").textContent="確認核准";$("hrReject").textContent="確認駁回";
+  $("identity").textContent=loggedIn?"已登入 LINE；仍需伺服器核對審核權限。":"請先登入 LINE，再查詢這張申請。";
   $("reviewHint").textContent="主管審核｜原單："+target.requestId+"。請先登入並按「查原審核單」，核對資料後再按「"+
    (target.decision==="APPROVE"?"核准":"駁回")+"」。開啟連結不會自動審核。";
  }catch(e){reviewLinkInvalid=true;status(e.message,"error");}
@@ -356,7 +361,11 @@ async function execute(op,{write=false,decision=null}={}){
   const found=response.result&&response.result.request;
   if(op==="HR_STATUS"&&reviewEntry&&found&&found.requestId===reviewEntry.requestId){
    reviewLoaded=found.status==="PENDING";
-   $("reviewHint").textContent="原單："+found.requestId+"\n"+JSON.stringify(found,null,2)+
+   const labels={PENDING:"待審核",APPROVED:"核准",REJECTED:"駁回"};
+   const detail=found.kind==="LEAVE"?"請假日期："+found.startDate+"～"+found.endDate+
+    "\n假別："+found.leaveType+"\n時段："+(found.unit==="DAY"?"全天":found.fromTime+"～"+found.toTime):
+    "補卡日期："+found.date+"\n類型："+found.type+"\n申請補登時間："+found.time;
+   $("reviewHint").textContent=detail+"\n狀態："+(labels[found.status]||"待核對")+"\n原單："+found.requestId+
     (reviewLoaded?"\n已查得原單，請核對日期與內容後再選核准／駁回。":"\n此單已處理，請查看目前狀態，不要重複審核。");
   }
   if(op==="HR_REVIEW"&&reviewEntry&&found&&found.requestId===reviewEntry.requestId)reviewLoaded=false;

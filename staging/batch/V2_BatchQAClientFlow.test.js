@@ -37,7 +37,7 @@ function make(options={}){
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
  "hrApprove","hrReject","hrStatus","writeConsent","result","myMissing","missingHistory","leaveHistory",
  "currentLeaves","navClock","navLeave","navMissing","navHr","pageClock","pageLeave","pageMissing","pageHr",
- "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth","newLeave","newMissing","leaveReceipt","missingReceipt","hourFields","leaveFields","missingFields","reviewPanel","reviewHint"];
+ "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth","newLeave","newMissing","leaveReceipt","missingReceipt","hourFields","leaveFields","missingFields","reviewPanel","reviewHint","reviewTitle"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});

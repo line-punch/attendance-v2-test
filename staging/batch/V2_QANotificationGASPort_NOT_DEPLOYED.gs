@@ -70,7 +70,13 @@ function v2QANotificationSendCandidate_(entry) {
   },withExclusive:function(fn){
    var lock=LockService.getScriptLock();
    if(!lock.tryLock(5000))throw Error("QA_NOTIFY_BUSY");
-   try{return fn();}finally{lock.releaseLock();}
+   try{
+    // Rebuild the plan from latest durable original under the same send lock.
+    // A manager change or already-reviewed application must not send an old card.
+    if(typeof v2QANotificationCurrentEntry_!=="function")throw Error("QA_NOTIFY_WORKER_NOT_INSTALLED");
+    v2QANotificationCurrentEntry_(entry);
+    return fn();
+   }finally{lock.releaseLock();}
   }};
  var transport={push:function(body,extraHeaders){
   // Validate the configured OA identity before sending. Never log token or body.

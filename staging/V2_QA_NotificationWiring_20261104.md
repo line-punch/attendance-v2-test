@@ -60,3 +60,15 @@ QA 靜態頁 20261104j 已提交並由 Pages 成功發布（3627558bfd70c140e98b
 
 證據：evidence/qa-notify-disabled-gas-20261104.png。正式專案、原 GPS/V4、主管名單、Messaging API webhook 均未改動。下一步仍是使用者方便時指定測試審核帳號，再準備專用通知流水與明確測試收件人後做真實送達驗收；暫不發送通知。
 
+## 改為先完成整合、最後集中驗收
+
+使用者指示先把整個做起來再測；不再逐項要求手機、帳號或收件測試。維持原三介面範圍，實際通知與正式啟用仍不提前執行。
+
+已新增並安裝 V2_QANotificationRuntime.gs（由 build-qa-notification-runtime.cjs 產生）：將現有持久化申請事件接至通知規劃、處理器及管理者佇列盤點。處理器每輪最多五次新傳送，已受理紀錄跳過；遇不明或拒絕停下查原通知。送出器在獨占鎖內重新讀最新原單與當下收件設定，原單狀態或內容改變就拒絕舊計畫。沒有公開新端點，也未掛自動排程。
+
+2026-11-04 台北 14:17:05～14:17:12，於獨立 QA 執行初始化，成功新增僅表頭的 V2_通知流水_QA，回 QA_NOTIFY_LEDGER_READY_NO_MESSAGES_SENT。沒有新增、刪除或修改員工申請／正常打卡資料。14:18:01～14:18:03 管理者唯讀盤點實際回：pendingApplications=5、reviewedApplications=0、journalEntries=5、notificationEnabled=false、writeEnabled=false、reviewerConfigured=false、recipientListConfigured=false、notificationLedgerPresent=true。
+
+整合通知檢查現為 26 項離線（7＋2＋8＋4＋5）；前端 47 項保持通過。新增主管頁顯示日期／類型／狀態的文字說明與確認核准／確認駁回，不把 JSON 當主管介面；版本 20261104k。這些本機檢查不是使用者最終實機驗收。
+
+V2_QANotificationSchedule_SETUP_ONLY.gs 已備妥但未安裝，避免現在增加 ScriptApp 觸發器權限或發通知；最終同意啟用及 Google 授權後才安裝排程。具體集中驗收清單見 V2_FinalAcceptance_Runbook_20261104.md。仍未取得 QA 審核身分、私有收件／Bot 設定與通知實測，所以不能宣稱全系統或正式上線已完成。
+
