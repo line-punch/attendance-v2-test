@@ -22,3 +22,11 @@
 
 目前可安全完成的本機接線已保存，實際傳送保持未啟用。下一次有測試帳號時從專用 QA 路由與收件人核對繼續，不要求使用者重述既有主管流程。
 
+## 同日後台實際核對：權限待恢復
+
+實際在 Edge 開啟 LINE Developers，原 Business 工作階段已失效。以既有李思慧 LINE 帳號完成正常登入，未輸入密碼、未增加權限。可見 provider 與「打卡系統V2測試」Channel；頁面明確標示 Tester、LINE Login、Developing，僅有 Basic settings／Roles。這個目前登入身分無法核對 Messaging API Channel 或 webhook／通知傳送設定。不能由目前可見清單推斷帳號內根本不存在 Messaging API，也不能宣稱已查得傳送憑證或完成實際接線。
+
+已請使用者在保留的 Edge 後台切回原管理打卡通知的 Business 管理帳號；不索取密碼、不自行新增角色。這是後台管理權限恢復，與稍後指定測試審核收件帳號不同。
+
+同時唯讀重新核對 QA GAS：Google 帳號仍為詠晨總會計，QA 主開關 enabled、寫入 disabled，只有原六個既有屬性，沒有已設定的 QA HR 身分或通知傳送設定。沒有編輯屬性、部署、發送訊息或更動正式系統。後台權限恢復後，先唯讀辨識實際 Messaging API Channel 與既有 webhook 的用途，再提出獨立 QA 接線；不能直接替換原 webhook。
+
