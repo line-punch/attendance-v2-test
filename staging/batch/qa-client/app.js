@@ -360,13 +360,14 @@ async function execute(op,{write=false,decision=null}={}){
   if(op==="MY_CLOCKS")renderClocks(response.result);
   const found=response.result&&response.result.request;
   if(op==="HR_STATUS"&&reviewEntry&&found&&found.requestId===reviewEntry.requestId){
-   reviewLoaded=found.status==="PENDING";
+   reviewLoaded=found.status==="PENDING"&&!unknownWrite;
    const labels={PENDING:"待審核",APPROVED:"核准",REJECTED:"駁回"};
    const detail=found.kind==="LEAVE"?"請假日期："+found.startDate+"～"+found.endDate+
     "\n假別："+found.leaveType+"\n時段："+(found.unit==="DAY"?"全天":found.fromTime+"～"+found.toTime):
     "補卡日期："+found.date+"\n類型："+found.type+"\n申請補登時間："+found.time;
    $("reviewHint").textContent=detail+"\n狀態："+(labels[found.status]||"待核對")+"\n原單："+found.requestId+
-    (reviewLoaded?"\n已查得原單，請核對日期與內容後再選核准／駁回。":"\n此單已處理，請查看目前狀態，不要重複審核。");
+    (reviewLoaded?"\n已查得原單，請核對日期與內容後再選核准／駁回。":found.status==="PENDING"?
+     "\n上次審核結果仍不明，請保留原單編號交由管理者核對，不要重送。":"\n此單已處理，請查看目前狀態，不要重複審核。");
   }
   if(op==="HR_REVIEW"&&reviewEntry&&found&&found.requestId===reviewEntry.requestId)reviewLoaded=false;
   if(pendingWrite&&found&&found.requestId===pendingWrite.requestId&&
@@ -374,7 +375,7 @@ async function execute(op,{write=false,decision=null}={}){
       (op==="LEAVE_STATUS"&&pendingWrite.operation==="LEAVE_REQUEST")||
       (op==="MISSING_STATUS"&&pendingWrite.operation==="MISSING_REQUEST")||
       (op==="GPS_STATUS"&&pendingWrite.operation==="GPS_CLOCK")||
-      (op==="HR_STATUS"&&pendingWrite.operation==="HR_REVIEW")))
+      (op==="HR_STATUS"&&pendingWrite.operation==="HR_REVIEW"&&["APPROVED","REJECTED"].includes(found.status))))
   {
    confirmForm(pendingWrite.operation,found.requestId);rememberWrite(null);writeStarted=false;
   }

@@ -294,6 +294,13 @@ const tests=[
   assert.equal(y.posts.length,1);assert.equal(y.posts[0].operation,"HR_STATUS");
   assert.equal(y.stored.get("v2_batch_qa_pending_write"),"null");
  }],
+ ["pending original does not resolve an unknown HR review or permit another send",async()=>{
+  const x=make();await x.authReady();x.dom.hrRequestId.value='QA_HR_REVIEW_REQUEST_0001';
+  x.results.push({ok:false,code:'UNKNOWN',persisted:null});await x.click('hrApprove');
+  x.results.push({ok:true,result:{request:{requestId:x.dom.hrRequestId.value,status:'PENDING'}}});
+  await x.click('hrStatus');await x.click('hrApprove');assert.equal(x.posts.length,2);
+  assert.equal(JSON.parse(x.stored.get('v2_batch_qa_pending_write')).operation,'HR_REVIEW');
+ }],
  ["another HR request status cannot release original review lock",async()=>{
   const x=make();await x.authReady();x.dom.hrRequestId.value="QA_HR_REVIEW_REQUEST_0001";
   x.results.push({ok:false,code:"UNKNOWN",persisted:null});await x.click("hrApprove");
