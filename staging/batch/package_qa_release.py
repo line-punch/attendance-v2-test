@@ -18,6 +18,7 @@ files = {
     'final-activation/NotificationSchedule_SETUP_ONLY.gs': batch / 'V2_QANotificationSchedule_SETUP_ONLY.gs',
     '集中驗收清單.md': root / 'staging/V2_FinalAcceptance_Runbook_20261104.md',
     '目前整合紀錄.md': root / 'staging/V2_QA_NotificationWiring_20261104.md',
+    'A至E驗收現況.md': root / 'staging/V2_AtoE_Acceptance_20261104.md',
 }
 for file in (batch / 'qa-client').iterdir():
     if file.is_file() and file.suffix in ('.js', '.html'):
@@ -42,8 +43,8 @@ final-activation 中的排程安裝程式目前未安裝，最後核對及授權
 本機下載轉換需 Node 及具備 openpyxl 的 Python，本工作環境已具備。
 在 source/staging/batch 可執行 test:mobile、test:notifications；主 test 指令仍是歷史完整清單，部分原始檔不在此本機副本。
 
-尚未設定測試審核人、通知收件人及私有傳送憑證；通知、寫入與排程未啟用。
-正式切換、真 LINE 收件審核、手機定位與斷線，按集中驗收清單最後執行。
+QA 私有審核人及通知設定已完成，不包含於本包。手動 LINE 通知及卡片審核已有實測，詳見 A至E驗收現況。
+QA 寫入與通知在測試後關閉，自動排程尚未啟用；正式切換、Android、真實斷線及實體 NFC 尚未驗收。
 人資查詢維持建置中，NFC 延後；蝦皮只訂購一張，尚未確認到貨與型號。
 '''.encode('utf-8')
 manifest = {'kind': 'QA code-only handoff', 'scope': 'TEST001/TEST_CO',
