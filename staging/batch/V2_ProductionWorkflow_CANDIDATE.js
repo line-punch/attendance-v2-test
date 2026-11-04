@@ -57,12 +57,13 @@ function create({verifyLine,loadBindings,store,calendar,clock,flags={}}){
   for(const mode of ['read','transaction'])scoped[mode]=fn=>store[mode](async tx=>{
    const fresh=compile(await loadBindings());
    const allowed=row=>fresh.visible(verified.sub,row,review);
-   const view={find:async id=>{const row=await tx.find(id);return allowed(row)?row:null;},
+   const staged=new Map();
+   const view={find:async id=>{const row=staged.get(id)||await tx.find(id);return allowed(row)?row:null;},
     list:async()=> (await tx.list()).filter(allowed)};
    if(mode==='transaction'){
-    view.create=async row=>{if(!allowed(row))throw Error('SCOPE_DENIED');if(await tx.find(row.requestId))throw Error('REQUEST_ID_CONFLICT');return tx.create(row);};
-    view.replace=async row=>{if(!allowed(row)||!allowed(await tx.find(row.requestId)))throw Error('SCOPE_DENIED');return tx.replace(row);};
-    view.outbox=async event=>{if(!allowed(await tx.find(event.requestId)))throw Error('SCOPE_DENIED');return tx.outbox(event);};
+    view.create=async row=>{if(!allowed(row))throw Error('SCOPE_DENIED');if(staged.has(row.requestId)||await tx.find(row.requestId))throw Error('REQUEST_ID_CONFLICT');const result=await tx.create(row);staged.set(row.requestId,row);return result;};
+    view.replace=async row=>{if(!allowed(row)||!allowed(await tx.find(row.requestId)))throw Error('SCOPE_DENIED');const result=await tx.replace(row);staged.set(row.requestId,row);return result;};
+    view.outbox=async event=>{if(!allowed(staged.get(event.requestId)||await tx.find(event.requestId)))throw Error('SCOPE_DENIED');return tx.outbox(event);};
    }
    return fn(view);
   });

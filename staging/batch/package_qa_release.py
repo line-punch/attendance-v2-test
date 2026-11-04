@@ -16,12 +16,14 @@ files = {
     'apps-script/V2_QANotificationGASPort.gs': batch / 'V2_QANotificationGASPort_NOT_DEPLOYED.gs',
     'apps-script/V2_QANotificationRuntime.gs': batch / 'V2_QANotificationRuntime_GENERATED.gs',
     'final-activation/NotificationSchedule_SETUP_ONLY.gs': batch / 'V2_QANotificationSchedule_SETUP_ONLY.gs',
+    'admin-only-not-for-webapp/V2_ProductionQA_Runtime.gs': batch / 'V2_ProductionQA_Runtime_GENERATED.gs',
     '集中驗收清單.md': root / 'staging/V2_FinalAcceptance_Runbook_20261104.md',
     '目前整合紀錄.md': root / 'staging/V2_QA_NotificationWiring_20261104.md',
     'A至E驗收現況.md': root / 'staging/V2_AtoE_Acceptance_20261104.md',
     '正式切換準備.md': root / 'staging/V2_ProductionCutover_Plan_20261104.md',
     '正式候選權限說明_未部署.md': root / 'staging/V2_ProductionCandidate_AccessContract_20261104.md',
     '正式候選資料GPS_未部署.md': root / 'staging/V2_ProductionCandidate_DataGPS_20261104.md',
+    '候選資料層Google驗收.md': root / 'staging/V2_ProductionCandidate_RealGoogle_20261104.md',
 }
 for file in (batch / 'qa-client').iterdir():
     if file.is_file() and file.suffix in ('.js', '.html'):
@@ -40,6 +42,7 @@ apps-script 是目前獨立 QA 的完整程式檔組合；通知設定預設關�
 qa-client 是已發布的獨立 QA 靜態頁，不含員工或主管憑證。
 source 供維護與重建；不可把其所有 gs 重複貼入同一 Apps Script 專案。
 final-activation 中的排程安裝程式目前未安裝，最後核對及授權後才使用。
+admin-only-not-for-webapp 為合成副本管理者測試，不可併入公開 Web App 部署。
 
 本包只含程式與說明，不含員工資料、LINE token、私有身分或姓名對照。
 原始 QA 資料與匯出備份留在 evidence，沒有被本包取代或刪除。
