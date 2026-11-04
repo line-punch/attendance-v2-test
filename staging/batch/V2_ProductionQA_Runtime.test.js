@@ -18,6 +18,7 @@ function fixture(){
   Utilities:{formatDate:(_d,_zone,pattern)=>({'yyyy-MM-dd':'2026-11-04','HH:mm:ss':'17:00:00'}[pattern])}});
  vm.runInContext(source,context);return {context,props,book,sheets,logs,writes:()=>writes,setTitle:v=>{title=v;}};
 }
+if(require.main===module){
 let count=0;function test(name,fn){fn();console.log('PASS '+name);count++;}
 test('generated functions are synchronous and full harness retains TEST001-only cloud writes',()=>{
  const f=fixture();const initialized=f.context.desktopMultiUserQaInitialize();assert.equal(initialized.initialized,true);assert.equal(typeof initialized.then,'undefined');
@@ -46,4 +47,6 @@ test('coerced initial coordinate sheet is retained while the new text-coordinate
  assert.equal(f.context.v2MultiQaTables_(f.book).sites[0].lat,25);assert.equal(f.context.v2MultiQaTables_(f.book).sites[0].lng,121);
 });
 console.log(count+'/'+count+' offline synchronous runtime checks; no actual Google calls');
+}
+module.exports={fixture};
 

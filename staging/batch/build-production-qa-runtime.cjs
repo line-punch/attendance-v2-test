@@ -14,7 +14,9 @@ for(const [name,file]of modules){
  if(/\brequire\s*\(|\bPromise\b|\.then\s*\(|\basync(?=\s|\()/.test(source))throw Error('ASYNC_OR_IMPORT_REMAINS');
  output+='var '+name+'=(function(){var module={exports:{}};\n'+source+'\nreturn module.exports;})();\n';
 }
+const common=output;
 output+=read('V2_ProductionQA_GASAdmin_CANDIDATE.gs');
 fs.writeFileSync(path.join(__dirname,'V2_ProductionQA_Runtime_GENERATED.gs'),output,'utf8');
+fs.writeFileSync(path.join(__dirname,'V2_CandidatePhone_Runtime_GENERATED.gs'),common.replace('ADMIN-ONLY QA RUNTIME. No public route; no LINE calls; TEST001/TEST_CO cloud writes only.','CANDIDATE READONLY PHONE RUNTIME. Verified QA LINE only; all phone writes disabled.')+'\n'+read('V2_CandidatePhone_ReadonlyPort.gs'),'utf8');
 console.log('Built synchronous admin-only QA runtime; no cloud calls or deployment');
 

@@ -1061,7 +1061,8 @@ function v2BatchQANotifyCommitted_(request){
  */
 function doPost(e){
  var params=e&&e.parameter||{};
- var reply=v2BatchQAHandleCandidate_(params);
+ var reply=params.candidateRoute==='v1'&&typeof v2CandidatePhoneHandle_==='function'?
+  v2CandidatePhoneHandle_(params):v2BatchQAHandleCandidate_(params);
  var js=JSON.stringify(reply).replace(/</g,"\\u003c")
    .replace(/\u2028/g,"\\u2028").replace(/\u2029/g,"\\u2029");
  var html='<!doctype html><html><head><meta charset="utf-8"></head><body>'+

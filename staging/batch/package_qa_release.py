@@ -24,10 +24,19 @@ files = {
     '正式候選權限說明_未部署.md': root / 'staging/V2_ProductionCandidate_AccessContract_20261104.md',
     '正式候選資料GPS_未部署.md': root / 'staging/V2_ProductionCandidate_DataGPS_20261104.md',
     '候選資料層Google驗收.md': root / 'staging/V2_ProductionCandidate_RealGoogle_20261104.md',
+    '候選手機唯讀接線.md': root / 'staging/V2_CandidatePhone_Readonly_Receipt_20261104.md',
 }
 for file in (batch / 'qa-client').iterdir():
     if file.is_file() and file.suffix in ('.js', '.html'):
         files['qa-client/' + file.name] = file
+for name, source in list(files.items()):
+    if name.startswith('apps-script/'):
+        files['candidate-readonly-webapp/' + name.split('/', 1)[1]] = source
+files['candidate-readonly-webapp/V2_ProductionQA_Runtime.gs'] = batch / 'V2_CandidatePhone_Runtime_GENERATED.gs'
+if (batch / 'qa-candidate-client').exists():
+    for file in (batch / 'qa-candidate-client').iterdir():
+        if file.is_file() and file.suffix in ('.js', '.html'):
+            files['qa-candidate-client/' + file.name] = file
 for file in batch.iterdir():
     if file.is_file() and file.suffix in ('.js', '.gs', '.cjs', '.py', '.json'):
         files['source/staging/batch/' + file.name] = file
@@ -43,6 +52,8 @@ qa-client 是已發布的獨立 QA 靜態頁，不含員工或主管憑證。
 source 供維護與重建；不可把其所有 gs 重複貼入同一 Apps Script 專案。
 final-activation 中的排程安裝程式目前未安裝，最後核對及授權後才使用。
 admin-only-not-for-webapp 為合成副本管理者測試，不可併入公開 Web App 部署。
+candidate-readonly-webapp 為另一個部署組合，使用同名但僅唯讀的候選 runtime；不可把管理者 runtime 同時安裝。
+qa-candidate-client 只對應獨立候選部署，送件／審核／通知均未開放，不能當正式版。
 
 本包只含程式與說明，不含員工資料、LINE token、私有身分或姓名對照。
 原始 QA 資料與匯出備份留在 evidence，沒有被本包取代或刪除。

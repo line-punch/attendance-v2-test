@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TEST001｜候選版唯讀驗收</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{font-family:system-ui,"Microsoft JhengHei",sans-serif;background:#eef4f5;color:#263846}
+body{margin:0;padding:14px}main{max-width:650px;margin:auto}.panel{background:#fff;border-radius:14px;padding:18px;margin:12px 0}
+h1{font-size:22px;margin:0 0 12px}h2{font-size:18px;margin:0 0 10px}
+#reviewHint{white-space:pre-line;line-height:1.6}
+label{display:block;font-weight:600;margin-top:12px}
+input,select,textarea{width:100%;font:inherit;box-sizing:border-box;padding:10px;border:1px solid #c5d3d6;border-radius:8px}
+input[type=checkbox]{width:auto}button{font:inherit;background:#236c54;color:#fff;border:0;border-radius:8px;padding:10px;margin:8px 5px 4px 0;cursor:pointer}
+button{min-height:44px;box-shadow:0 3px 0 #164937;transition:transform .08s,box-shadow .08s,background-color .08s;touch-action:manipulation;-webkit-tap-highlight-color:#a4ddc3}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 2px 4px #123b2b;background:#174a3b}
+button:focus-visible{outline:3px solid #d59523;outline-offset:3px}
+button:disabled{opacity:.55;cursor:not-allowed}button[aria-busy=true]{opacity:1;background:#47685d;box-shadow:none}
+button[aria-busy=true]::before{content:"";display:inline-block;width:12px;height:12px;margin-right:8px;border:2px solid #ffffff70;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){button{transition:none}button[aria-busy=true]::before{animation:none}}
+.note{background:#f3f5f7;padding:10px;border-left:3px solid #758b98}
+#feedback{position:sticky;top:8px;z-index:20;background:#eef3f7;border:1px solid #b6c8d1;border-radius:10px;padding:12px;margin:8px 0;box-shadow:0 2px 8px #0002}
+#feedback[data-phase=busy]{background:#fff4d6;border-color:#bc8f29}#feedback[data-phase=success]{background:#e6f5ec;border-color:#65a27c}
+#feedback[data-phase=error],#feedback[data-phase=unknown]{background:#fff0eb;border-color:#bf795f}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f5;padding:12px;border-radius:10px}
+.small{font-size:13px;color:#667984}.pair{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+nav{display:grid;grid-template-columns:1fr 1fr;gap:6px}nav button{margin:0;padding:15px 8px}
+[hidden]{display:none!important}table{width:100%;border-collapse:collapse;font-size:14px}th,td{overflow-wrap:anywhere;text-align:left;padding:9px 4px;border-bottom:1px solid #dde5e8}
+nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
+@media(max-width:520px){
+ #leaveHistory table,#missingHistory table{display:block}
+ #leaveHistory tr,#missingHistory tr{display:block;border:1px solid #dde5e8;border-radius:10px;padding:8px;margin:10px 0}
+ #leaveHistory tr:first-child,#missingHistory tr:first-child{display:none}
+ #leaveHistory td,#missingHistory td{display:grid;grid-template-columns:85px minmax(0,1fr);gap:8px;padding:7px 4px}
+ #leaveHistory td::before,#missingHistory td::before{content:attr(data-label);font-weight:600;color:#526b75}
+}
+</style></head><body><main>
+<div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請選擇要操作的功能。</div>
+<button id="viewSubmittedMonth" type="button" hidden>查看該月紀錄</button>
+<section class="panel"><h1>員工打卡｜候選版唯讀驗收</h1>
+<p class="note"><strong>TEST001 候選合成副本：目前僅測試登入與查詢。</strong>畫面顯示管理者合成資料，非實際出勤；送件、審核及通知均未開放。</p>
+<button id="login">確認 TEST001 LINE 登入</button>
+<p id="identity" role="status">尚未登入 LINE</p>
+<details><summary>QA 連線設定</summary><label>獨立 QA Web App /exec 網址
+<input id="endpoint" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"></label>
+</details>
+<label><input id="confirmed" type="checkbox"> 已核對這是獨立 QA 部署，非正式或 GPS 服務</label>
+<p class="small">不儲存完整網址或 LINE ID Token；只在此頁使用。送出結果不明時，保留同一申請編號先查詢。</p>
+</section>
+<nav aria-label="員工功能">
+<button id="navClock" type="button" aria-pressed="true">上下班打卡</button>
+<button id="navLeave" type="button" aria-pressed="false">請假</button>
+<button id="navMissing" type="button" aria-pressed="false">補打卡</button>
+<button id="navHr" type="button" aria-pressed="false">人資查詢（建置中）</button>
+</nav>
+<details class="panel"><summary>申請編號與原單核對</summary><label>申請編號（結果不明時保留原編號查詢）<input id="requestId" autocomplete="off" spellcheck="false"></label>
+<button id="newId" type="button">新增一筆測試申請</button></details>
+<section class="panel" id="pageClock"><h2>上下班打卡</h2>
+<p class="note">上下班打卡須位於指定地點 50 公尺內。請允許精確定位，按下後等待結果。</p>
+<button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button>
+<button id="clockStatus" type="button">核對上一筆打卡</button>
+<h2>當月正常打卡紀錄</h2>
+<p class="small">只列出有正常打卡資料的日期。補打卡請到「補打卡」查看，即使核准也不填入此表。</p>
+<table><thead><tr><th>日期</th><th>上班時間</th><th>下班時間</th></tr></thead><tbody id="clockHistory"><tr><td colspan="3">尚未連接打卡資料，不能視為沒有紀錄。</td></tr></tbody></table>
+<button id="myClocks" type="button">重新整理當月正常打卡紀錄</button>
+</section>
+<section class="panel" id="pageLeave" hidden><h2>請假申請</h2><p class="small">不限地點，不需要定位。送出後可在下方查詢當月紀錄與狀態。</p>
+<div id="leaveFields"><div class="pair">
+<label>開始日期<input id="start" type="date" value="2026-11-09"></label>
+<label>結束日期<input id="end" type="date" value="2026-11-10"></label>
+</div>
+<label>假別<select id="leaveType"><option>事假</option><option>病假</option><option>特休</option><option>公假</option><option>婚假</option><option>喪假</option></select></label>
+<label>申請單位<select id="unit"><option value="DAY">全天／連續多日</option><option value="HOURS">單日指定時數</option></select></label>
+<div class="pair" id="hourFields" hidden>
+<label>開始時間<input id="fromTime" type="time" value="09:00"></label>
+<label>結束時間<input id="toTime" type="time" value="11:00"></label>
+</div>
+<label>請假原因<textarea id="reason"></textarea></label>
+<button id="preview" type="button">請假日期預檢（唯讀）</button></div>
+<button id="leaveStatus" type="button">查原請假單（唯讀）</button>
+<button id="submitLeave" type="button">送出請假申請</button>
+<button id="newLeave" type="button">新增申請</button><p id="leaveReceipt" role="status"></p>
+<h2>請假紀錄</h2><p class="small">依請假日期查詢。跨月假單在涵蓋月份都顯示，同一申請編號不重複建單。</p><label>查詢月份<input id="month" type="month"></label>
+<button id="currentLeaves" type="button">查詢所選月份</button>
+<div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div>
+</section>
+<section class="panel" id="pageMissing" hidden><h2>補打卡申請</h2><p class="small">不限地點，不需要定位。補打卡只列於此處，不合併正常打卡。</p>
+<div id="missingFields"><div class="pair"><label>日期<input id="missingDate" type="date" value="2026-10-30"></label>
+<label>時間<input id="missingTime" type="time" value="08:30"></label></div>
+<label>上班／下班<select id="missingType"><option>上班</option><option>下班</option></select></label>
+<label>原因<input id="missingReason" value=""></label></div>
+<button id="submitMissing" type="button">送出補打卡申請</button>
+<button id="newMissing" type="button">新增申請</button><p id="missingReceipt" role="status"></p>
+<button id="missingStatus" type="button">查原補打卡單（唯讀）</button>
+<h2>補打卡紀錄</h2><label>查詢月份<input id="missingMonth" type="month"></label>
+<button id="myMissing" type="button">查詢所選月份</button>
+<p class="small">補打卡核准後仍只列在這裡，不回填正常打卡時間。</p>
+<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div>
+</section>
+<section class="panel" id="pageHr" hidden><h2>人資查詢（建置中）</h2>
+<p>日後可查詢人資結算後匯入的本人資料，目前尚未開放。</p></section>
+<details class="panel" id="reviewPanel"><summary id="reviewTitle">QA 技術檢查（非員工功能）</summary>
+<p id="reviewHint" role="status"></p>
+
+<button id="myLeaves" type="button">查本人請假（唯讀）</button>
+<button id="hrPending" type="button">人資待審核（需測試人資身分）</button>
+<label>欲審核的原申請編號<input id="hrRequestId" autocomplete="off"></label>
+<button id="hrStatus" type="button">查原審核單（唯讀，需測試人資身分）</button>
+<button id="hrApprove" type="button">人資核准（測試）</button>
+<button id="hrReject" type="button">人資駁回（測試）</button>
+</details>
+<section class="panel">
+<label><input id="writeConsent" type="checkbox"> 確認後端僅寫入獨立 QA 的申請流水／正常打卡分頁，且 QA 寫入開關已由管理者核准啟用</label>
+<p class="small">預設不允許寫入。若上次送單逾時或結果不明，會鎖定再次送單，請先用同一編號回查。</p>
+<details><summary>詳細執行回覆（QA）</summary><pre id="result">未發送任何請求。</pre></details>
+</section>
+</main>
+<script src="./config.js?v=20261104candidate2"></script>
+<script src="./review-entry.js?v=20261104candidate2"></script>
+<script src="./app.js?v=20261104candidate2"></script></body></html>
+
