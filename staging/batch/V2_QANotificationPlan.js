@@ -1,6 +1,7 @@
 "use strict";
 // Pure offline QA planning only. No LINE calls, credentials, Sheet writes or webhook.
 const SUB=/^U[0-9a-f]{32}$/i, REQUEST=/^QA_[A-Za-z0-9_-]{8,100}$/;
+const reviewEntry=require('./qa-client/review-entry.js');
 function scope(row){
  if(!row||row.employeeId!=="TEST001"||row.company!=="TEST_CO"||
     !REQUEST.test(row.requestId)||!["LEAVE","MISSING"].includes(row.kind)||
@@ -32,6 +33,10 @@ function callbackData(row,decision){
 }
 function plan(event,row,config){
  scope(row);const r=recipients(config);
+ if(config.reviewMode&&config.reviewMode!=="LIFF")throw Error("QA_REVIEW_MODE_INVALID");
+ const action=(label,decision)=>config.reviewMode==="LIFF"?
+  {type:"uri",label,uri:reviewEntry.uri(row.requestId,decision)}:
+  {type:"postback",label,data:callbackData(row,decision)};
  if(!event||event.requestId!==row.requestId||
     !/^[A-Za-z0-9_-]{8,160}$/.test(event.eventKey||""))throw Error("QA_EVENT_INVALID");
  const entries=[];
@@ -50,8 +55,8 @@ function plan(event,row,config){
   add("REVIEWER_CARD",r.reviewer,{type:"flex",altText:"獨立 QA "+title,
    contents:{type:"bubble",body:{type:"box",layout:"vertical",contents:[
     {type:"text",text,wrap:true}]},footer:{type:"box",layout:"horizontal",contents:[
-     {type:"button",style:"primary",action:{type:"postback",label:"核准",data:callbackData(row,"APPROVE")}},
-     {type:"button",style:"secondary",action:{type:"postback",label:"駁回",data:callbackData(row,"REJECT")}}
+     {type:"button",style:"primary",action:action("核准","APPROVE")},
+     {type:"button",style:"secondary",action:action("駁回","REJECT")}
     ]}}});
  }
  // This object is a preview. No component may interpret it as delivery success.

@@ -30,3 +30,13 @@
 
 同時唯讀重新核對 QA GAS：Google 帳號仍為詠晨總會計，QA 主開關 enabled、寫入 disabled，只有原六個既有屬性，沒有已設定的 QA HR 身分或通知傳送設定。沒有編輯屬性、部署、發送訊息或更動正式系統。後台權限恢復後，先唯讀辨識實際 Messaging API Channel 與既有 webhook 的用途，再提出獨立 QA 接線；不能直接替換原 webhook。
 
+## 管理者恢復登入後：保留正式 webhook 的接法
+
+使用者回覆已登入後，實際核對 provider 顯示 Admin；可管理三個 Channel：打卡系統V2測試（LINE Login、Developing）、公司打卡（LINE Login、Published）、YC/YT員工系統（Messaging API）。已在 Messaging API 分頁唯讀確認現有 webhook 指向既有 GAS，與獨立 QA 部署不同。沒有點 Verify／Edit／Reissue，沒有複製或發出 Channel token，也沒有改 OA 或 webhook。
+
+因此 QA 卡片新增 reviewMode=LIFF：同樣顯示核准／駁回，但以 uri 開啟獨立 QA LIFF，帶 qaReviewId 與 qaDecision；不將 postback 送入正式服務。不需取代現有正式 webhook。原 postback 仍只是未啟用的本機候選，不可直接傳送。
+
+前端新增 review-entry.js，版本 20261104j。連結不帶身分、權杖或角色；只填原單並打開審核區。必須先按查原審核單，經現有 HR_STATUS 伺服器權限驗證及同 ID／PENDING 核對後，才准送 HR_REVIEW；原服務仍再次驗證 LINE 與角色。開連結不查詢、不取 GPS、不自動送件。重複參數、錯誤原單與待核對的另一筆審核會阻擋。已處理後須重新查核，不能直接再按。
+
+47 項前端離線檢查及 7 項通知規劃離線檢查通過，包含新連結不自動寫入、先查原單與員工被拒不能解鎖。仍未指定 QA 審核帳號、未配置傳送器、未發任何 LINE 訊息、未實測卡片轉跳或審核；不能宣稱整套已啟用。使用者已指示稍後再測通知。
+

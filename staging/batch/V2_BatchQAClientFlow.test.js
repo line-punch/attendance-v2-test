@@ -37,7 +37,7 @@ function make(options={}){
  "submitMissing","missingStatus","month","myLeaves","hrPending","hrRequestId",
  "hrApprove","hrReject","hrStatus","writeConsent","result","myMissing","missingHistory","leaveHistory",
  "currentLeaves","navClock","navLeave","navMissing","navHr","pageClock","pageLeave","pageMissing","pageHr",
- "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth","newLeave","newMissing","leaveReceipt","missingReceipt","hourFields","leaveFields","missingFields"];
+ "clockIn","clockOut","clockStatus","myClocks","clockHistory","feedback","missingMonth","viewSubmittedMonth","newLeave","newMissing","leaveReceipt","missingReceipt","hourFields","leaveFields","missingFields","reviewPanel","reviewHint"];
  const dom=Object.fromEntries(ids.map(x=>[x,elem(x)]));
  Object.assign(dom.endpoint,{value:"https://script.google.com/macros/s/QA_WEBAPP_TEST/exec"});
  Object.assign(dom.start,{value:"2026-11-09"});
@@ -69,6 +69,7 @@ function make(options={}){
  const liff={init:async()=>{},isLoggedIn:()=>params.login,isInClient:()=>!!params.inClient,
   getIDToken:()=>params.login?TOKEN:null,login(){params.loginCalls=(params.loginCalls||0)+1},
   logout(){params.logoutCalls=(params.logoutCalls||0)+1;params.login=false}};
+ if(options.reviewUrl){win.location={href:options.reviewUrl};win.V2QAReviewEntry=require('./qa-client/review-entry.js');}
  const URLMock=class{
   constructor(text){
    const m=/^(https?):\/\/([^/]+)(\/[^?#]*)?(\?[^#]*)?(#.*)?$/.exec(text);
@@ -94,6 +95,22 @@ function make(options={}){
   authReady:async()=>{await Promise.resolve();await Promise.resolve()}};
 }
 const tests=[
+ ["review link opens original read-only and never automatically submits; verified original required",async()=>{
+  const id='QA_REVIEW_LINK_0001',x=make({reviewUrl:'https://line-punch.github.io/attendance-v2-batch-qa/?qaReviewId='+id+'&qaDecision=APPROVE'});
+  await x.authReady();assert.equal(x.posts.length,0);assert.equal(x.dom.hrRequestId.value,id);assert.equal(x.dom.hrRequestId.readOnly,true);
+  await x.click('hrApprove');assert.equal(x.posts.length,0);
+  x.results.push({ok:true,result:{request:{requestId:id,status:'PENDING',kind:'LEAVE',startDate:'2026-11-09',endDate:'2026-11-10'}}});
+  await x.click('hrStatus');assert.equal(x.posts[0].operation,'HR_STATUS');
+  x.results.push({ok:true,result:{request:{requestId:id,status:'APPROVED'}}});
+  await x.click('hrApprove');assert.equal(x.posts[1].operation,'HR_REVIEW');
+  await x.click('hrApprove');assert.equal(x.posts.length,2);
+ }],
+ ["invalid review link or staff rejection cannot unlock review",async()=>{
+  const url='https://line-punch.github.io/attendance-v2-batch-qa/?qaReviewId=QA_REVIEW_LINK_0001&qaDecision=APPROVE';
+  const invalid=make({reviewUrl:url+'&qaDecision=REJECT'});await invalid.authReady();await invalid.click('hrApprove');assert.equal(invalid.posts.length,0);
+  const x=make({reviewUrl:url});await x.authReady();
+  x.results.push({ok:false,code:'REJECTED',persisted:false});await x.click('hrStatus');await x.click('hrApprove');assert.equal(x.posts.length,1);
+ }],
  ["server auth rejection requires a fresh external login and never repeats the rejected operation",async()=>{
   const x=make();await x.authReady();x.results.push({ok:false,code:"AUTH",persisted:false});
   await x.click("myClocks");assert(x.dom.identity.textContent.includes("重新登入"));

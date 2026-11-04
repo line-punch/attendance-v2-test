@@ -6,6 +6,26 @@ const BRIDGE="YC_V2_BATCH_QA_V1";
 const $=id=>document.getElementById(id);
 if(window.V2_QA_ENDPOINT){$("endpoint").value=window.V2_QA_ENDPOINT;$("endpoint").readOnly=true;}
 let loggedIn=false,busy=false,uiBusy=false,pendingWrite=null,draftOperation=null;
+let reviewEntry=null,reviewLoaded=false,reviewLinkInvalid=false;
+function prepareReviewEntry(){
+ if(!window.V2QAReviewEntry||!window.location)return;
+ try{
+  const target=window.V2QAReviewEntry.read(window.location.href);if(!target)return;
+  if(pendingWrite&&pendingWrite.operation==="HR_REVIEW"&&pendingWrite.requestId!==target.requestId)
+   throw Error("尚有另一筆審核結果待核對，請先查原單，不能切換新審核。");
+  reviewEntry=target;$("hrRequestId").value=target.requestId;$("hrRequestId").readOnly=true;
+  $("reviewPanel").open=true;
+  $("reviewHint").textContent="主管審核｜原單："+target.requestId+"。請先登入並按「查原審核單」，核對資料後再按「"+
+   (target.decision==="APPROVE"?"核准":"駁回")+"」。開啟連結不會自動審核。";
+ }catch(e){reviewLinkInvalid=true;status(e.message,"error");}
+}
+async function reviewFromButton(decision){
+ if(reviewLinkInvalid){status("審核連結無效，不能送出。","error");return;}
+ if(reviewEntry&&(!reviewLoaded||$("hrRequestId").value!==reviewEntry.requestId)){
+  status("請先按「查原審核單」，由伺服器核對審核權限及原單後再處理。","error");return;
+ }
+ return execute("HR_REVIEW",{write:true,decision});
+}
 const writeButtons=new Set(["clockIn","clockOut","submitLeave","submitMissing","hrApprove","hrReject","newId","newLeave","newMissing"]);
 let confirmedForms={};
 try{confirmedForms=JSON.parse(sessionStorage.getItem("v2_batch_qa_confirmed_forms")||"{}")||{};}catch(_){}
@@ -334,6 +354,12 @@ async function execute(op,{write=false,decision=null}={}){
   if(op==="MY_LEAVES"||op==="MY_MISSING")renderHistory(op,response.result);
   if(op==="MY_CLOCKS")renderClocks(response.result);
   const found=response.result&&response.result.request;
+  if(op==="HR_STATUS"&&reviewEntry&&found&&found.requestId===reviewEntry.requestId){
+   reviewLoaded=found.status==="PENDING";
+   $("reviewHint").textContent="原單："+found.requestId+"\n"+JSON.stringify(found,null,2)+
+    (reviewLoaded?"\n已查得原單，請核對日期與內容後再選核准／駁回。":"\n此單已處理，請查看目前狀態，不要重複審核。");
+  }
+  if(op==="HR_REVIEW"&&reviewEntry&&found&&found.requestId===reviewEntry.requestId)reviewLoaded=false;
   if(pendingWrite&&found&&found.requestId===pendingWrite.requestId&&
      ((write&&op===pendingWrite.operation)||
       (op==="LEAVE_STATUS"&&pendingWrite.operation==="LEAVE_REQUEST")||
@@ -378,6 +404,7 @@ async function init(){
   loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();
   $("identity").textContent=loggedIn?"已登入 LINE 測試帳號；仍需伺服器核對 TEST001 綁定":
    "請按登入，完成 LINE 測試登入";
+  prepareReviewEntry();
  }catch(e){loggedIn=false;$("identity").textContent=String(e.message||e)}
 }
 onAction("login",async()=>{
@@ -439,8 +466,8 @@ for(const [id,op] of [["newLeave","LEAVE_REQUEST"],["newMissing","MISSING_REQUES
   status("已準備新的申請，尚未送出。");
  });
 }
-onAction("hrApprove",()=>execute("HR_REVIEW",{write:true,decision:"APPROVE"}));
-onAction("hrReject",()=>execute("HR_REVIEW",{write:true,decision:"REJECT"}));
+onAction("hrApprove",()=>reviewFromButton("APPROVE"));
+onAction("hrReject",()=>reviewFromButton("REJECT"));
 onAction("currentLeaves",()=>{
  return execute("MY_LEAVES");
 });

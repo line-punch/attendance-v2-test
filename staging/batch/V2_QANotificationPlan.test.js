@@ -7,6 +7,16 @@ const row={employeeId:'TEST001',company:'TEST_CO',kind:'LEAVE',requestId:'QA_NOT
  status:'PENDING',body:{startDate:'2026-11-09',endDate:'2026-11-10'}};
 const event={type:'LEAVE_SUBMITTED',requestId:row.requestId,eventKey:row.requestId+'__V1'};
 let passed=0;function test(name,fn){fn();passed++;console.log('PASS '+name);}
+test('LIFF mode keeps approve/reject labels and sends no action to the formal webhook',()=>{
+ const p=n.plan(event,row,{...config,reviewMode:'LIFF'});
+ const buttons=p.entries[1].message.contents.footer.contents;
+ assert.deepEqual(buttons.map(b=>b.action.type),['uri','uri']);
+ const helper=require('./qa-client/review-entry.js');
+ assert.deepEqual(helper.read(buttons[0].action.uri),{requestId:row.requestId,decision:'APPROVE'});
+ assert.equal(helper.read(buttons[1].action.uri).decision,'REJECT');
+ assert.ok(buttons.every(b=>b.action.uri.startsWith('https://liff.line.me/2012136707-CgGNZAuq?')));
+ assert.throws(()=>helper.read(buttons[0].action.uri+'&qaDecision=REJECT'),/連結無效/);
+});
 test('two identical notice managers get one text; reviewer gets approve/reject card',()=>{
  const p=n.plan(event,row,config);assert.equal(p.entries.length,2);
  assert.equal(p.entries[0].message.type,'text');
