@@ -46,3 +46,17 @@ QA 靜態頁 20261104j 已提交並由 Pages 成功發布（3627558bfd70c140e98b
 
 這是直接瀏覽器連結及前端防護實測，不是 LINE 卡片實際送達／LIFF 轉跳／審核成功。GAS 未重新部署，QA 寫入未開啟；正式 Messaging API/webhook/名單未修改，沒有傳送任何通知。
 
+## 通知持久化與 GAS 停用檢查
+
+新增 V2_QANotificationDispatch.js：先將原通知 deliveryKey、收件人、內容、UUID retryKey 保存並讀回，才可呼叫傳送。已 ACCEPTED 不再送；逾時、5xx 或程序在 SENDING 後中斷，保留原資料並回 UNKNOWN，禁止直接重送或另造新 key。相同 deliveryKey 改內容會拒絕。409 只有附原 accepted request ID 才記受理，HTTP 受理不代表員工已收到。
+
+依據 LINE 官方文件 https://developers.line.biz/en/docs/messaging-api/retrying-api-request/ ：首送即帶 X-Line-Retry-Key；同一 key 必須保留相同收件人與內容，有效期 24 小時。此候選程式沒有自動重送功能，UNKNOWN 需另行人工查核，不會在超過有效期後新造 key 重送。
+
+新增 V2_QANotificationGASPort_NOT_DEPLOYED.gs：只接受不同 ID 的原 QA 來源與目的簿、明確測試收件人白名單、與員工不同的 QA 審核人；三個開關必須明確 enabled。要求專用通知流水分頁及精確表頭，不自動建表。傳送器啟用時先核對 Bot basic ID，再用既有 LINE push API；沒有公開 Web 路由、觸發器或權杖硬編碼。
+
+通知測試套件共 21 項離線檢查通過（規劃 7、流程 2、傳送 8、GAS 關閉防護 4）。仍不是 LINE 通知或 Google 真實資料寫入通過。
+
+已在獨立 QA Apps Script 編輯器新增 V2_QANotificationDispatch.gs 與 V2_QANotificationGASPort.gs，儲存成功；未重新發布 Web App，既有第 3 版未更換，未設定 token／收件人／新開關或新增資料分頁。實際在 GAS 執行 desktopQaNotificationDisabledCheck：2026-11-04 台北時間 14:07:37 開始，印出 PASS_QA_NOTIFY_DISABLED_NO_SHEETS_NO_LINE，14:07:38 正常完成。此函式只讀 Script Properties 並確認 DISABLED，沒有讀寫 Google 試算表、沒有呼叫 LINE。
+
+證據：evidence/qa-notify-disabled-gas-20261104.png。正式專案、原 GPS/V4、主管名單、Messaging API webhook 均未改動。下一步仍是使用者方便時指定測試審核帳號，再準備專用通知流水與明確測試收件人後做真實送達驗收；暫不發送通知。
+
