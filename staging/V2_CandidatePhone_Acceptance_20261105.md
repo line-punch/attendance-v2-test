@@ -15,3 +15,11 @@
 
 本輪手機送件、審核、通知及 GPS 均尚未驗收。測試結束或使用者暫停時，關閉候選寫入及通知，保留全部紀錄。
 
+## 手機無法連線後的處理
+
+使用者回覆手機亦無法連線。已立即將 `V2_CANDIDATE_PHONE_WRITE_ENABLED`、`V2_CANDIDATE_NOTIFY_ENABLED` 改回 disabled 並讀回核對；候選查詢維持 enabled，原 QA／管理者寫入與原通知仍 disabled。
+
+Edge 直接開原 QA 首頁亦 ERR_CONNECTION_RESET，因此不能歸因於候選路徑或新版程式。外部網頁讀取工具也無法取得候選頁；GitHub 發布工作仍顯示 completed/success。GitHub 官方狀態頁當時顯示 Pages Operational，不能因此斷言個別站點與連線正常。
+
+尚未送出本輪申請或通知。已請使用者用手機 4G／5G 直接開候選網址，先不送件，以區分目前 Wi-Fi 與個別網站可達性；結果待回覆，根因未定。
+
