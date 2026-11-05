@@ -33,7 +33,10 @@ function tables(snapshot,{employees,reviewers=[]}={}){
   function date(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s||''))throw Error('EXPORT_DATE_INVALID');return s.replaceAll('-','/');}
   if(row.kind==='LEAVE'){
    let quantity;
-   if(body.unit==='DAY'){if(!Number.isInteger(body.workingDays)||body.workingDays<1)throw Error('EXPORT_WORKDAYS_UNVERIFIED');quantity=body.workingDays+'天';}
+   if(body.unit==='DAY'){
+    if(body.settlement==='OFFLINE_HR'&&body.workingDays===null&&Number.isInteger(body.requestedCalendarDays)&&body.requestedCalendarDays>=1)quantity='全天';
+    else{if(!Number.isInteger(body.workingDays)||body.workingDays<1)throw Error('EXPORT_WORKDAYS_UNVERIFIED');quantity=body.workingDays+'天';}
+   }
    else if(body.unit==='HOURS'&&/^\d{2}:\d{2}$/.test(body.fromTime)&&/^\d{2}:\d{2}$/.test(body.toTime))quantity=body.fromTime+'-'+body.toTime;
    else throw Error('EXPORT_LEAVE_UNIT_INVALID');
    result.leaves.push([row.requestId,e.employeeId,e.name,body.leaveType,date(body.startDate),date(body.endDate),quantity,body.reason||'',status,submitted,reviewer,reviewed]);

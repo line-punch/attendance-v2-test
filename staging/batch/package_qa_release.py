@@ -17,6 +17,8 @@ files = {
     'apps-script/V2_QANotificationRuntime.gs': batch / 'V2_QANotificationRuntime_GENERATED.gs',
     'final-activation/NotificationSchedule_SETUP_ONLY.gs': batch / 'V2_QANotificationSchedule_SETUP_ONLY.gs',
     'admin-only-not-for-webapp/V2_ProductionQA_Runtime.gs': batch / 'V2_ProductionQA_Runtime_GENERATED.gs',
+    'staff-release-webapp/程式碼.gs': batch / 'V2_StaffLive_Runtime_GENERATED.gs',
+    'staff-release-admin-only/Prepare_DO_NOT_DEPLOY.gs': batch / 'V2_StaffLive_Prepare_ADMIN_ONLY.gs',
     '集中驗收清單.md': root / 'staging/V2_FinalAcceptance_Runbook_20261104.md',
     '目前整合紀錄.md': root / 'staging/V2_QA_NotificationWiring_20261104.md',
     'A至E驗收現況.md': root / 'staging/V2_AtoE_Acceptance_20261104.md',
@@ -64,6 +66,8 @@ candidate-readonly-webapp 為另一個部署組合，使用同名但僅唯讀的
 qa-candidate-client 只對應獨立候選部署，送件／審核／通知均未開放，不能當正式版。
 candidate-workflow-webapp 為候選 v6 整合接線，獨立寫入及通知開關預設關閉。
 qa-candidate-workflow-client 是尚未發布的整合送件頁，不能誤稱已完成手機送件驗收。
+staff-release-webapp 是尚未部署的新員工正式候選，寫入、通知及切換旗標預設關閉。
+staff-release-admin-only 只供新空白作業表準備，公開部署前必須移除，不可混用 QA 資料。
 
 本包只含程式與說明，不含員工資料、LINE token、私有身分或姓名對照。
 原始 QA 資料與匯出備份留在 evidence，沒有被本包取代或刪除。

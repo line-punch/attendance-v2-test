@@ -38,3 +38,23 @@
 
 目前沒有正式上線完成的宣告。候選寫入、候選通知、原 QA 寫入與原 QA 通知維持關閉。
 
+## 管理登入恢復與正確 OA 核對
+
+使用者完成正式管理帳號登入後，Provider 顯示 Admin，可查看既有正式 Login Channel 2009482137（Published）及 Messaging API Channel 2009481186。使用者強調實際員工使用「YC/YT員工系統」。已改從 Official Account Manager 的 @090opuod 圖文選單唯讀核對，而非只憑 Login Channel 名稱推斷。
+
+現行 OA 選單「打卡系統」（19072666）四個動作實際均指向 LIFF 2009482137-QgqJEHgA：A page=clock、B page=miss、C page=query、D page=leave。它是 YC/YT OA 實際採用的登入入口，並非另一個被任意挑選的系統。全部原連結已備份，沒有編輯或發布選單。
+
+## 獨立新員工正式候選已安裝，尚未部署
+
+已另建 Apps Script「YC_YT_STAFF_BASIC_V2_RELEASE_20261105」，沒有覆蓋正式舊程式。已安裝同步多員工 runtime 及暫時的管理者準備函式，準備函式只允許建立一份新的 YC_ATTENDANCE_V2_STAFF_LIVE 空白作業表；公開部署前必須移除該準備函式。
+
+新 runtime 的員工及主管由原表唯讀載入，使用正式 Channel 的 token 驗證；正常卡、申請原單及通知分表。新寫入要求 STAFF_ENABLED、STAFF_WRITE_ENABLED、切換起始時間及 STAFF_LEGACY_CUTOVER_CONFIRMED=yes 全部符合；通知另有開關。未完成切換不得全員開放。
+
+依使用者原定線下 Excel 計算人資的範圍，新正式候選請假只保存申請日期、全天或指定時段；workingDays=null、settlement=OFFLINE_HR，不把日曆天數假裝為應扣工作天、不在線上扣假或計薪。多日範圍最多 31 個日曆日，實際扣抵由線下核算。正式匯出全天欄為「全天」，尚待既有 Excel 匯入相容性確認。
+
+9 項 standalone runtime、1 組前端合約、7 項中文流水及匯出合成檢查通過；皆本機模擬，不是正式員工實測。新版 UI 標題為 YC/YT員工系統，隱藏 QA 連線及測試同意控制，保留未知結果的原編號查詢。
+
+Google 對新專案提出授權要求，已交使用者親自核對；使用者回覆「新版 Google 已授權」。正在核對準備函式的實際回執，不因已授權就假定資料表已建立。原正式表、選單、LIFF、webhook 均未改動。
+
+實際後續核對：Executions 頁過去 7 天顯示 0 個執行，屬性僅 STAFF_SOURCE_BOOK_ID，沒有 STAFF_DATA_BOOK_ID；原次準備未實際執行。授權後重新執行仍要求授權，查看新 OAuth 頁確認停在「這個應用程式未經 Google 驗證」，開發者為使用者 Google 帳號。已交使用者親自決定，不代按略過警告。新作業表尚未建立、Web App 尚未部署，正式入口仍未切換。
+
