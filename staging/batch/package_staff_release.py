@@ -9,6 +9,10 @@ from zoneinfo import ZoneInfo
 root = Path(__file__).resolve().parents[2]
 batch = root / 'staging/batch'
 files = {'webapp/程式碼.gs': batch / 'V2_StaffLive_Runtime_GENERATED.gs'}
+menu_image = root / 'deliverables/YC_YT四格選單_人資查詢_20261105.png'
+if menu_image.exists():
+    files['menu/人資查詢四格圖.png'] = menu_image
+files['records/集中驗收清單.md'] = root / 'staging/V2_FinalAcceptance_Runbook_20261104.md'
 for name in ('index.html', 'app.js', 'config.js', 'review-entry.js'):
     files['staff/' + name] = batch / 'staff-client' / name
 for name in ('V2_Staff_FormalActivation_Review_20261105.md', 'V2_AtoE_Acceptance_20261104.md'):
