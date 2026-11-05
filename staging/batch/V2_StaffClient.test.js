@@ -24,6 +24,20 @@ console.log('PASS offline staff frontend route, distinct storage, identity prefi
 assert.ok(!a['index.html'].includes('id="clockStatus"'));
 assert.ok(!a['index.html'].includes('id="leaveStatus"'));
 assert.ok(!a['index.html'].includes('id="missingStatus"'));
+for(const id of ['preview','newLeave','newMissing'])assert.ok(!a['index.html'].includes('id="'+id+'"'));
+const resetSource=a['app.js'].slice(a['app.js'].indexOf('function resetStaffApplication(op,id){'),a['app.js'].indexOf('async function init(){'));
+for(const operation of ['LEAVE_REQUEST','MISSING_REQUEST']){
+ const elements={};const el=id=>elements[id]||(elements[id]={value:'old draft',hidden:true,setAttribute(k,v){this[k]=v;}});
+ const context={$:el,confirmedForms:{[operation]:'V2_SAVED_12345'},sessionStorage:{setItem(){}},formConfig:{LEAVE_REQUEST:['submitLeave','leaveReceipt','leaveFields'],MISSING_REQUEST:['submitMissing','missingReceipt','missingFields']},localToday:()=> '2026-11-05',preserveId:v=>context.savedId=v,updateLeaveUnit(){},draftOperation:operation};
+ require('node:vm').createContext(context);
+ require('node:vm').runInContext(resetSource+'\nresetStaffApplication('+JSON.stringify(operation)+',"bad")',context);assert.deepEqual(Object.keys(elements),[]);
+ require('node:vm').runInContext('resetStaffApplication('+JSON.stringify(operation)+',"V2_SAVED_12345")',context);
+ assert.equal(elements.requestId.value,'');assert.equal(context.draftOperation,null);assert.equal(context.confirmedForms[operation],undefined);
+ assert.equal(elements[operation==='LEAVE_REQUEST'?'reason':'missingReason'].value,'');
+ assert.equal(elements[operation==='LEAVE_REQUEST'?'leaveFields':'missingFields'].hidden,false);
+ assert.equal(elements[operation==='LEAVE_REQUEST'?'submitLeave':'submitMissing']['data-unavailable'],'false');
+}
+console.log('PASS confirmed submissions reset editable forms and retire the old ID; invalid confirmation preserves drafts');
 assert.ok(!a['app.js'].includes('["clockStatus","GPS_STATUS"'));
 assert.ok(a['app.js'].includes('onAction("myClocks",refreshStaffClocks)'));
 const refreshSource=a['app.js'].slice(a['app.js'].indexOf('async function refreshStaffClocks(){'),a['app.js'].indexOf('async function init(){'));

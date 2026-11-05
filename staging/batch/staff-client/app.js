@@ -37,6 +37,7 @@ let confirmedForms={};
 try{confirmedForms=JSON.parse(sessionStorage.getItem("yc_staff_v2_confirmed_forms")||"{}")||{};}catch(_){}
 const formConfig={LEAVE_REQUEST:["submitLeave","leaveReceipt","leaveFields"],MISSING_REQUEST:["submitMissing","missingReceipt","missingFields"]};
 function confirmForm(op,id){
+ if(["LEAVE_REQUEST","MISSING_REQUEST"].includes(op))return resetStaffApplication(op,id);
  if(!formConfig[op]||!/^[A-Za-z0-9_-]{12,80}$/.test(String(id||"")))return;
  confirmedForms[op]=id;
  try{sessionStorage.setItem("yc_staff_v2_confirmed_forms",JSON.stringify(confirmedForms));}catch(_){}
@@ -444,6 +445,26 @@ async function refreshStaffApplications(operation){
  }
  return history;
 }
+function resetStaffApplication(op,id){
+ if(!["LEAVE_REQUEST","MISSING_REQUEST"].includes(op)||!/^[A-Za-z0-9_-]{12,80}$/.test(String(id||"")))return;
+ delete confirmedForms[op];
+ try{sessionStorage.setItem("yc_staff_v2_confirmed_forms",JSON.stringify(confirmedForms));}catch(_){}
+ const [button,receipt,fields]=formConfig[op];
+ $(fields).hidden=false;
+ $(button).setAttribute("data-confirmed","false");$(button).setAttribute("data-unavailable","false");
+ $(button).textContent=op==="LEAVE_REQUEST"?"送出請假申請":"送出補打卡申請";
+ $(receipt).textContent="上一筆申請已送出，可在下方紀錄查看。";
+ const date=localToday();
+ if(op==="LEAVE_REQUEST"){
+  $("leaveType").selectedIndex=0;$("start").value=date;$("end").value=date;
+  $("unit").value="DAY";$("fromTime").value="09:00";$("toTime").value="11:00";
+  $("reason").value="";updateLeaveUnit();
+ }else{
+  $("missingDate").value=date;$("missingTime").value="08:30";
+  $("missingType").selectedIndex=0;$("missingReason").value="";
+ }
+ $("requestId").value="";preserveId("");draftOperation=null;
+}
 async function init(){
  try{
   if(!/^2009482137-[A-Za-z0-9]+$/.test(LIFF_ID)||LIFF_ID==="2009482137-QgqJEHgA")
@@ -478,7 +499,7 @@ onAction("newId",()=>{
 onAction("myClocks",refreshStaffClocks);
 onAction("myMissing",()=>refreshStaffApplications("MY_MISSING"));
 const binds=[
- ["preview","LEAVE_PREVIEW",false],
+
 
  ["submitLeave","LEAVE_REQUEST",true],
  ["submitMissing","MISSING_REQUEST",true],
@@ -502,7 +523,7 @@ for(const [id,op,write] of binds)
   const history=await execute(leave?"MY_LEAVES":"MY_MISSING");
   status(receipt+(history?"\n對應月份紀錄已自動更新。":"\n申請已成功送出；紀錄暫未更新，可稍後重新查詢，請勿重送。"),"success");
  });
-for(const [id,op] of [["newLeave","LEAVE_REQUEST"],["newMissing","MISSING_REQUEST"]]){
+for(const [id,op] of []){
  onAction(id,()=>{
   if(unknownWrite)throw Error("前一筆結果未確認，請先用原編號查詢。");
   const value="V2_"+freshHex(16);
@@ -529,7 +550,7 @@ onAction("viewSubmittedMonth",async()=>{
  for(const name of pages){$("page"+name).hidden=name!==(leave?"Leave":"Missing");
   $("nav"+name).setAttribute("aria-pressed",String(name===(leave?"Leave":"Missing")));}
  $(leave?"month":"missingMonth").value=submittedMonth.month;
- await execute(submittedMonth.operation);
+ await refreshStaffApplications(submittedMonth.operation);
 });
 for(const [id,type] of [["clockIn","上班"],["clockOut","下班"]]){
  onAction(id,async()=>{

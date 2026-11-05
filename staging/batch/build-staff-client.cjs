@@ -37,6 +37,26 @@ async function refreshStaffApplications(operation){
  }
  return history;
 }
+function resetStaffApplication(op,id){
+ if(!["LEAVE_REQUEST","MISSING_REQUEST"].includes(op)||!/^[A-Za-z0-9_-]{12,80}$/.test(String(id||"")))return;
+ delete confirmedForms[op];
+ try{sessionStorage.setItem("yc_staff_v2_confirmed_forms",JSON.stringify(confirmedForms));}catch(_){}
+ const [button,receipt,fields]=formConfig[op];
+ $(fields).hidden=false;
+ $(button).setAttribute("data-confirmed","false");$(button).setAttribute("data-unavailable","false");
+ $(button).textContent=op==="LEAVE_REQUEST"?"送出請假申請":"送出補打卡申請";
+ $(receipt).textContent="上一筆申請已送出，可在下方紀錄查看。";
+ const date=localToday();
+ if(op==="LEAVE_REQUEST"){
+  $("leaveType").selectedIndex=0;$("start").value=date;$("end").value=date;
+  $("unit").value="DAY";$("fromTime").value="09:00";$("toTime").value="11:00";
+  $("reason").value="";updateLeaveUnit();
+ }else{
+  $("missingDate").value=date;$("missingTime").value="08:30";
+  $("missingType").selectedIndex=0;$("missingReason").value="";
+ }
+ $("requestId").value="";preserveId("");draftOperation=null;
+}
 function build(endpoint,liff){
  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint||'')||!/^2009482137-[A-Za-z0-9]+$/.test(liff||'')||liff==='2009482137-QgqJEHgA')throw Error('NEW_STAFF_ENDPOINT_AND_LIFF_REQUIRED');
  const read=n=>fs.readFileSync(path.join(__dirname,'qa-candidate-workflow-client',n),'utf8');
@@ -94,6 +114,15 @@ function build(endpoint,liff){
  html=html.replace('<button id="leaveStatus" type="button">查原請假單（唯讀）</button>','')
   .replace('<button id="missingStatus" type="button">查原補打卡單（唯讀）</button>','')
   .replaceAll('查詢所選月份','重新整理所選月份紀錄').replaceAll('20261105staff2','20261105staff3');
+ app=app.replace('function confirmForm(op,id){','function confirmForm(op,id){\n if(["LEAVE_REQUEST","MISSING_REQUEST"].includes(op))return resetStaffApplication(op,id);')
+  .replace('async function init(){',resetStaffApplication.toString()+'\nasync function init(){')
+  .replace(' ["preview","LEAVE_PREVIEW",false],','')
+  .replace('for(const [id,op] of [["newLeave","LEAVE_REQUEST"],["newMissing","MISSING_REQUEST"]]){','for(const [id,op] of []){')
+  .replace('await execute(submittedMonth.operation);','await refreshStaffApplications(submittedMonth.operation);');
+ html=html.replace('<button id="preview" type="button">檢查請假日期</button>','')
+  .replace('<button id="newLeave" type="button">新增申請</button>','')
+  .replace('<button id="newMissing" type="button">新增申請</button>','')
+  .replaceAll('20261105staff3','20261105staff4');
  return {'index.html':html,'app.js':app,'config.js':config,'review-entry.js':review};
 }
 if(require.main===module){const files=build(process.argv[2],process.argv[3]),dir=path.join(__dirname,'staff-client');fs.mkdirSync(dir,{recursive:true});for(const [n,s]of Object.entries(files))fs.writeFileSync(path.join(dir,n),s,'utf8');console.log('Built staff release client; not published');}
