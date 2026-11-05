@@ -22,6 +22,8 @@ assert.ok(a['app.js'].includes('LINE通知尚未確認'));
 assert.ok(a['app.js'].includes('await execute("MY_CLOCKS");status(receipt'));
 console.log('PASS offline staff frontend route, distinct storage, identity prefix and public display; no browser or LINE calls');
 assert.ok(!a['index.html'].includes('id="clockStatus"'));
+assert.ok(!a['index.html'].includes('id="leaveStatus"'));
+assert.ok(!a['index.html'].includes('id="missingStatus"'));
 assert.ok(!a['app.js'].includes('["clockStatus","GPS_STATUS"'));
 assert.ok(a['app.js'].includes('onAction("myClocks",refreshStaffClocks)'));
 const refreshSource=a['app.js'].slice(a['app.js'].indexOf('async function refreshStaffClocks(){'),a['app.js'].indexOf('async function init(){'));
@@ -40,4 +42,15 @@ async function checkRefresh(pending,found,history){
  r=await checkRefresh(pending,null,{ok:true});assert.deepEqual(r.calls,['GPS_STATUS','MY_CLOCKS']);assert.equal(r.pending,pending);assert.equal(r.messages[0][1],'unknown');
  r=await checkRefresh(pending,found,undefined);assert.equal(r.pending,null);assert.match(r.messages[0][0],/不要重打/);
  console.log('PASS refresh-only recovery: saved original, unresolved lookup, failed history and normal refresh; no write or new ID');
+ for(const [operation,kind,lookup] of [['MY_LEAVES','LEAVE_REQUEST','LEAVE_STATUS'],['MY_MISSING','MISSING_REQUEST','MISSING_STATUS']]){
+  for(const saved of [true,false]){
+   const calls=[],messages=[],p={operation:kind,requestId:'V2_SYNTHETIC_REQUEST_123'};
+   const context={pendingWrite:p,status:(...x)=>messages.push(x)};
+   context.execute=async op=>{calls.push(op);if(op===lookup){if(!saved)return undefined;context.pendingWrite=null;return {ok:true,result:{request:{requestId:p.requestId}}};}return {ok:true};};
+   require('node:vm').createContext(context);
+   await require('node:vm').runInContext(refreshSource+'\nrefreshStaffApplications('+JSON.stringify(operation)+')',context);
+   assert.deepEqual(calls,[lookup,operation]);assert.equal(context.pendingWrite,saved?null:p);assert.equal(messages[0][1],saved?'success':'unknown');
+  }
+ }
+ console.log('PASS leave and missed-punch refresh recover only the same original; unresolved submissions stay blocked');
 })().catch(e=>{console.error(e);process.exitCode=1;});

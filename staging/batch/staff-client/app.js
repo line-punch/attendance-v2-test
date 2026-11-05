@@ -88,7 +88,7 @@ for(const page of pages){
   if(page!=="Hr"){
    $("month").value=localToday().slice(0,7);
    $("missingMonth").value=localToday().slice(0,7);
-   await (page==="Clock"?refreshStaffClocks():execute({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]));
+   await (page==="Clock"?refreshStaffClocks():refreshStaffApplications({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]));
   }
  });
 }
@@ -178,7 +178,7 @@ function requestBody(operation){
    time:$("missingTime").value,type:$("missingType").value,
    reason:$("missingReason").value};
  if(operation==="LEAVE_STATUS"||operation==="MISSING_STATUS")
-  return {requestId:requestId()};
+  return {requestId:pendingWrite&&((operation==="LEAVE_STATUS"&&pendingWrite.operation==="LEAVE_REQUEST")||(operation==="MISSING_STATUS"&&pendingWrite.operation==="MISSING_REQUEST"))?pendingWrite.requestId:requestId()};
  if(operation==="MY_LEAVES")return {month:$("month").value};
  if(operation==="MY_MISSING")return {month:$("missingMonth").value};
  if(operation==="MY_CLOCKS")return {};
@@ -426,6 +426,24 @@ async function refreshStaffClocks(){
  }
  return history;
 }
+async function refreshStaffApplications(operation){
+ const kind=operation==="MY_LEAVES"?"LEAVE_REQUEST":"MISSING_REQUEST";
+ const label=kind==="LEAVE_REQUEST"?"請假":"補打卡";
+ const previous=pendingWrite&&pendingWrite.operation===kind?{...pendingWrite}:null;
+ let confirmed=null;
+ if(previous){
+  const check=await execute(kind==="LEAVE_REQUEST"?"LEAVE_STATUS":"MISSING_STATUS");
+  const found=check&&check.ok===true&&check.result&&check.result.request;
+  if(found&&found.requestId===previous.requestId)confirmed=found;
+ }
+ const history=await execute(operation);
+ if(previous){
+  if(confirmed&&!pendingWrite)status("已確認剛才的"+label+"申請已送出"+
+   (history&&history.ok===true?"，所選月份紀錄已更新。":"；月份紀錄暫未更新，請稍後重新整理，不要重送。"),"success");
+  else status("剛才的"+label+"申請結果仍未確認，請稍後重新整理月份紀錄，暫時不要重送。","unknown");
+ }
+ return history;
+}
 async function init(){
  try{
   if(!/^2009482137-[A-Za-z0-9]+$/.test(LIFF_ID)||LIFF_ID==="2009482137-QgqJEHgA")
@@ -436,7 +454,7 @@ async function init(){
   $("identity").textContent=loggedIn?"已登入 LINE 帳號；仍需伺服器核對 員工綁定":
    "請按登入，完成 LINE 登入";
   prepareReviewEntry();
-  if(new URL(window.location.href).searchParams.get("review")==="1"){$("reviewPanel").open=true;$("hrPending").hidden=false;if(loggedIn)await execute("HR_PENDING");}else if(!reviewEntry){const pageArg=new URL(window.location.href).searchParams.get("page")||"clock";const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[pageArg]||"Clock";for(const name of pages){$("page"+name).hidden=name!==target;$("nav"+name).setAttribute("aria-pressed",String(name===target));}if(loggedIn&&target!=="Hr")await (target==="Clock"?refreshStaffClocks():execute({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]));}
+  if(new URL(window.location.href).searchParams.get("review")==="1"){$("reviewPanel").open=true;$("hrPending").hidden=false;if(loggedIn)await execute("HR_PENDING");}else if(!reviewEntry){const pageArg=new URL(window.location.href).searchParams.get("page")||"clock";const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[pageArg]||"Clock";for(const name of pages){$("page"+name).hidden=name!==target;$("nav"+name).setAttribute("aria-pressed",String(name===target));}if(loggedIn&&target!=="Hr")await (target==="Clock"?refreshStaffClocks():refreshStaffApplications({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]));}
  }catch(e){loggedIn=false;$("identity").textContent=String(e.message||e)}
 }
 onAction("login",async()=>{
@@ -458,14 +476,15 @@ onAction("newId",()=>{
  catch(e){status(e.message)}
 });
 onAction("myClocks",refreshStaffClocks);
+onAction("myMissing",()=>refreshStaffApplications("MY_MISSING"));
 const binds=[
  ["preview","LEAVE_PREVIEW",false],
- ["leaveStatus","LEAVE_STATUS",false],
+
  ["submitLeave","LEAVE_REQUEST",true],
  ["submitMissing","MISSING_REQUEST",true],
- ["missingStatus","MISSING_STATUS",false],
+
  ["myLeaves","MY_LEAVES",false],
- ["myMissing","MY_MISSING",false],
+
 
 
  ["hrPending","HR_PENDING",false],
@@ -502,7 +521,7 @@ for(const [id,op] of [["newLeave","LEAVE_REQUEST"],["newMissing","MISSING_REQUES
 onAction("hrApprove",()=>reviewFromButton("APPROVE"));
 onAction("hrReject",()=>reviewFromButton("REJECT"));
 onAction("currentLeaves",()=>{
- return execute("MY_LEAVES");
+ return refreshStaffApplications("MY_LEAVES");
 });
 onAction("viewSubmittedMonth",async()=>{
  if(!submittedMonth)return;
