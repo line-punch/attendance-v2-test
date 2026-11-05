@@ -25,6 +25,7 @@ files = {
     '正式候選資料GPS_未部署.md': root / 'staging/V2_ProductionCandidate_DataGPS_20261104.md',
     '候選資料層Google驗收.md': root / 'staging/V2_ProductionCandidate_RealGoogle_20261104.md',
     '候選手機唯讀接線.md': root / 'staging/V2_CandidatePhone_Readonly_Receipt_20261104.md',
+    '基本三功能正式準備_尚未上線.md': root / 'staging/V2_BasicThree_GoLive_Preparation_20261105.md',
 }
 for file in (batch / 'qa-client').iterdir():
     if file.is_file() and file.suffix in ('.js', '.html'):
@@ -92,3 +93,4 @@ with zipfile.ZipFile(archive) as check:
         if hashlib.sha256(check.read(name)).hexdigest() != digest:
             raise ValueError('Hash mismatch: ' + name)
 print(json.dumps({'archive': str(archive.resolve()), 'files': len(payload), 'verified': True}, ensure_ascii=True))
+

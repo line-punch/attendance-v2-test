@@ -1,0 +1,22 @@
+"use strict";
+// Synthetic in-memory fixtures only; never real staff data or Google writes.
+const assert=require('node:assert/strict'),j=require('./V2_ProductionJournal_CANDIDATE.js'),out=require('./V2_ProductionExport_CANDIDATE.js');
+function fixture(){
+ const lines=[];
+ const store=j.make({withExclusive:fn=>fn(),readRows:()=>lines.map(r=>r.slice()),appendRow:r=>lines.push(r.slice()),utcNow:()=> '2026-11-05T04:00:00.000Z'});
+ const employees=[{employeeId:'SYN_A',company:'合成甲公司',name:'合成員工甲'},{employeeId:'SYN_B',company:'合成乙公司',name:'合成員工乙'}];
+ async function submit(id,e){const r={requestId:id,kind:'MISSING',employeeId:e.employeeId,company:e.company,body:{date:'2026-11-04',type:'下班',time:'17:40',reason:'=SYNTHETIC()'},fingerprint:id,status:'PENDING',submittedAt:'2026-11-05'};await store.transaction(async tx=>{await tx.create(r);await tx.outbox({type:'MISSING_SUBMITTED',requestId:id});});return r;}
+ const normal=[{requestId:'V2_SYN_CLOCK_001',kind:'CLOCK',employeeId:'SYN_A',company:'合成甲公司',date:'2026-11-05',time:'08:00:00',type:'上班',source:'GPS',siteCode:'SYN_SITE',siteName:'合成地點',distanceMeters:5,accuracyMeters:10,utcTime:'2026-11-05T00:00:00.000Z'}];
+ return {lines,store,employees,normal,submit,snapshot:()=>({ledger:[j.HEADERS.slice(),...lines],normal})};
+}
+async function main(){let n=0;async function test(name,fn){await fn();console.log('PASS '+name);n++;}
+ await test('Chinese company text persists through journal and remains distinct across employees',async()=>{const f=fixture();await f.submit('V2_SYN_MISSING_A1',f.employees[0]);await f.submit('V2_SYN_MISSING_B1',f.employees[1]);const s=j.decode(f.lines);assert.equal(s.latest.get('V2_SYN_MISSING_A1').company,'合成甲公司');assert.equal(s.latest.get('V2_SYN_MISSING_B1').company,'合成乙公司');});
+ await test('blank padded control-character and oversized companies reject without append',async()=>{for(const company of ['',' 合成甲公司','合成\n公司','甲'.repeat(81)]){const f=fixture();await assert.rejects(()=>f.submit('V2_SYN_INVALID_01',{...f.employees[0],company}));assert.equal(f.lines.length,0);}});
+ await test('multiemployee export retains correct names and approved missed card stays out of normal',async()=>{const f=fixture();const r=await f.submit('V2_SYN_MISSING_A1',f.employees[0]);await f.submit('V2_SYN_MISSING_B1',f.employees[1]);await f.store.transaction(async tx=>{await tx.replace({...r,status:'APPROVED',reviewedBy:'SYN_MGR',reviewedAt:'2026-11-05'});await tx.outbox({type:'REVIEWED',requestId:r.requestId,status:'APPROVED'});});const e=out.tables(f.snapshot(),{employees:f.employees,reviewers:[{reviewerId:'SYN_MGR',name:'合成主管'}]});assert.equal(e.normalCount,1);assert.equal(e.missingCount,2);assert.equal(e.tables.missing[1][2],'合成員工甲');assert.equal(e.tables.missing[2][2],'合成員工乙');assert.equal(e.tables.missing[1][12],'2026/11/04 17:40');assert.equal(e.tables.clock[1][4],'合成員工甲');assert.equal(e.excelProgramValidated,false);});
+ await test('wrong company roster and missing reviewer mapping fail closed',async()=>{const f=fixture();const r=await f.submit('V2_SYN_MISSING_A1',f.employees[0]);assert.throws(()=>out.tables(f.snapshot(),{employees:[{...f.employees[0],company:'另一公司'},f.employees[1]]}),/MISMATCH/);await f.store.transaction(async tx=>{await tx.replace({...r,status:'REJECTED',reviewedBy:'SYN_MGR'});await tx.outbox({type:'REVIEWED',requestId:r.requestId,status:'REJECTED'});});assert.throws(()=>out.tables(f.snapshot(),{employees:f.employees}),/UNMAPPED/);});
+ await test('duplicate daily normal punch and journal tampering cannot be exported',async()=>{const f=fixture();await f.submit('V2_SYN_MISSING_A1',f.employees[0]);f.normal.push({...f.normal[0],requestId:'V2_SYN_CLOCK_002'});assert.throws(()=>out.tables(f.snapshot(),{employees:f.employees}),/NORMAL_INVALID/);f.normal.pop();f.lines[0][3]+=' ';assert.throws(()=>out.tables(f.snapshot(),{employees:f.employees}),/CONTENT_MISMATCH/);});
+ await test('CSV formula escaping and separate legacy column layouts are retained',async()=>{const f=fixture();await f.submit('V2_SYN_MISSING_A1',f.employees[0]);const e=out.tables(f.snapshot(),{employees:f.employees});assert.ok(out.csv(e.tables.missing).includes("'=SYNTHETIC()"));assert.equal(e.tables.clock[0].length,11);assert.equal(e.tables.leaves[0].length,12);assert.equal(e.tables.missing[0].length,13);});
+ console.log(n+'/'+n+' offline formal journal/export checks; no real employee data or cloud calls');
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});
+

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "QA-only offline V2 tests; no real LINE, GPS, NFC or Google APIs.",
   "scripts": {
+    "test:production-export": "node build-production-journal.cjs && node V2_ProductionJournalExport_CANDIDATE.test.js",
     "test:production-candidate": "node V2_ProductionWorkflow_CANDIDATE.test.js && node V2_ProductionClock_CANDIDATE.test.js && node V2_ProductionQA_Runtime.test.js",
     "test:candidate-phone": "node V2_CandidatePhone_Readonly.test.js && node V2_CandidatePhone_Client.test.js && node V2_CandidatePhone_Workflow.test.js",
     "test:notifications": "node V2_QANotificationPlan.test.js && node V2_QANotificationBridge.test.js && node V2_QANotificationDispatch.test.js && node V2_QANotificationGASPort.test.js && node V2_QANotificationWorker.test.js",
@@ -11,3 +12,4 @@
     "test:mobile": "node V2_BatchWorkflowCore.test.js && node V2_BatchQAProtectedRouter_NOT_DEPLOYED.test.js && node V2_BatchQA_SYNC_FULL_BUNDLE_NOT_DEPLOYED.test.js && node V2_BatchQAClientFlow.test.js && node V2_MobileClockQA.test.js && node V2_OperationalExport.test.js && node V2_ExistingSheetLayoutExport.test.js"
   }
 }
+
