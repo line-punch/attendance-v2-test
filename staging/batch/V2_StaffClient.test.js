@@ -46,6 +46,8 @@ for(const [query,target] of [['?page=clock','Clock'],['?page=leave','Leave'],['?
  assert.match(doc.title,/YC\/YT員工系統/);
 }
 assert.ok(a['index.html'].includes('nav[aria-label="員工功能"]'));
+assert.ok(a['index.html'].includes('<div class="loginRow"><button id="login">'));
+assert.ok(a['index.html'].includes('<div class="clockActions">'));
 assert.ok(a['index.html'].includes('.pair{grid-template-columns:minmax(0,1fr);gap:12px}'));
 console.log('PASS direct OA routes show only the chosen page before login; review route hides employee forms');
 assert.ok(!a['app.js'].includes('["clockStatus","GPS_STATUS"'));

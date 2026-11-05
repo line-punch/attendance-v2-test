@@ -140,6 +140,13 @@ function build(endpoint,liff){
   .replace('請選擇要操作的功能。','請登入後使用此功能。')
   .replace('</style>','nav[aria-label="員工功能"],details:has(#requestId),details:has(#result),#viewSubmittedMonth{display:none!important}.pair{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pair>label{min-width:0}input[type="date"],input[type="time"]{min-width:0;max-width:100%}@media(max-width:520px){.pair{grid-template-columns:minmax(0,1fr);gap:12px}}\n</style>')
   .replaceAll('20261105staff4','20261105staff5');
+ html=html.replace(/<button id="login">確認 LINE 登入<\/button>\r?\n<p id="identity" role="status">尚未登入 LINE<\/p>/,
+  '<div class="loginRow"><button id="login">確認 LINE 登入</button><p id="identity" role="status">尚未登入 LINE</p></div>')
+  .replace('<section class="panel"><h1>','<section class="panel loginPanel"><h1>')
+  .replace('<button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button>',
+   '<div class="clockActions"><button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button></div>')
+  .replace('</style>','.loginPanel{padding:14px 18px}.loginPanel h1{font-size:20px;margin-bottom:8px}.loginRow{display:flex;align-items:center;gap:12px}.loginRow #login{flex:0 0 auto;margin:0;font-size:15px;padding:10px 12px}.loginRow #identity{font-size:12px;font-weight:400;color:#6b7280;line-height:1.5;margin:0;min-width:0;overflow-wrap:anywhere}.clockActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:22px 0 24px}.clockActions button{width:100%;min-height:64px;margin:0;font-size:22px;font-weight:700;padding:16px 12px}.clockActions #clockOut{background:#345f72;box-shadow:0 3px 0 #244554}.clockActions #clockOut:active:not(:disabled){background:#284a59;box-shadow:inset 0 2px 4px #163442}section.panel:has(>label>#writeConsent){display:none}\n</style>')
+  .replaceAll('20261105staff5','20261105staff6');
  return {'index.html':html,'app.js':app,'config.js':config,'review-entry.js':review};
 }
 if(require.main===module){const files=build(process.argv[2],process.argv[3]),dir=path.join(__dirname,'staff-client');fs.mkdirSync(dir,{recursive:true});for(const [n,s]of Object.entries(files))fs.writeFileSync(path.join(dir,n),s,'utf8');console.log('Built staff release client; not published');}
