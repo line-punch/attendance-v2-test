@@ -66,6 +66,19 @@ function selectStaffPage(){
  document.title="YC/YT員工系統｜"+label;
  document.querySelector("h1").textContent="YC/YT員工系統｜"+label;
 }
+function prepareStaffRecords(){
+ for(const [id,read] of [["clockRecords",()=>refreshStaffClocks()],["leaveRecords",()=>refreshStaffApplications("MY_LEAVES")],["missingRecords",()=>refreshStaffApplications("MY_MISSING")]]){
+  $(id).addEventListener("toggle",async()=>{
+   if(!$(id).open)return;
+   if(busy||uiBusy){status("目前有操作正在執行，請稍後按紀錄中的重新整理。","busy");return;}
+   await read();
+  });
+ }
+}
+function collapseStaffRecords(operation){
+ const id={GPS_CLOCK:"clockRecords",LEAVE_REQUEST:"leaveRecords",MISSING_REQUEST:"missingRecords"}[operation];
+ if(id)$(id).open=false;
+}
 function build(endpoint,liff){
  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint||'')||!/^2009482137-[A-Za-z0-9]+$/.test(liff||'')||liff==='2009482137-QgqJEHgA')throw Error('NEW_STAFF_ENDPOINT_AND_LIFF_REQUIRED');
  const read=n=>fs.readFileSync(path.join(__dirname,'qa-candidate-workflow-client',n),'utf8');
@@ -147,6 +160,30 @@ function build(endpoint,liff){
    '<div class="clockActions"><button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button></div>')
   .replace('</style>','.loginPanel{padding:14px 18px}.loginPanel h1{font-size:20px;margin-bottom:8px}.loginRow{display:flex;align-items:center;gap:12px}.loginRow #login{flex:0 0 auto;margin:0;font-size:15px;padding:10px 12px}.loginRow #identity{font-size:12px;font-weight:400;color:#6b7280;line-height:1.5;margin:0;min-width:0;overflow-wrap:anywhere}.clockActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:22px 0 24px}.clockActions button{width:100%;min-height:64px;margin:0;font-size:22px;font-weight:700;padding:16px 12px}.clockActions #clockOut{background:#345f72;box-shadow:0 3px 0 #244554}.clockActions #clockOut:active:not(:disabled){background:#284a59;box-shadow:inset 0 2px 4px #163442}section.panel:has(>label>#writeConsent){display:none}\n</style>')
   .replaceAll('20261105staff5','20261105staff6');
+ // History is opt-in. Initial login/navigation and successful submissions
+ // perform no month query. Opening a record panel retains original-ID recovery.
+ const navAuto='await (page==="Clock"?refreshStaffClocks():refreshStaffApplications({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]));';
+ const initAuto='if(loggedIn&&target!=="Hr")await (target==="Clock"?refreshStaffClocks():refreshStaffApplications({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]));';
+ if(!app.includes(navAuto)||!app.includes(initAuto))throw Error('STAFF_OPT_IN_ROUTE_ANCHOR_CHANGED');
+ app=app.replace(navAuto,'// Month records load only when the employee opens the record panel.').replace(initAuto,'');
+ const bindStart=app.indexOf('for(const [id,op,write] of binds)'),bindEnd=app.indexOf('for(const [id,op] of []){',bindStart);
+ if(bindStart<0||bindEnd<0)throw Error('STAFF_SUBMIT_BIND_ANCHOR_CHANGED');
+ app=app.slice(0,bindStart)+'for(const [id,op,write] of binds)onAction(id,()=>execute(op,{write}));\n'+app.slice(bindEnd);
+ const gpsAuto='const r=await execute("GPS_CLOCK",{write:true});if(r&&r.ok===true){const receipt=$("feedback").textContent;await execute("MY_CLOCKS");status(receipt,"success");}return r;';
+ if(!app.includes(gpsAuto))throw Error('STAFF_GPS_RECEIPT_ANCHOR_CHANGED');
+ app=app.replace(gpsAuto,'return execute("GPS_CLOCK",{write:true});');
+ app=app.replace('let success=summaries[op]||"查詢完成。";','if(write&&found)collapseStaffRecords(op);\n  let success=summaries[op]||"查詢完成。";')
+  .replace('loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();','loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();\n  if(loggedIn)status(unknownWrite?"上次送出結果未確認，請點開紀錄核對，暫勿重送。":"LINE 登入已確認，可直接操作。",unknownWrite?"unknown":"success");')
+  .replace('async function init(){',prepareStaffRecords.toString()+'\n'+collapseStaffRecords.toString()+'\nasync function init(){')
+  .replace('\nselectStaffPage();\ninit();','\nprepareStaffRecords();\nselectStaffPage();\ninit();');
+ html=html.replace('<h2>當月正常打卡紀錄</h2>','<details class="staffRecords" id="clockRecords"><summary>查看當月打卡紀錄</summary><h2>當月正常打卡紀錄</h2>')
+  .replace('<button id="myClocks" type="button">重新整理當月紀錄</button>','<button id="myClocks" type="button">重新整理當月紀錄</button></details>')
+  .replace('<h2>請假紀錄</h2>','<details class="staffRecords" id="leaveRecords"><summary>查看請假紀錄</summary><h2>請假紀錄</h2>')
+  .replace('<div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div>','<div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div></details>')
+  .replace('<h2>補打卡紀錄</h2>','<details class="staffRecords" id="missingRecords"><summary>查看補打卡紀錄</summary><h2>補打卡紀錄</h2>')
+  .replace('<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div>','<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div></details>')
+  .replace('</style>','.staffRecords{margin-top:20px;border-top:1px solid #dde5e8;padding-top:14px}.staffRecords>summary{cursor:pointer;color:#236c54;font-weight:600;min-height:44px;display:list-item;line-height:44px}.staffRecords>summary:active{color:#174a3b}.staffRecords h2{margin-top:12px}\n</style>')
+  .replaceAll('20261105staff6','20261105staff7');
  return {'index.html':html,'app.js':app,'config.js':config,'review-entry.js':review};
 }
 if(require.main===module){const files=build(process.argv[2],process.argv[3]),dir=path.join(__dirname,'staff-client');fs.mkdirSync(dir,{recursive:true});for(const [n,s]of Object.entries(files))fs.writeFileSync(path.join(dir,n),s,'utf8');console.log('Built staff release client; not published');}

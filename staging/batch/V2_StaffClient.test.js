@@ -19,7 +19,8 @@ assert.ok(a['app.js'].includes('query:"Hr"'));
 assert.ok(a['app.js'].includes('function renderStaffQueue'));
 assert.ok(a['app.js'].includes('if(!reviewEntry||!reviewLoaded'));
 assert.ok(a['app.js'].includes('LINE通知尚未確認'));
-assert.ok(a['app.js'].includes('await execute("MY_CLOCKS");status(receipt'));
+assert.ok(!a['app.js'].includes('await execute("MY_CLOCKS");status(receipt'));
+for(const id of ['clockRecords','leaveRecords','missingRecords'])assert.ok(a['index.html'].includes('class="staffRecords" id="'+id+'"><summary>查看'));
 console.log('PASS offline staff frontend route, distinct storage, identity prefix and public display; no browser or LINE calls');
 assert.ok(!a['index.html'].includes('id="clockStatus"'));
 assert.ok(!a['index.html'].includes('id="leaveStatus"'));
@@ -61,6 +62,19 @@ async function checkRefresh(pending,found,history){
  return {calls,messages,pending:context.pendingWrite};
 }
 (async()=>{
+ const initSource=a['app.js'].slice(a['app.js'].indexOf('async function init(){'),a['app.js'].indexOf('onAction("login"'));
+ for(const page of ['clock','leave','miss']){
+  const calls=[],els={},context={unknownWrite:false,status(){},LIFF_ID:'2009482137-Synthetic',URL,window:{location:{href:'https://example.test/?page='+page}},pages:['Clock','Leave','Missing','Hr'],reviewEntry:null,liff:{init:async()=>{},isLoggedIn:()=>true,getIDToken:()=> 'synthetic'},selectStaffPage(){},prepareReviewEntry(){},$:id=>els[id]||(els[id]={setAttribute(){}}),execute:async op=>calls.push(op)};
+  require('node:vm').createContext(context);await require('node:vm').runInContext(initSource+'\ninit()',context);assert.deepEqual(calls,[]);assert.equal(context.loggedIn,true);
+ }
+ const toggles={},reads=[],els={},toggleContext={busy:false,uiBusy:false,status(){},$:id=>els[id]||(els[id]={open:false,addEventListener:(name,fn)=>toggles[id]=fn}),refreshStaffClocks:async()=>reads.push('MY_CLOCKS'),refreshStaffApplications:async op=>reads.push(op)};
+ const toggleSource=a['app.js'].slice(a['app.js'].indexOf('function prepareStaffRecords(){'),a['app.js'].indexOf('async function init(){'));
+ require('node:vm').createContext(toggleContext);require('node:vm').runInContext(toggleSource+'\nprepareStaffRecords()',toggleContext);assert.deepEqual(reads,[]);
+ for(const [id,op]of [['clockRecords','MY_CLOCKS'],['leaveRecords','MY_LEAVES'],['missingRecords','MY_MISSING']]){await toggles[id]();assert.equal(reads.includes(op),false);els[id].open=true;await toggles[id]();assert.equal(reads[reads.length-1],op);}
+ const gpsSource=a['app.js'].slice(a['app.js'].indexOf('for(const [id,type] of [["clockIn"'),a['app.js'].indexOf('if(unknownWrite)document.querySelectorAll'));
+ const handlers={},sent=[],gpsContext={busy:false,unknownWrite:false,onAction:(id,fn)=>handlers[id]=fn,status(){},freshHex:()=> '1234567890abcdef',preserveId(){},$:()=>({value:''}),execute:async op=>{sent.push(op);return {ok:true};}};
+ require('node:vm').createContext(gpsContext);require('node:vm').runInContext(gpsSource,gpsContext);await handlers.clockIn();assert.deepEqual(sent,['GPS_CLOCK']);
+ console.log('PASS logged-in entry makes no history calls; panels read only when opened; clock success makes no follow-up history call');
  const pending={operation:'GPS_CLOCK',requestId:'V2_GPS_SYNTHETIC_123',type:'上班'};
  const found={requestId:pending.requestId,type:'上班',time:'09:01:02'};
  let r=await checkRefresh(null,null,{ok:true});assert.deepEqual(r.calls,['MY_CLOCKS']);

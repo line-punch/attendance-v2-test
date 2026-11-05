@@ -35,6 +35,7 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
 }
 details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:has(>label>#writeConsent)>p{display:none}#reviewPanel:not([open]){display:none}nav[aria-label="員工功能"],details:has(#requestId),details:has(#result),#viewSubmittedMonth{display:none!important}.pair{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pair>label{min-width:0}input[type="date"],input[type="time"]{min-width:0;max-width:100%}@media(max-width:520px){.pair{grid-template-columns:minmax(0,1fr);gap:12px}}
 .loginPanel{padding:14px 18px}.loginPanel h1{font-size:20px;margin-bottom:8px}.loginRow{display:flex;align-items:center;gap:12px}.loginRow #login{flex:0 0 auto;margin:0;font-size:15px;padding:10px 12px}.loginRow #identity{font-size:12px;font-weight:400;color:#6b7280;line-height:1.5;margin:0;min-width:0;overflow-wrap:anywhere}.clockActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:22px 0 24px}.clockActions button{width:100%;min-height:64px;margin:0;font-size:22px;font-weight:700;padding:16px 12px}.clockActions #clockOut{background:#345f72;box-shadow:0 3px 0 #244554}.clockActions #clockOut:active:not(:disabled){background:#284a59;box-shadow:inset 0 2px 4px #163442}section.panel:has(>label>#writeConsent){display:none}
+.staffRecords{margin-top:20px;border-top:1px solid #dde5e8;padding-top:14px}.staffRecords>summary{cursor:pointer;color:#236c54;font-weight:600;min-height:44px;display:list-item;line-height:44px}.staffRecords>summary:active{color:#174a3b}.staffRecords h2{margin-top:12px}
 </style></head><body><main>
 <div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請登入後使用此功能。</div>
 <button id="viewSubmittedMonth" type="button" hidden>查看該月紀錄</button>
@@ -59,10 +60,10 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 <p class="note">上下班打卡須位於指定地點 50 公尺內。請允許精確定位，按下後等待結果。</p>
 <div class="clockActions"><button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button></div>
 
-<h2>當月正常打卡紀錄</h2>
+<details class="staffRecords" id="clockRecords"><summary>查看當月打卡紀錄</summary><h2>當月正常打卡紀錄</h2>
 <p class="small">只列出有正常打卡資料的日期。補打卡請到「補打卡」查看，即使核准也不填入此表。</p>
 <table><thead><tr><th>日期</th><th>上班時間</th><th>下班時間</th></tr></thead><tbody id="clockHistory"><tr><td colspan="3">尚未連接打卡資料，不能視為沒有紀錄。</td></tr></tbody></table>
-<button id="myClocks" type="button">重新整理當月紀錄</button>
+<button id="myClocks" type="button">重新整理當月紀錄</button></details>
 </section>
 <section class="panel" id="pageLeave" hidden><h2>請假申請</h2><p class="small">不限地點，不需要定位。送出後可在下方查詢當月紀錄與狀態。</p>
 <div id="leaveFields"><div class="pair">
@@ -80,9 +81,9 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 
 <button id="submitLeave" type="button">送出請假申請</button>
 <p id="leaveReceipt" role="status"></p>
-<h2>請假紀錄</h2><p class="small">依請假日期查詢。跨月假單在涵蓋月份都顯示，同一申請編號不重複建單。</p><label>查詢月份<input id="month" type="month"></label>
+<details class="staffRecords" id="leaveRecords"><summary>查看請假紀錄</summary><h2>請假紀錄</h2><p class="small">依請假日期查詢。跨月假單在涵蓋月份都顯示，同一申請編號不重複建單。</p><label>查詢月份<input id="month" type="month"></label>
 <button id="currentLeaves" type="button">重新整理所選月份紀錄</button>
-<div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div>
+<div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div></details>
 </section>
 <section class="panel" id="pageMissing" hidden><h2>補打卡申請</h2><p class="small">不限地點，不需要定位。補打卡只列於此處，不合併正常打卡。</p>
 <div id="missingFields"><div class="pair"><label>日期<input id="missingDate" type="date" value="2026-10-30"></label>
@@ -92,10 +93,10 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 <button id="submitMissing" type="button">送出補打卡申請</button>
 <p id="missingReceipt" role="status"></p>
 
-<h2>補打卡紀錄</h2><label>查詢月份<input id="missingMonth" type="month"></label>
+<details class="staffRecords" id="missingRecords"><summary>查看補打卡紀錄</summary><h2>補打卡紀錄</h2><label>查詢月份<input id="missingMonth" type="month"></label>
 <button id="myMissing" type="button">重新整理所選月份紀錄</button>
 <p class="small">補打卡核准後仍只列在這裡，不回填正常打卡時間。</p>
-<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div>
+<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div></details>
 </section>
 <section class="panel" id="pageHr" hidden><h2>人資查詢（建置中）</h2>
 <p>日後可查詢人資結算後匯入的本人資料，目前尚未開放。</p></section>
@@ -115,6 +116,6 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 <details><summary>詳細處理結果</summary><pre id="result">未發送任何請求。</pre></details>
 </section>
 </main>
-<script src="./config.js?v=20261105staff6"></script>
-<script src="./review-entry.js?v=20261105staff6"></script>
-<script src="./app.js?v=20261105staff6"></script></body></html>
+<script src="./config.js?v=20261105staff7"></script>
+<script src="./review-entry.js?v=20261105staff7"></script>
+<script src="./app.js?v=20261105staff7"></script></body></html>

@@ -89,7 +89,7 @@ for(const page of pages){
   if(page!=="Hr"){
    $("month").value=localToday().slice(0,7);
    $("missingMonth").value=localToday().slice(0,7);
-   await (page==="Clock"?refreshStaffClocks():refreshStaffApplications({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]));
+   // Month records load only when the employee opens the record panel.
   }
  });
 }
@@ -397,6 +397,7 @@ async function execute(op,{write=false,decision=null}={}){
    }
   }
   if(op==="MY_LEAVES"||op==="MY_MISSING")summaries[op]=response.result.month+" 紀錄已更新。";
+  if(write&&found)collapseStaffRecords(op);
   let success=summaries[op]||"查詢完成。";if(op==="GPS_CLOCK"&&found)success=found.type+"打卡成功："+found.time;if(["LEAVE_REQUEST","MISSING_REQUEST","HR_REVIEW"].includes(op)&&response.result.notification!=="ACCEPTED")success+=" 資料已保存，LINE通知尚未確認，請以紀錄狀態為準。";status(success,"success");
   return response;
  }catch(e){
@@ -474,6 +475,19 @@ function selectStaffPage(){
  document.title="YC/YT員工系統｜"+label;
  document.querySelector("h1").textContent="YC/YT員工系統｜"+label;
 }
+function prepareStaffRecords(){
+ for(const [id,read] of [["clockRecords",()=>refreshStaffClocks()],["leaveRecords",()=>refreshStaffApplications("MY_LEAVES")],["missingRecords",()=>refreshStaffApplications("MY_MISSING")]]){
+  $(id).addEventListener("toggle",async()=>{
+   if(!$(id).open)return;
+   if(busy||uiBusy){status("目前有操作正在執行，請稍後按紀錄中的重新整理。","busy");return;}
+   await read();
+  });
+ }
+}
+function collapseStaffRecords(operation){
+ const id={GPS_CLOCK:"clockRecords",LEAVE_REQUEST:"leaveRecords",MISSING_REQUEST:"missingRecords"}[operation];
+ if(id)$(id).open=false;
+}
 async function init(){
  try{
   if(!/^2009482137-[A-Za-z0-9]+$/.test(LIFF_ID)||LIFF_ID==="2009482137-QgqJEHgA")
@@ -482,10 +496,11 @@ async function init(){
   await liff.init({liffId:LIFF_ID});
   selectStaffPage();
   loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();
+  if(loggedIn)status(unknownWrite?"上次送出結果未確認，請點開紀錄核對，暫勿重送。":"LINE 登入已確認，可直接操作。",unknownWrite?"unknown":"success");
   $("identity").textContent=loggedIn?"已登入 LINE 帳號；仍需伺服器核對 員工綁定":
    "請按登入，完成 LINE 登入";
   prepareReviewEntry();
-  if(new URL(window.location.href).searchParams.get("review")==="1"){$("reviewPanel").open=true;$("hrPending").hidden=false;if(loggedIn)await execute("HR_PENDING");}else if(!reviewEntry){const pageArg=new URL(window.location.href).searchParams.get("page")||"clock";const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[pageArg]||"Clock";for(const name of pages){$("page"+name).hidden=name!==target;$("nav"+name).setAttribute("aria-pressed",String(name===target));}if(loggedIn&&target!=="Hr")await (target==="Clock"?refreshStaffClocks():refreshStaffApplications({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]));}
+  if(new URL(window.location.href).searchParams.get("review")==="1"){$("reviewPanel").open=true;$("hrPending").hidden=false;if(loggedIn)await execute("HR_PENDING");}else if(!reviewEntry){const pageArg=new URL(window.location.href).searchParams.get("page")||"clock";const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[pageArg]||"Clock";for(const name of pages){$("page"+name).hidden=name!==target;$("nav"+name).setAttribute("aria-pressed",String(name===target));}}
  }catch(e){loggedIn=false;$("identity").textContent=String(e.message||e)}
 }
 onAction("login",async()=>{
@@ -521,18 +536,7 @@ const binds=[
  ["hrPending","HR_PENDING",false],
  ["hrStatus","HR_STATUS",false]
 ];
-for(const [id,op,write] of binds)
- onAction(id,async()=>{
-  const response=await execute(op,{write});
-  if(!write||!formConfig[op]||!response||!response.result||!response.result.request)return;
-  const date=response.result.request.startDate||response.result.request.date;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||"")))return;
-  const receipt=$("feedback").textContent;
-  const leave=op==="LEAVE_REQUEST";
-  $(leave?"month":"missingMonth").value=date.slice(0,7);
-  const history=await execute(leave?"MY_LEAVES":"MY_MISSING");
-  status(receipt+(history?"\n對應月份紀錄已自動更新。":"\n申請已成功送出；紀錄暫未更新，可稍後重新查詢，請勿重送。"),"success");
- });
+for(const [id,op,write] of binds)onAction(id,()=>execute(op,{write}));
 for(const [id,op] of []){
  onAction(id,()=>{
   if(unknownWrite)throw Error("前一筆結果未確認，請先用原編號查詢。");
@@ -567,10 +571,11 @@ for(const [id,type] of [["clockIn","上班"],["clockOut","下班"]]){
   if(busy||unknownWrite){status("請先核對上一筆操作結果，不要再次送出。");return;}
   try{clockType=type;const id="V2_GPS_"+freshHex(16);$("requestId").value=id;preserveId(id);}
   catch(e){status(e.message);return;}
-  const r=await execute("GPS_CLOCK",{write:true});if(r&&r.ok===true){const receipt=$("feedback").textContent;await execute("MY_CLOCKS");status(receipt,"success");}return r;
+  return execute("GPS_CLOCK",{write:true});
  });
 }
 if(unknownWrite)document.querySelectorAll("button").forEach(b=>{if(writeButtons.has(b.id))b.disabled=true;});
+prepareStaffRecords();
 selectStaffPage();
 init();
 })();
