@@ -21,4 +21,23 @@ assert.ok(a['app.js'].includes('if(!reviewEntry||!reviewLoaded'));
 assert.ok(a['app.js'].includes('LINE通知尚未確認'));
 assert.ok(a['app.js'].includes('await execute("MY_CLOCKS");status(receipt'));
 console.log('PASS offline staff frontend route, distinct storage, identity prefix and public display; no browser or LINE calls');
-
+assert.ok(!a['index.html'].includes('id="clockStatus"'));
+assert.ok(!a['app.js'].includes('["clockStatus","GPS_STATUS"'));
+assert.ok(a['app.js'].includes('onAction("myClocks",refreshStaffClocks)'));
+const refreshSource=a['app.js'].slice(a['app.js'].indexOf('async function refreshStaffClocks(){'),a['app.js'].indexOf('async function init(){'));
+async function checkRefresh(pending,found,history){
+ const calls=[],messages=[],context={pendingWrite:pending,status:(...args)=>messages.push(args)};
+ context.execute=async op=>{calls.push(op);if(op==='GPS_STATUS'){if(found){context.pendingWrite=null;return {ok:true,result:{request:found}};}return undefined;}return history;};
+ require('node:vm').createContext(context);
+ await require('node:vm').runInContext(refreshSource+'\nrefreshStaffClocks()',context);
+ return {calls,messages,pending:context.pendingWrite};
+}
+(async()=>{
+ const pending={operation:'GPS_CLOCK',requestId:'V2_GPS_SYNTHETIC_123',type:'上班'};
+ const found={requestId:pending.requestId,type:'上班',time:'09:01:02'};
+ let r=await checkRefresh(null,null,{ok:true});assert.deepEqual(r.calls,['MY_CLOCKS']);
+ r=await checkRefresh(pending,found,{ok:true});assert.deepEqual(r.calls,['GPS_STATUS','MY_CLOCKS']);assert.equal(r.pending,null);assert.match(r.messages[0][0],/已確認剛才上班打卡成功：09:01:02/);
+ r=await checkRefresh(pending,null,{ok:true});assert.deepEqual(r.calls,['GPS_STATUS','MY_CLOCKS']);assert.equal(r.pending,pending);assert.equal(r.messages[0][1],'unknown');
+ r=await checkRefresh(pending,found,undefined);assert.equal(r.pending,null);assert.match(r.messages[0][0],/不要重打/);
+ console.log('PASS refresh-only recovery: saved original, unresolved lookup, failed history and normal refresh; no write or new ID');
+})().catch(e=>{console.error(e);process.exitCode=1;});

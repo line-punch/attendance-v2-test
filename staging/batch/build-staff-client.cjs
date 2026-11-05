@@ -1,5 +1,24 @@
 "use strict";
 const fs=require('node:fs'),path=require('node:path');
+async function refreshStaffClocks(){
+ const previous=pendingWrite&&pendingWrite.operation==="GPS_CLOCK"?{...pendingWrite}:null;
+ let confirmed=null;
+ if(previous){
+  const check=await execute("GPS_STATUS");
+  const found=check&&check.ok===true&&check.result&&check.result.request;
+  if(found&&found.requestId===previous.requestId)confirmed=found;
+ }
+ const history=await execute("MY_CLOCKS");
+ if(previous){
+  if(confirmed&&!pendingWrite){
+   status("已確認剛才"+confirmed.type+"打卡成功："+confirmed.time+
+    (history&&history.ok===true?"，當月紀錄已更新。":"；當月紀錄暫未更新，請稍後重新整理，不要重打。"),"success");
+  }else{
+   status("剛才的打卡結果仍未確認，請稍後重新整理當月紀錄，暫時不要再打一次。","unknown");
+  }
+ }
+ return history;
+}
 function build(endpoint,liff){
  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint||'')||!/^2009482137-[A-Za-z0-9]+$/.test(liff||'')||liff==='2009482137-QgqJEHgA')throw Error('NEW_STAFF_ENDPOINT_AND_LIFF_REQUIRED');
  const read=n=>fs.readFileSync(path.join(__dirname,'qa-candidate-workflow-client',n),'utf8');
@@ -33,8 +52,20 @@ function build(endpoint,liff){
  html=html.replace('</style>','details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:has(>label>#writeConsent)>p{display:none}#reviewPanel:not([open]){display:none}</style>');
  const config='/* Public release identifiers only. No staff roster or tokens. */\nwindow.V2_QA_LIFF_ID='+JSON.stringify(liff)+';\nwindow.V2_QA_ENDPOINT='+JSON.stringify(endpoint)+';\nfor(const id of ["confirmed","writeConsent"]){document.getElementById(id).checked=true;}\n';
  const review=read('review-entry.js').replace('https://liff.line.me/2012136707-CgGNZAuq/candidate/','https://liff.line.me/'+liff).replace('/^QA_','/^V2_');
+ // One employee action owns recovery and month refresh; never infer absence
+ // from the month table or create a replacement request after an unknown write.
+ app=app.replace('async function init(){',refreshStaffClocks.toString()+'\nasync function init(){');
+ app=app.replace('if(operation==="GPS_STATUS")return {requestId:requestId(),type:clockType};',
+  'if(operation==="GPS_STATUS")return pendingWrite&&pendingWrite.operation==="GPS_CLOCK"?{requestId:pendingWrite.requestId,type:pendingWrite.type}:{requestId:requestId(),type:clockType};');
+ app=app.replace(' ["myClocks","MY_CLOCKS",false],','').replace(' ["clockStatus","GPS_STATUS",false],','');
+ app=app.replace('const binds=[','onAction("myClocks",refreshStaffClocks);\nconst binds=[');
+ app=app.replace('await execute({Clock:"MY_CLOCKS",Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]);',
+  'await (page==="Clock"?refreshStaffClocks():execute({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]));');
+ app=app.replace('await execute({Clock:"MY_CLOCKS",Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]);',
+  'await (target==="Clock"?refreshStaffClocks():execute({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]));');
+ html=html.replace('<button id="clockStatus" type="button">核對上一筆打卡</button>','')
+  .replace('重新整理當月正常打卡紀錄','重新整理當月紀錄').replaceAll('20261105staff1','20261105staff2');
  return {'index.html':html,'app.js':app,'config.js':config,'review-entry.js':review};
 }
 if(require.main===module){const files=build(process.argv[2],process.argv[3]),dir=path.join(__dirname,'staff-client');fs.mkdirSync(dir,{recursive:true});for(const [n,s]of Object.entries(files))fs.writeFileSync(path.join(dir,n),s,'utf8');console.log('Built staff release client; not published');}
 module.exports={build};
-

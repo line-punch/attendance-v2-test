@@ -88,7 +88,7 @@ for(const page of pages){
   if(page!=="Hr"){
    $("month").value=localToday().slice(0,7);
    $("missingMonth").value=localToday().slice(0,7);
-   await execute({Clock:"MY_CLOCKS",Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]);
+   await (page==="Clock"?refreshStaffClocks():execute({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[page]));
   }
  });
 }
@@ -182,7 +182,7 @@ function requestBody(operation){
  if(operation==="MY_LEAVES")return {month:$("month").value};
  if(operation==="MY_MISSING")return {month:$("missingMonth").value};
  if(operation==="MY_CLOCKS")return {};
- if(operation==="GPS_STATUS")return {requestId:requestId(),type:clockType};
+ if(operation==="GPS_STATUS")return pendingWrite&&pendingWrite.operation==="GPS_CLOCK"?{requestId:pendingWrite.requestId,type:pendingWrite.type}:{requestId:requestId(),type:clockType};
  if(operation==="HR_PENDING")return {};
  if(operation==="HR_REVIEW"||operation==="HR_STATUS"){
   const id=$("hrRequestId").value.trim();
@@ -407,6 +407,25 @@ async function execute(op,{write=false,decision=null}={}){
   document.querySelectorAll("button").forEach(b=>{b.disabled=b.dataset&&b.dataset.unavailable==="true"});
  }
 }
+async function refreshStaffClocks(){
+ const previous=pendingWrite&&pendingWrite.operation==="GPS_CLOCK"?{...pendingWrite}:null;
+ let confirmed=null;
+ if(previous){
+  const check=await execute("GPS_STATUS");
+  const found=check&&check.ok===true&&check.result&&check.result.request;
+  if(found&&found.requestId===previous.requestId)confirmed=found;
+ }
+ const history=await execute("MY_CLOCKS");
+ if(previous){
+  if(confirmed&&!pendingWrite){
+   status("已確認剛才"+confirmed.type+"打卡成功："+confirmed.time+
+    (history&&history.ok===true?"，當月紀錄已更新。":"；當月紀錄暫未更新，請稍後重新整理，不要重打。"),"success");
+  }else{
+   status("剛才的打卡結果仍未確認，請稍後重新整理當月紀錄，暫時不要再打一次。","unknown");
+  }
+ }
+ return history;
+}
 async function init(){
  try{
   if(!/^2009482137-[A-Za-z0-9]+$/.test(LIFF_ID)||LIFF_ID==="2009482137-QgqJEHgA")
@@ -417,7 +436,7 @@ async function init(){
   $("identity").textContent=loggedIn?"已登入 LINE 帳號；仍需伺服器核對 員工綁定":
    "請按登入，完成 LINE 登入";
   prepareReviewEntry();
-  if(new URL(window.location.href).searchParams.get("review")==="1"){$("reviewPanel").open=true;$("hrPending").hidden=false;if(loggedIn)await execute("HR_PENDING");}else if(!reviewEntry){const pageArg=new URL(window.location.href).searchParams.get("page")||"clock";const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[pageArg]||"Clock";for(const name of pages){$("page"+name).hidden=name!==target;$("nav"+name).setAttribute("aria-pressed",String(name===target));}if(loggedIn&&target!=="Hr")await execute({Clock:"MY_CLOCKS",Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]);}
+  if(new URL(window.location.href).searchParams.get("review")==="1"){$("reviewPanel").open=true;$("hrPending").hidden=false;if(loggedIn)await execute("HR_PENDING");}else if(!reviewEntry){const pageArg=new URL(window.location.href).searchParams.get("page")||"clock";const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[pageArg]||"Clock";for(const name of pages){$("page"+name).hidden=name!==target;$("nav"+name).setAttribute("aria-pressed",String(name===target));}if(loggedIn&&target!=="Hr")await (target==="Clock"?refreshStaffClocks():execute({Leave:"MY_LEAVES",Missing:"MY_MISSING"}[target]));}
  }catch(e){loggedIn=false;$("identity").textContent=String(e.message||e)}
 }
 onAction("login",async()=>{
@@ -438,6 +457,7 @@ onAction("newId",()=>{
   status("已建立新申請編號："+id+"\n不會自動送出");}
  catch(e){status(e.message)}
 });
+onAction("myClocks",refreshStaffClocks);
 const binds=[
  ["preview","LEAVE_PREVIEW",false],
  ["leaveStatus","LEAVE_STATUS",false],
@@ -446,8 +466,8 @@ const binds=[
  ["missingStatus","MISSING_STATUS",false],
  ["myLeaves","MY_LEAVES",false],
  ["myMissing","MY_MISSING",false],
- ["myClocks","MY_CLOCKS",false],
- ["clockStatus","GPS_STATUS",false],
+
+
  ["hrPending","HR_PENDING",false],
  ["hrStatus","HR_STATUS",false]
 ];
