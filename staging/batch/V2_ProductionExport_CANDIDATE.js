@@ -19,9 +19,9 @@ function tables(snapshot,{employees,reviewers=[]}={}){
  const used=new Set(),daily=new Set();
  for(const row of snapshot.normal){
   const e=employee(row),key=[row.employeeId,row.date,row.type].join('|');
-  if(row.kind!=='CLOCK'||row.source!=='GPS'||!['上班','下班'].includes(row.type)||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(row.time)||!row.requestId||used.has(row.requestId)||daily.has(key)||!Number.isFinite(row.distanceMeters)||row.distanceMeters<0)throw Error('EXPORT_NORMAL_INVALID');
+  if(row.kind!=='CLOCK'||!(row.source==='GPS'||row.source==='LINE'&&row.legacy===true)||!['上班','下班'].includes(row.type)||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(row.time)||!row.requestId||used.has(row.requestId)||daily.has(key)||!(row.source==='LINE'&&row.legacy===true&&row.distanceMeters===null)&&(!Number.isFinite(row.distanceMeters)||row.distanceMeters<0))throw Error('EXPORT_NORMAL_INVALID');
   used.add(row.requestId);daily.add(key);
-  result.clock.push([layout.localTimestamp(row.utcTime),row.date.replaceAll('-','/'),row.time,e.employeeId,e.name,row.type,row.siteCode||'',row.siteName||'','','距離：'+row.distanceMeters+'公尺',row.source]);
+  result.clock.push([layout.localTimestamp(row.utcTime),row.date.replaceAll('-','/'),row.time,e.employeeId,e.name,row.type,row.siteCode||'',row.siteName||'','',row.distanceMeters===null?'':'距離：'+row.distanceMeters+'公尺',row.source]);
  }
  for(const row of state.latest.values()){
   const e=employee(row),body=row.body||{},status=STATUS[row.status];

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "QA-only offline V2 tests; no real LINE, GPS, NFC or Google APIs.",
   "scripts": {
-    "test:staff-release": "node build-production-journal.cjs && node build-staff-live.cjs && node V2_StaffLive_Runtime.test.js && node V2_StaffClient.test.js && node V2_ProductionJournalExport_CANDIDATE.test.js",
+    "test:staff-release": "node build-production-journal.cjs && node build-staff-live.cjs && node V2_StaffLive_Runtime.test.js && node V2_StaffClient.test.js && node V2_ProductionJournalExport_CANDIDATE.test.js && node V2_LegacyCutover_Guard.test.js",
     "test:production-export": "node build-production-journal.cjs && node V2_ProductionJournalExport_CANDIDATE.test.js",
     "test:production-candidate": "node V2_ProductionWorkflow_CANDIDATE.test.js && node V2_ProductionClock_CANDIDATE.test.js && node V2_ProductionQA_Runtime.test.js",
     "test:candidate-phone": "node V2_CandidatePhone_Readonly.test.js && node V2_CandidatePhone_Client.test.js && node V2_CandidatePhone_Workflow.test.js",
