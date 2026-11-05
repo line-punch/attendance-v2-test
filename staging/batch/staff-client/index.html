@@ -33,18 +33,19 @@ nav button[aria-pressed=true]{background:#174a3b;outline:2px solid #7bb7a2}
  #leaveHistory td,#missingHistory td{display:grid;grid-template-columns:85px minmax(0,1fr);gap:8px;padding:7px 4px}
  #leaveHistory td::before,#missingHistory td::before{content:attr(data-label);font-weight:600;color:#526b75}
 }
-details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:has(>label>#writeConsent)>p{display:none}#reviewPanel:not([open]){display:none}</style></head><body><main>
-<div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請選擇要操作的功能。</div>
+details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:has(>label>#writeConsent)>p{display:none}#reviewPanel:not([open]){display:none}nav[aria-label="員工功能"],details:has(#requestId),details:has(#result),#viewSubmittedMonth{display:none!important}.pair{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pair>label{min-width:0}input[type="date"],input[type="time"]{min-width:0;max-width:100%}@media(max-width:520px){.pair{grid-template-columns:minmax(0,1fr);gap:12px}}
+</style></head><body><main>
+<div id="feedback" role="status" aria-live="polite" aria-atomic="true" data-phase="info">請登入後使用此功能。</div>
 <button id="viewSubmittedMonth" type="button" hidden>查看該月紀錄</button>
 <section class="panel"><h1>YC/YT員工系統</h1>
-<p class="note"><strong>上下班打卡、請假與補打卡。</strong>請假及補打卡不限地點；人資結算仍由公司線下辦理。</p>
+
 <button id="login">確認 LINE 登入</button>
 <p id="identity" role="status">尚未登入 LINE</p>
 <details><summary>QA 連線設定</summary><label>獨立 QA Web App /exec 網址
 <input id="endpoint" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"></label>
 </details>
 <label><input id="confirmed" type="checkbox"> 已核對這是獨立 QA 部署，非正式或 GPS 服務</label>
-<p class="small">不儲存完整網址或 LINE ID Token；只在此頁使用。送出結果不明時，保留同一申請編號先查詢。</p>
+
 </section>
 <nav aria-label="員工功能">
 <button id="navClock" type="button" aria-pressed="true">上下班打卡</button>
@@ -114,6 +115,6 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 <details><summary>詳細處理結果</summary><pre id="result">未發送任何請求。</pre></details>
 </section>
 </main>
-<script src="./config.js?v=20261105staff4"></script>
-<script src="./review-entry.js?v=20261105staff4"></script>
-<script src="./app.js?v=20261105staff4"></script></body></html>
+<script src="./config.js?v=20261105staff5"></script>
+<script src="./review-entry.js?v=20261105staff5"></script>
+<script src="./app.js?v=20261105staff5"></script></body></html>

@@ -38,6 +38,16 @@ for(const operation of ['LEAVE_REQUEST','MISSING_REQUEST']){
  assert.equal(elements[operation==='LEAVE_REQUEST'?'submitLeave':'submitMissing']['data-unavailable'],'false');
 }
 console.log('PASS confirmed submissions reset editable forms and retire the old ID; invalid confirmation preserves drafts');
+const routeSource=a['app.js'].slice(a['app.js'].indexOf('function selectStaffPage(){'),a['app.js'].indexOf('async function init(){'));
+for(const [query,target] of [['?page=clock','Clock'],['?page=leave','Leave'],['?page=miss','Missing'],['?page=query','Hr'],['?qaReviewId=V2_SYNTHETIC_123',null]]){
+ const elements={},header={},doc={querySelector:()=>header};const context={URL,window:{location:{href:'https://example.test/staff/'+query}},pages:['Clock','Leave','Missing','Hr'],document:doc,$:id=>elements[id]||(elements[id]={})};
+ require('node:vm').createContext(context);require('node:vm').runInContext(routeSource+'\nselectStaffPage()',context);
+ for(const name of context.pages)assert.equal(elements['page'+name].hidden,name!==target);
+ assert.match(doc.title,/YC\/YT員工系統/);
+}
+assert.ok(a['index.html'].includes('nav[aria-label="員工功能"]'));
+assert.ok(a['index.html'].includes('.pair{grid-template-columns:minmax(0,1fr);gap:12px}'));
+console.log('PASS direct OA routes show only the chosen page before login; review route hides employee forms');
 assert.ok(!a['app.js'].includes('["clockStatus","GPS_STATUS"'));
 assert.ok(a['app.js'].includes('onAction("myClocks",refreshStaffClocks)'));
 const refreshSource=a['app.js'].slice(a['app.js'].indexOf('async function refreshStaffClocks(){'),a['app.js'].indexOf('async function init(){'));

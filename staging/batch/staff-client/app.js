@@ -465,12 +465,22 @@ function resetStaffApplication(op,id){
  }
  $("requestId").value="";preserveId("");draftOperation=null;
 }
+function selectStaffPage(){
+ const params=new URL(window.location.href).searchParams;
+ const review=params.get("review")==="1"||params.has("qaReviewId");
+ const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[params.get("page")||"clock"]||"Clock";
+ for(const name of pages)$("page"+name).hidden=review||name!==target;
+ const label=review?"主管審核":{Clock:"上下班打卡",Leave:"請假",Missing:"補打卡",Hr:"人資查詢（建置中）"}[target];
+ document.title="YC/YT員工系統｜"+label;
+ document.querySelector("h1").textContent="YC/YT員工系統｜"+label;
+}
 async function init(){
  try{
   if(!/^2009482137-[A-Za-z0-9]+$/.test(LIFF_ID)||LIFF_ID==="2009482137-QgqJEHgA")
    throw Error("員工服務 LIFF 尚未設定；不可使用原 GPS LIFF");
   if(typeof liff==="undefined")throw Error("LINE SDK 尚未載入");
   await liff.init({liffId:LIFF_ID});
+  selectStaffPage();
   loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();
   $("identity").textContent=loggedIn?"已登入 LINE 帳號；仍需伺服器核對 員工綁定":
    "請按登入，完成 LINE 登入";
@@ -561,6 +571,7 @@ for(const [id,type] of [["clockIn","上班"],["clockOut","下班"]]){
  });
 }
 if(unknownWrite)document.querySelectorAll("button").forEach(b=>{if(writeButtons.has(b.id))b.disabled=true;});
+selectStaffPage();
 init();
 })();
 

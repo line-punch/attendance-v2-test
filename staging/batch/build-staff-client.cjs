@@ -57,6 +57,15 @@ function resetStaffApplication(op,id){
  }
  $("requestId").value="";preserveId("");draftOperation=null;
 }
+function selectStaffPage(){
+ const params=new URL(window.location.href).searchParams;
+ const review=params.get("review")==="1"||params.has("qaReviewId");
+ const target={clock:"Clock",leave:"Leave",miss:"Missing",missing:"Missing",query:"Hr",hr:"Hr"}[params.get("page")||"clock"]||"Clock";
+ for(const name of pages)$("page"+name).hidden=review||name!==target;
+ const label=review?"主管審核":{Clock:"上下班打卡",Leave:"請假",Missing:"補打卡",Hr:"人資查詢（建置中）"}[target];
+ document.title="YC/YT員工系統｜"+label;
+ document.querySelector("h1").textContent="YC/YT員工系統｜"+label;
+}
 function build(endpoint,liff){
  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint||'')||!/^2009482137-[A-Za-z0-9]+$/.test(liff||'')||liff==='2009482137-QgqJEHgA')throw Error('NEW_STAFF_ENDPOINT_AND_LIFF_REQUIRED');
  const read=n=>fs.readFileSync(path.join(__dirname,'qa-candidate-workflow-client',n),'utf8');
@@ -123,6 +132,14 @@ function build(endpoint,liff){
   .replace('<button id="newLeave" type="button">新增申請</button>','')
   .replace('<button id="newMissing" type="button">新增申請</button>','')
   .replaceAll('20261105staff3','20261105staff4');
+ app=app.replace('async function init(){',selectStaffPage.toString()+'\nasync function init(){')
+  .replace('await liff.init({liffId:LIFF_ID});','await liff.init({liffId:LIFF_ID});\n  selectStaffPage();')
+  .replace('\ninit();','\nselectStaffPage();\ninit();');
+ html=html.replace('<p class="note"><strong>上下班打卡、請假與補打卡。</strong>請假及補打卡不限地點；人資結算仍由公司線下辦理。</p>','')
+  .replace('<p class="small">不儲存完整網址或 LINE ID Token；只在此頁使用。送出結果不明時，保留同一申請編號先查詢。</p>','')
+  .replace('請選擇要操作的功能。','請登入後使用此功能。')
+  .replace('</style>','nav[aria-label="員工功能"],details:has(#requestId),details:has(#result),#viewSubmittedMonth{display:none!important}.pair{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pair>label{min-width:0}input[type="date"],input[type="time"]{min-width:0;max-width:100%}@media(max-width:520px){.pair{grid-template-columns:minmax(0,1fr);gap:12px}}\n</style>')
+  .replaceAll('20261105staff4','20261105staff5');
  return {'index.html':html,'app.js':app,'config.js':config,'review-entry.js':review};
 }
 if(require.main===module){const files=build(process.argv[2],process.argv[3]),dir=path.join(__dirname,'staff-client');fs.mkdirSync(dir,{recursive:true});for(const [n,s]of Object.entries(files))fs.writeFileSync(path.join(dir,n),s,'utf8');console.log('Built staff release client; not published');}
