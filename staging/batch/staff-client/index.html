@@ -60,10 +60,9 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 <p class="note">上下班打卡須位於指定地點 50 公尺內。請允許精確定位，按下後等待結果。</p>
 <div class="clockActions"><button id="clockIn" type="button">上班</button><button id="clockOut" type="button">下班</button></div>
 
-<details class="staffRecords" id="clockRecords"><summary>查看當月打卡紀錄</summary><h2>當月正常打卡紀錄</h2>
+<div class="staffRecords" id="clockRecords"><h2>當月正常打卡紀錄</h2>
 <p class="small">只列出有正常打卡資料的日期。補打卡請到「補打卡」查看，即使核准也不填入此表。</p>
-<table><thead><tr><th>日期</th><th>上班時間</th><th>下班時間</th></tr></thead><tbody id="clockHistory"><tr><td colspan="3">尚未連接打卡資料，不能視為沒有紀錄。</td></tr></tbody></table>
-<button id="myClocks" type="button">重新整理當月紀錄</button></details>
+<button id="myClocks" type="button">重新整理當月紀錄</button><table hidden id="clockHistoryTable"><thead><tr><th>日期</th><th>上班時間</th><th>下班時間</th></tr></thead><tbody id="clockHistory"><tr><td colspan="3">尚未連接打卡資料，不能視為沒有紀錄。</td></tr></tbody></table></div>
 </section>
 <section class="panel" id="pageLeave" hidden><h2>請假申請</h2><p class="small">不限地點，不需要定位。送出後可在下方查詢當月紀錄與狀態。</p>
 <div id="leaveFields"><div class="pair">
@@ -81,9 +80,9 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 
 <button id="submitLeave" type="button">送出請假申請</button>
 <p id="leaveReceipt" role="status"></p>
-<details class="staffRecords" id="leaveRecords"><summary>查看請假紀錄</summary><h2>請假紀錄</h2><p class="small">依請假日期查詢。跨月假單在涵蓋月份都顯示，同一申請編號不重複建單。</p><label>查詢月份<input id="month" type="month"></label>
-<button id="currentLeaves" type="button">重新整理所選月份紀錄</button>
-<div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div></details>
+<div class="staffRecords" id="leaveRecords"><h2>請假紀錄</h2><p class="small">依請假日期查詢。跨月假單在涵蓋月份都顯示，同一申請編號不重複建單。</p><label>查詢月份<input id="month" type="month"></label>
+<button id="currentLeaves" type="button">重新整理當月紀錄</button>
+<div id="leaveHistory" role="region" aria-label="當月請假紀錄">尚未查詢</div></div>
 </section>
 <section class="panel" id="pageMissing" hidden><h2>補打卡申請</h2><p class="small">不限地點，不需要定位。補打卡只列於此處，不合併正常打卡。</p>
 <div id="missingFields"><div class="pair"><label>日期<input id="missingDate" type="date" value="2026-10-30"></label>
@@ -93,10 +92,10 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 <button id="submitMissing" type="button">送出補打卡申請</button>
 <p id="missingReceipt" role="status"></p>
 
-<details class="staffRecords" id="missingRecords"><summary>查看補打卡紀錄</summary><h2>補打卡紀錄</h2><label>查詢月份<input id="missingMonth" type="month"></label>
-<button id="myMissing" type="button">重新整理所選月份紀錄</button>
+<div class="staffRecords" id="missingRecords"><h2>補打卡紀錄</h2><label>查詢月份<input id="missingMonth" type="month"></label>
+<button id="myMissing" type="button">重新整理當月紀錄</button>
 <p class="small">補打卡核准後仍只列在這裡，不回填正常打卡時間。</p>
-<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div></details>
+<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div></div>
 </section>
 <section class="panel" id="pageHr" hidden><h2>人資查詢（建置中）</h2>
 <p>日後可查詢人資結算後匯入的本人資料，目前尚未開放。</p></section>
@@ -116,6 +115,6 @@ details:has(#endpoint),label:has(#confirmed),label:has(#writeConsent),section:ha
 <details><summary>詳細處理結果</summary><pre id="result">未發送任何請求。</pre></details>
 </section>
 </main>
-<script src="./config.js?v=20261105staff7"></script>
-<script src="./review-entry.js?v=20261105staff7"></script>
-<script src="./app.js?v=20261105staff7"></script></body></html>
+<script src="./config.js?v=20261105staff8"></script>
+<script src="./review-entry.js?v=20261105staff8"></script>
+<script src="./app.js?v=20261105staff8"></script></body></html>

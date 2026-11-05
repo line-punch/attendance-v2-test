@@ -67,17 +67,11 @@ function selectStaffPage(){
  document.querySelector("h1").textContent="YC/YT員工系統｜"+label;
 }
 function prepareStaffRecords(){
- for(const [id,read] of [["clockRecords",()=>refreshStaffClocks()],["leaveRecords",()=>refreshStaffApplications("MY_LEAVES")],["missingRecords",()=>refreshStaffApplications("MY_MISSING")]]){
-  $(id).addEventListener("toggle",async()=>{
-   if(!$(id).open)return;
-   if(busy||uiBusy){status("目前有操作正在執行，請稍後按紀錄中的重新整理。","busy");return;}
-   await read();
-  });
- }
+ for(const id of ["clockHistory","leaveHistory","missingHistory"])$(id).hidden=true;
 }
 function collapseStaffRecords(operation){
- const id={GPS_CLOCK:"clockRecords",LEAVE_REQUEST:"leaveRecords",MISSING_REQUEST:"missingRecords"}[operation];
- if(id)$(id).open=false;
+ const id={GPS_CLOCK:"clockHistory",LEAVE_REQUEST:"leaveHistory",MISSING_REQUEST:"missingHistory",MY_CLOCKS:"clockHistory",MY_LEAVES:"leaveHistory",MY_MISSING:"missingHistory"}[operation];
+ if(id)$(id).hidden=!operation.startsWith("MY_");
 }
 function build(endpoint,liff){
  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint||'')||!/^2009482137-[A-Za-z0-9]+$/.test(liff||'')||liff==='2009482137-QgqJEHgA')throw Error('NEW_STAFF_ENDPOINT_AND_LIFF_REQUIRED');
@@ -172,7 +166,7 @@ function build(endpoint,liff){
  const gpsAuto='const r=await execute("GPS_CLOCK",{write:true});if(r&&r.ok===true){const receipt=$("feedback").textContent;await execute("MY_CLOCKS");status(receipt,"success");}return r;';
  if(!app.includes(gpsAuto))throw Error('STAFF_GPS_RECEIPT_ANCHOR_CHANGED');
  app=app.replace(gpsAuto,'return execute("GPS_CLOCK",{write:true});');
- app=app.replace('let success=summaries[op]||"查詢完成。";','if(write&&found)collapseStaffRecords(op);\n  let success=summaries[op]||"查詢完成。";')
+ app=app.replace('let success=summaries[op]||"查詢完成。";','if((write&&found)||["MY_CLOCKS","MY_LEAVES","MY_MISSING"].includes(op))collapseStaffRecords(op);\n  let success=summaries[op]||"查詢完成。";')
   .replace('loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();','loggedIn=liff.isLoggedIn()&&!!liff.getIDToken();\n  if(loggedIn)status(unknownWrite?"上次送出結果未確認，請點開紀錄核對，暫勿重送。":"LINE 登入已確認，可直接操作。",unknownWrite?"unknown":"success");')
   .replace('async function init(){',prepareStaffRecords.toString()+'\n'+collapseStaffRecords.toString()+'\nasync function init(){')
   .replace('\nselectStaffPage();\ninit();','\nprepareStaffRecords();\nselectStaffPage();\ninit();');
@@ -184,6 +178,16 @@ function build(endpoint,liff){
   .replace('<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div>','<div id="missingHistory" role="region" aria-label="當月補打卡紀錄">尚未查詢</div></details>')
   .replace('</style>','.staffRecords{margin-top:20px;border-top:1px solid #dde5e8;padding-top:14px}.staffRecords>summary{cursor:pointer;color:#236c54;font-weight:600;min-height:44px;display:list-item;line-height:44px}.staffRecords>summary:active{color:#174a3b}.staffRecords h2{margin-top:12px}\n</style>')
   .replaceAll('20261105staff6','20261105staff7');
+ html=html.replace(/<details class="staffRecords" id="(clockRecords|leaveRecords|missingRecords)"><summary>[^<]*<\/summary>/g,'<div class="staffRecords" id="$1">')
+  .replace('<button id="myClocks" type="button">重新整理當月紀錄</button></details>','<button id="myClocks" type="button">重新整理當月紀錄</button></div>')
+  .replace('尚未查詢</div></details>','尚未查詢</div></div>')
+  .replace('尚未查詢</div></details>','尚未查詢</div></div>')
+  .replace(/<table>(<thead><tr><th>日期<\/th><th>上班時間<\/th><th>下班時間<\/th>[\s\S]*?<\/table>)\s*(<button id="myClocks"[^>]*>[^<]*<\/button>)/,'$2<table hidden id="clockHistoryTable">$1')
+  .replaceAll('重新整理所選月份紀錄','重新整理當月紀錄')
+  .replaceAll('20261105staff7','20261105staff8');
+ app=app.replace('for(const id of ["clockHistory","leaveHistory","missingHistory"])','for(const id of ["clockHistoryTable","leaveHistory","missingHistory"])')
+  .replaceAll('GPS_CLOCK:"clockHistory"','GPS_CLOCK:"clockHistoryTable"').replaceAll('MY_CLOCKS:"clockHistory"','MY_CLOCKS:"clockHistoryTable"')
+  .replaceAll('請點開紀錄核對','請按重新整理當月紀錄核對').replaceAll('可按「查看該月紀錄」。','可在下方選擇月份，按「重新整理當月紀錄」。');
  return {'index.html':html,'app.js':app,'config.js':config,'review-entry.js':review};
 }
 if(require.main===module){const files=build(process.argv[2],process.argv[3]),dir=path.join(__dirname,'staff-client');fs.mkdirSync(dir,{recursive:true});for(const [n,s]of Object.entries(files))fs.writeFileSync(path.join(dir,n),s,'utf8');console.log('Built staff release client; not published');}
